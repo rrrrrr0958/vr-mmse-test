@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: 99c9720ab356a0642a771bea13969a05
-DefaultImporter:
+guid: 539264233b4d43c4f9f9a003a5ac9461
+PrefabImporter:
   externalObjects: {}
   userData: 
   assetBundleName: 
@@ -10,5 +10,5 @@ AssetOrigin:
   productId: 257122
   packageName: Interior House Assets | URP
   packageVersion: 1.0
-  assetPath: Assets/Scenes/SampleScene.unity
+  assetPath: Assets/UnityTechnologies/Basic Asset Pack Interior/Prefabs/Furniture/TableNarrowDoubleDraw.prefab
   uploadId: 615370
