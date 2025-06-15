@@ -1,29 +1,26 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro; // TextMeshPro ªº©R¦WªÅ¶¡¡A¥²¶·«O¯d¡I
+using TMPro; // TextMeshPro çš„å‘½åç©ºé–“ï¼Œå¿…é ˆä¿ç•™ï¼
 
 public class GameManager : MonoBehaviour
 {
-    public float initialTextDelay = 3f; // ¤å¦r¥X²{ªº©µ¿ğ®É¶¡ (¬í)
-    public float questionBroadcastDelay = 2f; // ¤å¦r¥X²{«á¡A°İÃD¼s¼½ªº©µ¿ğ®É¶¡ (¬í)
+    public float initialTextDelay = 3f; // æ–‡å­—å‡ºç¾çš„å»¶é²æ™‚é–“ (ç§’)
+    public float questionBroadcastDelay = 2f; // æ–‡å­—å‡ºç¾å¾Œï¼Œå•é¡Œå»£æ’­çš„å»¶é²æ™‚é–“ (ç§’)
 
-    // ²{¦b¼s¼½°İÃDªº¤å¦rª«¥ó¤]§ï¬° TextMeshPro Ãş«¬ (3D ª©¥»)
+    // å»£æ’­å•é¡Œçš„æ–‡å­—ç‰©ä»¶ï¼Œç¾åœ¨ç¢ºå®šæ˜¯ TextMeshPro (3D ç‰ˆæœ¬)
     public TMPro.TextMeshPro questionBroadcastTextMeshPro;
-    // public TextMesh questionBroadcast3DText; // <-- ³o¦æ²{¦b¥²¶·µùÄÀ±¼©Î§R°£
 
-    private GameObject[] stallNameTextObjects; // ¦s©ñ©Ò¦³Åu¦ì¦WºÙ¤å¦rª«¥óªº GameObject
-    private List<string> stallNames = new List<string>(); // ¦s©ñ©Ò¦³Åu¦ì¦WºÙªº¦r²Å¦ê
-    private string currentQuestionStallName; // ·í«e°İÃD©Ò«ü¦VªºÅu¦ì¦WºÙ
+    private GameObject[] stallClickableRoots; // å­˜æ”¾æ‰€æœ‰æ”¤ä½æ ¹ç‰©ä»¶ (å¸¶æœ‰ Collider å’Œ Tag)
+    private List<string> stallNames = new List<string>(); // å­˜æ”¾æ‰€æœ‰æ”¤ä½åç¨±çš„å­—ç¬¦ä¸²
+    private string currentQuestionStallName; // ç•¶å‰å•é¡Œæ‰€æŒ‡å‘çš„æ”¤ä½åç¨±
 
     void Start()
     {
         Debug.Log("GameManager Start() called.");
 
-        // ¦b¹CÀ¸¶}©l®É¡AÁôÂÃ©Ò¦³Åu¦ì¦WºÙ¤å¦r¨Ã¦¬¶°¦WºÙ
-        HideAllStallNames();
+        HideAllStallNames(); // è™•ç†æ ¹ç‰©ä»¶çš„éš±è—å’Œåç¨±æ”¶é›†
 
-        // ÁôÂÃ¼s¼½¤å¦r (½T«O¹w³]¬OÁôÂÃªº)
         if (questionBroadcastTextMeshPro != null)
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
@@ -34,37 +31,37 @@ public class GameManager : MonoBehaviour
             Debug.LogError("QuestionBroadcastTextMeshPro (3D) is NOT assigned in the Inspector! Please assign your QuestionBroadcastText object.");
         }
 
-        // 3¬í«áÅã¥ÜÅu¦ì¤å¦r
         StartCoroutine(ShowTextsAfterDelay(initialTextDelay));
     }
 
     void HideAllStallNames()
     {
         Debug.Log("HideAllStallNames is called.");
-        stallNameTextObjects = GameObject.FindGameObjectsWithTag("StallNameText");
-        Debug.Log("Found " + stallNameTextObjects.Length + " stall name text objects by tag.");
+        stallClickableRoots = GameObject.FindGameObjectsWithTag("StallNameText");
+        Debug.Log("Found " + stallClickableRoots.Length + " stall clickable root objects by tag.");
 
-        if (stallNameTextObjects.Length == 0)
+        if (stallClickableRoots.Length == 0)
         {
-            Debug.LogWarning("No GameObjects with 'StallNameText' tag found. Please ensure your text objects have this tag.");
+            Debug.LogWarning("No GameObjects with 'StallNameText' tag found. Please ensure your stall root objects have this tag.");
         }
 
-        foreach (GameObject textObject in stallNameTextObjects)
+        foreach (GameObject rootObject in stallClickableRoots) // éæ­·é€™äº›æ ¹ç‰©ä»¶
         {
-            textObject.SetActive(false); // ª½±µ¸T¥Î¾ã­Ó GameObject¡A½T«Oªì©lÁôÂÃ
-            Debug.Log($"Disabled stall text object: {textObject.name}");
+            rootObject.SetActive(false); // ç¦ç”¨æ•´å€‹æ ¹ç‰©ä»¶ï¼Œå…¶ä¸‹çš„å­ç‰©ä»¶ä¹Ÿæœƒè¢«ç¦ç”¨
+            Debug.Log($"Disabled stall root object: {rootObject.name}");
 
-            // ¹Á¸ÕÀò¨ú TextMeshPro ²Õ¥ó (¦]¬°Åu¦ì¤å¦r¬O TextMeshPro 3D)
-            TMPro.TextMeshPro tmpro = textObject.GetComponent<TMPro.TextMeshPro>();
+            // å¾æ ¹ç‰©ä»¶çš„å­ç‰©ä»¶ä¸­æŸ¥æ‰¾ TextMeshPro çµ„ä»¶ (ç”¨æ–¼æ”¶é›†åç¨±)
+            TMPro.TextMeshPro tmpro = rootObject.GetComponentInChildren<TMPro.TextMeshPro>();
 
             if (tmpro != null)
             {
                 stallNames.Add(tmpro.text);
-                Debug.Log($"Collected stall name: {tmpro.text} from {textObject.name} (TextMeshPro 3D).");
+                Debug.Log($"Collected stall name: {tmpro.text} from {rootObject.name}'s child (TextMeshPro 3D).");
             }
             else
             {
-                Debug.LogWarning($"Found GameObject '{textObject.name}' with 'StallNameText' tag but no TextMeshPro (3D) component. Please check its components.");
+                // é€™ç¨®æƒ…æ³é€šå¸¸æ„å‘³è‘—ä½ æŠŠ TextMeshPro çµ„ä»¶æ”¾åœ¨äº†å­ç‰©ä»¶ä¸Šï¼Œä½†æ²’æ‰¾åˆ°
+                Debug.LogWarning($"Root object '{rootObject.name}' has 'StallNameText' tag but no TextMeshPro (3D) component found in its children. Please check its hierarchy.");
             }
         }
         Debug.Log($"Total stall names collected: {stallNames.Count}");
@@ -73,16 +70,14 @@ public class GameManager : MonoBehaviour
     IEnumerator ShowTextsAfterDelay(float delay)
     {
         Debug.Log("ShowTextsAfterDelay started.");
-        yield return new WaitForSeconds(delay); // µ¥«İ«ü©w¬í¼Æ
+        yield return new WaitForSeconds(delay); // ç­‰å¾…æŒ‡å®šç§’æ•¸
 
-        // Åã¥Ü©Ò¦³Åu¦ì¦WºÙ¤å¦r
-        foreach (GameObject textObject in stallNameTextObjects)
+        foreach (GameObject rootObject in stallClickableRoots) // éæ­·æ ¹ç‰©ä»¶
         {
-            textObject.SetActive(true); // ±Ò¥Î¾ã­Ó GameObject
-            Debug.Log($"Enabled stall text: {textObject.name}.");
+            rootObject.SetActive(true); // å•Ÿç”¨æ•´å€‹æ ¹ç‰©ä»¶
+            Debug.Log($"Enabled stall root: {rootObject.name}.");
         }
 
-        // ¦b¤å¦rÅã¥Ü«á¡A©µ¿ğ¤@¬q®É¶¡¼s¼½°İÃD
         StartCoroutine(BroadcastQuestionAfterDelay(questionBroadcastDelay));
     }
 
@@ -91,20 +86,18 @@ public class GameManager : MonoBehaviour
         Debug.Log("BroadcastQuestionAfterDelay started.");
         yield return new WaitForSeconds(delay);
 
-        // ÀH¾÷¿ï¾Ü¤@­ÓÅu¦ì¦WºÙ
         if (stallNames.Count > 0)
         {
             int randomIndex = Random.Range(0, stallNames.Count);
-            currentQuestionStallName = stallNames[randomIndex]; // Àx¦s·í«e°İÃDªºÅu¦ì¦WºÙ
+            currentQuestionStallName = stallNames[randomIndex];
 
-            string question = "½ĞÂI¿ï" + currentQuestionStallName + "Åu¦ì¡I";
+            string question = "è«‹é»é¸" + currentQuestionStallName + "æ”¤ä½ï¼";
             Debug.Log($"Broadcasting question: {question}");
 
-            // ²{¦b¼s¼½¤å¦r¤]¨Ï¥Î TextMeshPro Ãş«¬
             if (questionBroadcastTextMeshPro != null)
             {
                 questionBroadcastTextMeshPro.text = question;
-                questionBroadcastTextMeshPro.gameObject.SetActive(true); // ±Ò¥Î TextMeshPro GameObject
+                questionBroadcastTextMeshPro.gameObject.SetActive(true);
                 Debug.Log("Broadcast text (TextMeshPro) enabled and set.");
             }
             else
@@ -115,62 +108,81 @@ public class GameManager : MonoBehaviour
         else
         {
             Debug.LogError("No stall names collected for broadcasting. Check 'StallNameText' tags and correct TextMeshPro components for stall names.");
-            // ¦pªG¨S¦³¦¬¶°¨ìÅu¦ì¦W¦r¡A¼s¼½¤å¦r¤]µLªkÅã¥Ü
             if (questionBroadcastTextMeshPro != null)
             {
-                questionBroadcastTextMeshPro.text = "µLªk¸ü¤JÃD¥Ø¡A½ĞÀË¬dÅu¦ì³]©w¡C";
+                questionBroadcastTextMeshPro.text = "ç„¡æ³•è¼‰å…¥é¡Œç›®ï¼Œè«‹æª¢æŸ¥æ”¤ä½è¨­å®šã€‚";
                 questionBroadcastTextMeshPro.gameObject.SetActive(true);
             }
         }
     }
 
-    // ºÊÅ¥·Æ¹«ÂIÀ»
     void Update()
     {
-        if (Input.GetMouseButtonDown(0)) // ÀË¬d·Æ¹«¥ªÁä¬O§_«ö¤U
+        if (Input.GetMouseButtonDown(0)) // æª¢æŸ¥æ»‘é¼ å·¦éµæ˜¯å¦æŒ‰ä¸‹
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition); // ±q·Æ¹«¦ì¸mµo®g®g½u
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition); // å¾æ»‘é¼ ä½ç½®ç™¼å°„å°„ç·š
             RaycastHit hit;
 
-            // ®g½uÀË´ú¡A¥uÀË´ú±a¦³ "StallNameText" ¼ĞÅÒªºª«¥ó
-            if (Physics.Raycast(ray, out hit) && hit.collider.CompareTag("StallNameText"))
+            // ***** æ–°å¢ LayerMask *****
+            int stallLayerMask = 1 << LayerMask.NameToLayer("StallLayer"); // ç¢ºä¿ "StallLayer" èˆ‡ Unity ä¸­çš„åç¨±å®Œå…¨ä¸€è‡´
+                                                                           // ************************
+
+            // å°‡ LayerMask ä½œç‚ºç¬¬å››å€‹åƒæ•¸å‚³å…¥ Raycast
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, stallLayerMask))
             {
-                // ¦]¬°Åu¦ì¤å¦r¬O TextMeshPro (3D)¡A©Ò¥H¹Á¸ÕÀò¨ú TMPro.TextMeshPro ²Õ¥ó
-                TMPro.TextMeshPro clickedTextMeshPro3D = hit.collider.GetComponent<TMPro.TextMeshPro>();
+                Debug.Log($"Raycast hit object: {hit.collider.name} (Tag: {hit.collider.tag})");
 
-                string clickedStallName = null;
+                // æª¢æŸ¥è¢«ç‚¹å‡»çš„ç‰©ä½“æ˜¯å¦æœ‰ "StallNameText" æ ‡ç­¾
+                if (hit.collider.CompareTag("StallNameText"))
+                {
+                    Debug.Log($"Hit object '{hit.collider.name}' has 'StallNameText' tag. Attempting to get TextMeshPro component from its children...");
 
-                if (clickedTextMeshPro3D != null)
-                {
-                    clickedStallName = clickedTextMeshPro3D.text;
-                    Debug.Log($"Clicked TextMeshPro 3D object: {hit.collider.name} with text: {clickedStallName}");
-                }
-                else
-                {
-                    Debug.LogWarning($"ÂIÀ»ªºª«¥ó '{hit.collider.name}' ¦³ 'StallNameText' ¼ĞÅÒ¡A¦ı¨S¦³ TextMeshPro (3D) ²Õ¥ó (¹w´Á¬°Åu¦ì¤å¦r)¡C");
-                }
+                    // å¾è¢«ç‚¹å‡»çš„ Collider æ‰€å±çš„ GameObject (ç°åœ¨æ˜¯æ ¹ç‰©ä»¶) çš„å­ç‰©ä»¶ä¸­è·å– TextMeshPro ç»„ä»¶
+                    TMPro.TextMeshPro clickedTextMeshPro3D = hit.collider.gameObject.GetComponentInChildren<TMPro.TextMeshPro>();
 
-                if (clickedStallName != null)
-                {
-                    if (clickedStallName == currentQuestionStallName)
+                    string clickedStallName = null;
+
+                    if (clickedTextMeshPro3D != null)
                     {
-                        Debug.Log("®¥³ß¡IÂIÀ»¥¿½T¡I");
-                        // §ó·s¼s¼½¤å¦r (¨Ï¥Î TextMeshPro)
-                        if (questionBroadcastTextMeshPro != null)
-                        {
-                            questionBroadcastTextMeshPro.text = "®¥³ß¡IÂIÀ»¥¿½T¡I";
-                        }
+                        clickedStallName = clickedTextMeshPro3D.text;
+                        Debug.Log($"Successfully got TextMeshPro component from child of {hit.collider.name}. Text: {clickedStallName}");
                     }
                     else
                     {
-                        Debug.Log("ÂIÀ»¿ù»~¡A½Ğ¦A¸Õ¤@¦¸¡C");
-                        // §ó·s¼s¼½¤å¦r (¨Ï¥Î TextMeshPro)
-                        if (questionBroadcastTextMeshPro != null)
+                        // å¦‚æœ hit.collider.gameObject æœ‰ StallNameText æ¨™ç±¤ï¼Œä½†æ‰¾ä¸åˆ° TextMeshPro çµ„ä»¶
+                        Debug.LogWarning($"é»æ“Šçš„ç‰©ä»¶ '{hit.collider.name}' æœ‰ 'StallNameText' æ¨™ç±¤ï¼Œä½†**æ²’æœ‰åœ¨å…¶è‡ªèº«æˆ–å­ç‰©ä»¶ä¸­æ‰¾åˆ° TextMeshPro (3D) çµ„ä»¶**ã€‚è«‹æª¢æŸ¥å…¶å±¤ç´šçµæ§‹æˆ–ç¢ºèª TextMeshPro çµ„ä»¶é¡å‹æ˜¯å¦æ­£ç¢ºã€‚");
+                    }
+
+                    if (clickedStallName != null)
+                    {
+                        if (clickedStallName == currentQuestionStallName)
                         {
-                            questionBroadcastTextMeshPro.text = "ÂIÀ»¿ù»~¡A½Ğ¦A¸Õ¤@¦¸¡C";
+                            Debug.Log("æ­å–œï¼é»æ“Šæ­£ç¢ºï¼");
+                            if (questionBroadcastTextMeshPro != null)
+                            {
+                                questionBroadcastTextMeshPro.text = "æ­å–œï¼é»æ“Šæ­£ç¢ºï¼";
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log("é»æ“ŠéŒ¯èª¤ï¼Œè«‹å†è©¦ä¸€æ¬¡ã€‚");
+                            if (questionBroadcastTextMeshPro != null)
+                            {
+                                questionBroadcastTextMeshPro.text = "é»æ“ŠéŒ¯èª¤ï¼Œè«‹å†è©¦ä¸€æ¬¡ã€‚";
+                            }
                         }
                     }
                 }
+                else
+                {
+                    // é€™æ¢æ—¥èªŒç¾åœ¨åªæœƒåœ¨ Raycast å‘½ä¸­äº† StallLayer ä¸Šçš„ç‰©ä»¶ï¼Œä½†è©²ç‰©ä»¶æ²’æœ‰ StallNameText æ¨™ç±¤æ™‚å‡ºç¾ã€‚
+                    Debug.LogWarning($"Hit object '{hit.collider.name}' does NOT have 'StallNameText' tag. **é€™é€šå¸¸è¡¨ç¤ºä½ çš„ Raycast å‘½ä¸­äº† StallLayer ä¸­ä¸è©²è¢«åˆ¤å®šçš„ç‰©ä»¶ã€‚**");
+                }
+            }
+            else
+            {
+                // é€™æ¢æ—¥èªŒè¡¨ç¤º Raycast æ²’æœ‰æ“Šä¸­ä»»ä½• StallLayer ä¸Šçš„ç‰©ä»¶
+                Debug.Log("Raycast hit nothing on StallLayer.");
             }
         }
     }
