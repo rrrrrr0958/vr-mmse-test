@@ -1,0 +1,33 @@
+# AI-related files
+.cursorrules
+.cursorignore
+CLAUDE.md
+
+# Code-copy related files
+.clipignore
+
+# Python-generated files
+__pycache__/
+__pycache__.meta
+build/
+dist/
+wheels/
+*.egg-info
+UnityMcpServer/**/*.meta
+UnityMcpServer.meta
+
+# Virtual environments
+.venv
+
+# Unity Editor
+*.unitypackage
+*.asset
+UnityMcpBridge.meta
+LICENSE.meta
+README.md.meta
+CONTRIBUTING.md.meta
+
+# IDE
+.idea/
+.vscode/
+.aider*
