@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -12,26 +13,31 @@ public class GameManager : MonoBehaviour
     [Header("遊戲開始設定")]
     public float initialTextDelay = 3f;      // 遊戲開始後，攤位文字顯示前的延遲時間
     public float questionBroadcastDelay = 2f; // 攤位文字顯示後，問題廣播前的延遲時間
+    public float timeBetweenQuestions = 2f;  // 問題之間的延遲時間 (用於等待語音回答)
 
     [Header("攝影機目標點")]
-    // 你只需要設定魚攤的目標點，因為攝影機只會轉到這裡
-    public Transform cameraTarget_FishStall;
+    public Transform cameraTarget_FishStall; // 魚攤攝影機目標
 
     [Header("攝影機移動設定")]
-    public float cameraMoveSpeed = 500.0f;    // 攝影機移動的速度，數值越大越快
+    public float cameraMoveSpeed = 50.0f;    // 攝影機移動的速度，數值越大越快
 
     [Header("UI 連結")]
-    public TMPro.TextMeshPro questionBroadcastTextMeshPro; // 用於顯示問題的 TextMeshPro 組件
+    public TMPro.TextMeshPro questionBroadcastTextMeshPro; // 用於顯示 "請點選 XX 攤位" 的 TextMeshPro 組件 (可選，如果不在螢幕顯示則不需)
+    public Image highlightCircleImage; // 新增：用於高亮顯示的圈圈 UI Image
+
+    [Header("高亮目標")]
+    // public GameObject lampQuestionObject; // 這個欄位在新的邏輯下可以不需要了，因為我們不依賴燈的物件來定位圈圈
 
     // =========================================================================
     // 私有變數 (腳本內部使用)
     // =========================================================================
 
-    private GameObject[] stallRootObjects; // 用於儲存所有可點擊根物件的列表
-    private List<string> stallNames = new List<string>(); // 儲存所有攤位的文字名稱
-    private string currentQuestionStallName; // 當前廣播的問題攤位名稱
+    private GameObject[] stallRootObjects;
+    private List<string> stallNames = new List<string>();
 
-    private bool hasClickedStall = false; // 新增：追蹤是否已經點擊過攤位
+    private bool hasClickedStall = false;
+    private int currentInitialTargetIndex = 0;
+    private Coroutine initialQuestionCoroutine;
 
     // =========================================================================
     // Unity 生命周期方法
@@ -39,14 +45,12 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        // 找到所有帶有 "StallNameText" 標籤的根物件
         stallRootObjects = GameObject.FindGameObjectsWithTag("StallNameText");
         Debug.Log($"Awake: Found {stallRootObjects.Length} stall clickable root objects by tag.");
 
-        // 收集所有攤位的名稱並禁用它們
         foreach (GameObject stallRoot in stallRootObjects)
         {
-            stallRoot.SetActive(false); // 初始禁用物件
+            stallRoot.SetActive(false);
             TMPro.TextMeshPro textMeshPro = stallRoot.GetComponentInChildren<TMPro.TextMeshPro>();
             if (textMeshPro != null)
             {
@@ -54,15 +58,33 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"Awake: Stall root '{stallRoot.name}' has 'StallNameText' tag but no TextMeshPro component found in children.");
+                Debug.LogWarning($"Awake: Stall root '{stallRoot.name}' has 'StallNameText' tag but no TextMeshPro component found in children. This stall name will not be used for initial question.");
             }
         }
-        Debug.Log($"Awake: Total stall names collected: {stallNames.Count}");
+        Debug.Log($"Awake: Total stall names collected for initial question: {stallNames.Count}");
 
-        // 檢查魚攤目標點是否設定
         if (cameraTarget_FishStall == null)
         {
             Debug.LogError("Error: cameraTarget_FishStall is not assigned in the Inspector! Please assign it.");
+        }
+        if (questionBroadcastTextMeshPro == null)
+        {
+            Debug.LogWarning("Warning: questionBroadcastTextMeshPro is not assigned in the Inspector. Initial question will only appear in Console.");
+        }
+        if (highlightCircleImage == null)
+        {
+            Debug.LogError("Error: highlightCircleImage is not assigned in the Inspector! Please assign it for question 3.");
+        }
+        // 由於不再需要程式碼定位，lampQuestionObject 也不再是必須的錯誤檢查
+        // if (lampQuestionObject == null)
+        // {
+        //     Debug.LogError("Error: lampQuestionObject is not assigned in the Inspector! Please assign it for question 3.");
+        // }
+
+        // 初始禁用圈圈
+        if (highlightCircleImage != null)
+        {
+            highlightCircleImage.gameObject.SetActive(false);
         }
     }
 
@@ -70,24 +92,17 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("GameManager Start() called.");
 
-        // 確保 questionBroadcastTextMeshPro 引用已設置並初始禁用
         if (questionBroadcastTextMeshPro != null)
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
         }
-        else
-        {
-            Debug.LogError("Error: questionBroadcastTextMeshPro is not assigned in the Inspector!");
-        }
 
-        // 遊戲開始時，顯示所有攤位文字，然後廣播問題
         StartCoroutine(ShowTextsAfterDelay());
-        StartCoroutine(BroadcastQuestionAfterDelay());
+        initialQuestionCoroutine = StartCoroutine(BroadcastInitialQuestionLoop());
     }
 
     void Update()
     {
-        // 只在尚未點擊過攤位時才處理點擊
         if (!hasClickedStall && Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -97,36 +112,19 @@ public class GameManager : MonoBehaviour
 
             if (Physics.Raycast(ray, out hit, Mathf.Infinity, stallLayerMask))
             {
-                Debug.Log($"Raycast hit object: {hit.collider.name} (Tag: {hit.collider.tag})");
-
                 if (hit.collider.CompareTag("StallNameText"))
                 {
-                    TMPro.TextMeshPro clickedTextMeshPro3D = hit.collider.gameObject.GetComponentInChildren<TMPro.TextMeshPro>();
-                    string clickedStallName = null;
+                    Debug.Log("偵測到攤位點擊，準備轉向魚攤。");
+                    hasClickedStall = true;
 
-                    if (clickedTextMeshPro3D != null)
+                    if (initialQuestionCoroutine != null)
                     {
-                        clickedStallName = clickedTextMeshPro3D.text;
-                        Debug.Log($"Clicked stall: {clickedStallName}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"點擊的物件 '{hit.collider.name}' 有 'StallNameText' 標籤，但沒有在其自身或子物件中找到 TextMeshPro 組件。");
+                        StopCoroutine(initialQuestionCoroutine);
                     }
 
-                    // 無論點擊的是哪個攤位，都觸發流程
-                    Debug.Log("攤位已點擊，開始轉向魚攤。");
-                    hasClickedStall = true; // 標記為已點擊，避免重複觸發
-                    StartCoroutine(MoveCameraToFishStallAndEndRound());
+                    HideAllStallNamesAndQuestion();
+                    StartCoroutine(MoveCameraToFishStallAndStartFishStallQuestions());
                 }
-                else
-                {
-                    Debug.LogWarning($"Hit object '{hit.collider.name}' does NOT have 'StallNameText' tag. **這通常表示你的 Raycast 命中了 StallLayer 中不該被判定的物件。**");
-                }
-            }
-            else
-            {
-                Debug.Log("Raycast hit nothing on StallLayer.");
             }
         }
     }
@@ -135,79 +133,108 @@ public class GameManager : MonoBehaviour
     // 遊戲流程控制方法
     // =========================================================================
 
-    // 隱藏所有攤位名稱和廣播文字
     void HideAllStallNamesAndQuestion()
     {
-        Debug.Log("HideAllStallNamesAndQuestion is called. All texts will disappear.");
-        if (stallRootObjects == null || stallRootObjects.Length == 0)
-        {
-            stallRootObjects = GameObject.FindGameObjectsWithTag("StallNameText");
-        }
-
         foreach (GameObject stallRoot in stallRootObjects)
         {
-            stallRoot.SetActive(false); // 禁用整個根物件，其文字也會隨之消失
+            stallRoot.SetActive(false);
         }
         if (questionBroadcastTextMeshPro != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 隱藏廣播文字
+            questionBroadcastTextMeshPro.gameObject.SetActive(false);
         }
     }
 
-    // 協程：顯示所有攤位名稱文字 (遊戲開始時)
     IEnumerator ShowTextsAfterDelay()
     {
         yield return new WaitForSeconds(initialTextDelay);
         foreach (GameObject stallRoot in stallRootObjects)
         {
-            stallRoot.SetActive(true); // 啟用所有攤位根物件，文字顯示
+            stallRoot.SetActive(true);
         }
-        Debug.Log("All stall names are now visible.");
+        Debug.Log("所有攤位名稱已顯示。");
     }
 
-    // 協程：廣播問題 (遊戲開始時)
-    IEnumerator BroadcastQuestionAfterDelay()
+    IEnumerator BroadcastInitialQuestionLoop()
     {
         yield return new WaitForSeconds(initialTextDelay + questionBroadcastDelay);
 
-        // 為了簡單起見，隨機選擇一個攤位作為問題（但實際上點擊哪個都導向魚攤）
-        if (stallNames.Count > 0 && questionBroadcastTextMeshPro != null)
+        while (!hasClickedStall)
         {
-            int randomIndex = Random.Range(0, stallNames.Count);
-            currentQuestionStallName = stallNames[randomIndex];
-            questionBroadcastTextMeshPro.text = $"請點選{currentQuestionStallName}攤位！";
-            questionBroadcastTextMeshPro.gameObject.SetActive(true);
-            Debug.Log($"Initial question broadcasted: 請點選{currentQuestionStallName}攤位！");
-        }
-        else
-        {
-            Debug.LogWarning("No stall names collected or questionBroadcastTextMeshPro is not assigned. Cannot broadcast question.");
+            if (stallNames.Count == 0)
+            {
+                Debug.LogWarning("沒有攤位名稱可供廣播初始問題。");
+                yield break;
+            }
+
+            string targetStallName = stallNames[currentInitialTargetIndex];
+            string initialQuestion = $"請點選 {targetStallName} 攤位！";
+
+            Debug.Log($"Console 問題 (初始階段): {initialQuestion}");
+
+            yield return new WaitForSeconds(timeBetweenQuestions);
+
+            currentInitialTargetIndex = (currentInitialTargetIndex + 1) % stallNames.Count;
         }
     }
 
-    // 協程：將攝影機移動到魚攤並結束回合/階段
-    IEnumerator MoveCameraToFishStallAndEndRound()
+    IEnumerator MoveCameraToFishStallAndStartFishStallQuestions()
     {
         Debug.Log("準備將攝影機轉向魚攤...");
-        HideAllStallNamesAndQuestion(); // 立即隱藏所有文字
 
         if (cameraTarget_FishStall == null)
         {
             Debug.LogError("cameraTarget_FishStall is not assigned! Cannot move camera.");
-            yield break; // 結束協程
+            yield break;
         }
 
-        // 開始平滑移動攝影機到魚攤
         yield return StartCoroutine(SmoothCameraMove(cameraTarget_FishStall.position, cameraTarget_FishStall.rotation));
 
-        Debug.Log("攝影機已成功轉向魚攤。遊戲流程結束此階段。");
-        // 到此為止，所有文字都已經消失，攝影機也轉向了魚攤。
-        // 如果遊戲有下一階段，你可以在這裡觸發它。
-        // 例如：LoadNextScene(); 或者 TriggerGameEnd();
+        Debug.Log("攝影機已成功轉向魚攤。");
+        StartCoroutine(FishStallQuestionSequence());
     }
 
-    // 協程：平滑移動攝影機到目標位置
-    // 這個協程現在只負責移動，不負責後續的遊戲流程啟動
+    IEnumerator FishStallQuestionSequence()
+    {
+        yield return new WaitForSeconds(timeBetweenQuestions);
+        Debug.Log("Console 問題: 這個攤位在賣什麼？");
+        yield return new WaitForSeconds(timeBetweenQuestions);
+
+        Debug.Log("Console 問題: 魚的顏色是什麼？");
+        yield return new WaitForSeconds(timeBetweenQuestions);
+
+        Debug.Log("Console 問題: 那個是什麼？");
+        ShowHighlightCircle(); // 不再需要傳入 lampQuestionObject
+        yield return new WaitForSeconds(timeBetweenQuestions);
+        HideHighlightCircle();
+
+        Debug.Log("Console: 所有魚攤問題已完成！");
+    }
+
+    // 顯示高亮圈圈 (現在只負責啟用/禁用)
+    void ShowHighlightCircle() // 不再需要 GameObject targetObject 參數
+    {
+        if (highlightCircleImage != null)
+        {
+            highlightCircleImage.gameObject.SetActive(true);
+            Debug.Log("HighlightCircle 已啟用並顯示。其位置和大小由 Editor 設定。");
+        }
+        else
+        {
+            Debug.LogError("HighlightCircleImage 未賦值，無法顯示圈圈！");
+        }
+    }
+
+    // 隱藏高亮圈圈
+    void HideHighlightCircle()
+    {
+        if (highlightCircleImage != null)
+        {
+            highlightCircleImage.gameObject.SetActive(false);
+            Debug.Log("HighlightCircle 已禁用。");
+        }
+    }
+
     IEnumerator SmoothCameraMove(Vector3 targetPosition, Quaternion targetRotation)
     {
         Transform mainCameraTransform = Camera.main.transform;
@@ -217,7 +244,6 @@ public class GameManager : MonoBehaviour
         float elapsedTime = 0;
         float duration = Vector3.Distance(startPosition, targetPosition) / cameraMoveSpeed;
 
-        // 如果移動距離很小或速度過快導致時間接近0，設置一個最小時間，避免瞬移
         if (duration < 0.05f) duration = 0.05f;
 
         while (elapsedTime < duration)
@@ -228,7 +254,6 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
-        // 確保最終位置和旋轉精確到位
         mainCameraTransform.position = targetPosition;
         mainCameraTransform.rotation = targetRotation;
 
