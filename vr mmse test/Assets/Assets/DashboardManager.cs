@@ -7,7 +7,7 @@ public class DashboardManager : MonoBehaviour
     [Header("Dashboard Settings")]
     public Canvas dashboardCanvas;
     public GameObject dashboardPanel;
-    public float showDelay = 1.0f;
+    public float showDelay = 0.5f; // 減少延遲時間
     public float animationDuration = 0.5f;
     
     [Header("Dashboard Content")]
@@ -18,11 +18,10 @@ public class DashboardManager : MonoBehaviour
     
     [Header("Player Reference")]
     public Transform playerTransform;
-    public float stopThreshold = 0.1f;
     
     private bool isDashboardVisible = false;
-    private bool isPlayerMoving = false;
-    private Vector3 lastPlayerPosition;
+    private bool hasShownDashboard = false; // 新增：確保只顯示一次
+    private ZooExit.PersonWalkToGate personWalkScript;
     private float stopTimer = 0f;
     
     void Start()
@@ -31,13 +30,14 @@ public class DashboardManager : MonoBehaviour
         
         if (playerTransform != null)
         {
-            lastPlayerPosition = playerTransform.position;
+            // 獲取PersonWalkToGate腳本引用
+            personWalkScript = playerTransform.GetComponent<ZooExit.PersonWalkToGate>();
         }
     }
     
     void Update()
     {
-        CheckPlayerMovement();
+        CheckPlayerStatus();
     }
     
     void InitializeDashboard()
@@ -69,52 +69,57 @@ public class DashboardManager : MonoBehaviour
         
         if (statusText != null)
         {
-            statusText.text = "歡迎來到動物園！";
+            statusText.text = "恭喜完成動物園參觀！";
         }
     }
     
-    void CheckPlayerMovement()
+    void CheckPlayerStatus()
     {
-        if (playerTransform == null) return;
+        if (hasShownDashboard || playerTransform == null || personWalkScript == null) 
+            return;
         
-        Vector3 currentPosition = playerTransform.position;
-        float movementDistance = Vector3.Distance(currentPosition, lastPlayerPosition);
+        // 檢查玩家是否已經停止走路
+        bool isPlayerWalking = personWalkScript.isWalking;
         
-        isPlayerMoving = movementDistance > stopThreshold * Time.deltaTime;
-        
-        if (isPlayerMoving)
+        if (!isPlayerWalking)
         {
-            stopTimer = 0f;
-            if (isDashboardVisible)
+            stopTimer += Time.deltaTime;
+            
+            if (stopTimer >= showDelay)
             {
-                HideDashboard();
+                Debug.Log("Player has reached destination - showing final dashboard");
+                ShowFinalDashboard();
+                hasShownDashboard = true; // 確保只顯示一次
             }
         }
         else
         {
-            stopTimer += Time.deltaTime;
-            
-            if (!isDashboardVisible && stopTimer >= showDelay)
-            {
-                ShowDashboard();
-            }
+            stopTimer = 0f; // 重置計時器
         }
-        
-        lastPlayerPosition = currentPosition;
     }
     
-    public void ShowDashboard()
+    public void ShowFinalDashboard()
     {
         if (isDashboardVisible) return;
         
+        Debug.Log("Showing final dashboard - will stay visible");
         StartCoroutine(ShowDashboardCoroutine());
     }
     
+    // 向後兼容性別名
+    public void ShowDashboard()
+    {
+        ShowFinalDashboard();
+    }
+    
+    // 移除HideDashboard的自動調用，只保留手動隱藏功能
     public void HideDashboard()
     {
         if (!isDashboardVisible) return;
         
+        Debug.Log("Manually hiding dashboard");
         StartCoroutine(HideDashboardCoroutine());
+        hasShownDashboard = false; // 允許重新顯示
     }
     
     IEnumerator ShowDashboardCoroutine()
@@ -146,6 +151,7 @@ public class DashboardManager : MonoBehaviour
             }
             
             canvasGroup.alpha = 1f;
+            Debug.Log("Dashboard is now fully visible and will remain visible");
         }
     }
     
@@ -180,12 +186,20 @@ public class DashboardManager : MonoBehaviour
     void OnContinueClicked()
     {
         Debug.Log("繼續遊戲");
-        HideDashboard();
+        // 不再自動隱藏dashboard，由玩家決定
+        if (statusText != null)
+        {
+            statusText.text = "感謝您的參觀！";
+        }
     }
     
     void OnSettingsClicked()
     {
         Debug.Log("打開設定");
+        if (statusText != null)
+        {
+            statusText.text = "設定選項";
+        }
     }
     
     void OnExitClicked()
@@ -200,5 +214,13 @@ public class DashboardManager : MonoBehaviour
         {
             statusText.text = text;
         }
+    }
+    
+    // 新增：重置功能，如果需要重新開始
+    public void ResetDashboard()
+    {
+        hasShownDashboard = false;
+        stopTimer = 0f;
+        HideDashboard();
     }
 }
