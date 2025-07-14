@@ -25,8 +25,14 @@ public class GameManager : MonoBehaviour
     public TMPro.TextMeshPro questionBroadcastTextMeshPro; // 用於顯示 "請點選 XX 攤位" 的 TextMeshPro 組件 (可選，如果不在螢幕顯示則不需)
     public Image highlightCircleImage; // 新增：用於高亮顯示的圈圈 UI Image
 
-    [Header("高亮目標")]
-    // public GameObject lampQuestionObject; // 這個欄位在新的邏輯下可以不需要了，因為我們不依賴燈的物件來定位圈圈
+    // 【新增】語音問題相關變數
+    [Header("語音問題設定")]
+    public AudioSource voiceAudioSource; // 用於播放語音的 AudioSource，綁定 Main Camera 上的
+    public AudioClip fishStallAudioClip;    // "魚攤" 的語音檔案
+    public AudioClip fruitStallAudioClip;   // "水果攤" 的語音檔案
+    public AudioClip weaponStallAudioClip;  // "武器攤" 的語音檔案
+    public AudioClip breadStallAudioClip;   // "麵包攤" 的語音檔案
+    public AudioClip meatStallAudioClip;    // "肉攤" 的語音檔案
 
     // =========================================================================
     // 私有變數 (腳本內部使用)
@@ -36,8 +42,9 @@ public class GameManager : MonoBehaviour
     private List<string> stallNames = new List<string>();
 
     private bool hasClickedStall = false;
-    private int currentInitialTargetIndex = 0;
     private Coroutine initialQuestionCoroutine;
+
+    private string currentTargetStallName = ""; // 儲存當前隨機選擇的目標攤位名稱
 
     // =========================================================================
     // Unity 生命周期方法
@@ -75,11 +82,19 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError("Error: highlightCircleImage is not assigned in the Inspector! Please assign it for question 3.");
         }
-        // 由於不再需要程式碼定位，lampQuestionObject 也不再是必須的錯誤檢查
-        // if (lampQuestionObject == null)
-        // {
-        //     Debug.LogError("Error: lampQuestionObject is not assigned in the Inspector! Please assign it for question 3.");
-        // }
+
+        // 【新增】檢查語音相關變數是否設定
+        if (voiceAudioSource == null)
+        {
+            Debug.LogError("Error: voiceAudioSource is not assigned in the Inspector! Please assign the AudioSource from Main Camera.");
+        }
+        // 對每個 AudioClip 進行檢查 (雖然在 PlayVoiceQuestionByIdx 裡會再次檢查)
+        if (fishStallAudioClip == null || fruitStallAudioClip == null || weaponStallAudioClip == null ||
+            breadStallAudioClip == null || meatStallAudioClip == null)
+        {
+            Debug.LogWarning("Warning: Some initial question AudioClips are not assigned. Voice questions may not play.");
+        }
+
 
         // 初始禁用圈圈
         if (highlightCircleImage != null)
@@ -98,12 +113,12 @@ public class GameManager : MonoBehaviour
         }
 
         StartCoroutine(ShowTextsAfterDelay());
-        initialQuestionCoroutine = StartCoroutine(BroadcastInitialQuestionLoop());
+        initialQuestionCoroutine = StartCoroutine(BroadcastInitialRandomQuestion());
     }
 
     void Update()
     {
-        if (!hasClickedStall && Input.GetMouseButtonDown(0))
+        if (!hasClickedStall && !string.IsNullOrEmpty(currentTargetStallName) && Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -114,16 +129,25 @@ public class GameManager : MonoBehaviour
             {
                 if (hit.collider.CompareTag("StallNameText"))
                 {
-                    Debug.Log("偵測到攤位點擊，準備轉向魚攤。");
-                    hasClickedStall = true;
-
-                    if (initialQuestionCoroutine != null)
+                    TMPro.TextMeshPro clickedTextMeshPro = hit.collider.GetComponentInChildren<TMPro.TextMeshPro>();
+                    if (clickedTextMeshPro != null && clickedTextMeshPro.text == currentTargetStallName)
                     {
-                        StopCoroutine(initialQuestionCoroutine);
-                    }
+                        Debug.Log($"正確偵測到點擊目標攤位: {currentTargetStallName}，準備轉向魚攤。");
+                        hasClickedStall = true;
 
-                    HideAllStallNamesAndQuestion();
-                    StartCoroutine(MoveCameraToFishStallAndStartFishStallQuestions());
+                        if (initialQuestionCoroutine != null)
+                        {
+                            StopCoroutine(initialQuestionCoroutine);
+                        }
+
+                        HideAllStallNamesAndQuestion();
+                        StartCoroutine(MoveCameraToFishStallAndStartFishStallQuestions());
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"點擊了錯誤的攤位: {clickedTextMeshPro?.text ?? "未知攤位"}。請點擊 {currentTargetStallName} 攤位！");
+                        // 如果需要，可以在這裡播放一個錯誤提示音
+                    }
                 }
             }
         }
@@ -155,27 +179,25 @@ public class GameManager : MonoBehaviour
         Debug.Log("所有攤位名稱已顯示。");
     }
 
-    IEnumerator BroadcastInitialQuestionLoop()
+    IEnumerator BroadcastInitialRandomQuestion()
     {
         yield return new WaitForSeconds(initialTextDelay + questionBroadcastDelay);
 
-        while (!hasClickedStall)
+        if (stallNames.Count == 0)
         {
-            if (stallNames.Count == 0)
-            {
-                Debug.LogWarning("沒有攤位名稱可供廣播初始問題。");
-                yield break;
-            }
-
-            string targetStallName = stallNames[currentInitialTargetIndex];
-            string initialQuestion = $"請點選 {targetStallName} 攤位！";
-
-            Debug.Log($"Console 問題 (初始階段): {initialQuestion}");
-
-            yield return new WaitForSeconds(timeBetweenQuestions);
-
-            currentInitialTargetIndex = (currentInitialTargetIndex + 1) % stallNames.Count;
+            Debug.LogWarning("沒有攤位名稱可供廣播初始問題。");
+            yield break;
         }
+
+        int randomIndex = Random.Range(0, stallNames.Count);
+        currentTargetStallName = stallNames[randomIndex];
+
+        string initialQuestion = $"請點選 {currentTargetStallName} 攤位！";
+
+        Debug.Log($"Console 問題 (初始階段): {initialQuestion}");
+
+        // 【新增】播放對應的語音檔案
+        PlayInitialVoiceQuestion(currentTargetStallName);
     }
 
     IEnumerator MoveCameraToFishStallAndStartFishStallQuestions()
@@ -194,6 +216,7 @@ public class GameManager : MonoBehaviour
         StartCoroutine(FishStallQuestionSequence());
     }
 
+    // 這個協程目前沒有語音，如果之後需要為魚攤問題也添加語音，會在這裡修改
     IEnumerator FishStallQuestionSequence()
     {
         yield return new WaitForSeconds(timeBetweenQuestions);
@@ -204,15 +227,14 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(timeBetweenQuestions);
 
         Debug.Log("Console 問題: 那個是什麼？");
-        ShowHighlightCircle(); // 不再需要傳入 lampQuestionObject
+        ShowHighlightCircle();
         yield return new WaitForSeconds(timeBetweenQuestions);
         HideHighlightCircle();
 
         Debug.Log("Console: 所有魚攤問題已完成！");
     }
 
-    // 顯示高亮圈圈 (現在只負責啟用/禁用)
-    void ShowHighlightCircle() // 不再需要 GameObject targetObject 參數
+    void ShowHighlightCircle()
     {
         if (highlightCircleImage != null)
         {
@@ -225,13 +247,52 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // 隱藏高亮圈圈
     void HideHighlightCircle()
     {
         if (highlightCircleImage != null)
         {
             highlightCircleImage.gameObject.SetActive(false);
             Debug.Log("HighlightCircle 已禁用。");
+        }
+    }
+
+    // 【新增】根據攤位名稱播放語音的方法
+    void PlayInitialVoiceQuestion(string stallName)
+    {
+        // 這行會告訴你實際傳入的 stallName 是什麼
+        Debug.Log($"嘗試播放語音給攤位: '{stallName}' (長度: {stallName.Length})");
+
+        AudioClip clipToPlay = null;
+        switch (stallName)
+        {
+            case "魚攤":
+                clipToPlay = fishStallAudioClip;
+                break;
+            case "蔬果":
+                clipToPlay = fruitStallAudioClip;
+                break;
+            case "武器":
+                clipToPlay = weaponStallAudioClip;
+                break;
+            case "麵包":
+                clipToPlay = breadStallAudioClip;
+                break;
+            case "肉攤":
+                clipToPlay = meatStallAudioClip;
+                break;
+            default:
+                Debug.LogWarning($"No audio clip found for stall: {stallName}");
+                break;
+        }
+
+        if (voiceAudioSource != null && clipToPlay != null)
+        {
+            voiceAudioSource.PlayOneShot(clipToPlay); // 使用 PlayOneShot 不會打斷其他正在播放的聲音 (如果有的話)
+            Debug.Log($"Playing voice question for: {stallName}");
+        }
+        else
+        {
+            Debug.LogWarning($"無法播放語音給攤位: '{stallName}'。原因: AudioSource 或 AudioClip 未設定。");
         }
     }
 
