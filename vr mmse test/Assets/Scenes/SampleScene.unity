@@ -5198,6 +5198,7 @@ MonoBehaviour:
   initialTextDelay: 1
   questionBroadcastDelay: 2
   timeBetweenQuestions: 2
+  voiceQuestionBufferTime: 0.5
   cameraTarget_FishStall: {fileID: 817338944}
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 682548504}
@@ -5208,6 +5209,9 @@ MonoBehaviour:
   weaponStallAudioClip: {fileID: 8300000, guid: b23fd8dcdba5587499c0050fa25ce601, type: 3}
   breadStallAudioClip: {fileID: 8300000, guid: 8e2812c1c8c62f14bba46978b7dea388, type: 3}
   meatStallAudioClip: {fileID: 8300000, guid: 7788035733df40647ac405571f1bcc3b, type: 3}
+  whatIsSellingAudioClip: {fileID: 8300000, guid: da521a24b4b91204db2036b9caa9fa96, type: 3}
+  fishColorAudioClip: {fileID: 8300000, guid: 7a5a0d70efd34544c888c6b8d3b8714d, type: 3}
+  whatIsThatAudioClip: {fileID: 8300000, guid: 125a01e9417cc184ca4e43d824a40fee, type: 3}
 --- !u!4 &449506074
 Transform:
   m_ObjectHideFlags: 0
