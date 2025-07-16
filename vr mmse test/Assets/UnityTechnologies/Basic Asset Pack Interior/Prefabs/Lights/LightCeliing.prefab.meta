@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: 99c9720ab356a0642a771bea13969a05
-DefaultImporter:
+guid: a38f60b20ea9d8e4086d5859b8def0db
+PrefabImporter:
   externalObjects: {}
   userData: 
   assetBundleName: 
@@ -10,5 +10,5 @@ AssetOrigin:
   productId: 257122
   packageName: Interior House Assets | URP
   packageVersion: 1.0
-  assetPath: Assets/Scenes/SampleScene.unity
+  assetPath: Assets/UnityTechnologies/Basic Asset Pack Interior/Prefabs/Lights/LightCeliing.prefab
   uploadId: 615370
