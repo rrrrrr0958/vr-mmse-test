@@ -5195,10 +5195,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e47902dd1bb6b84b871be2645ed99c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialTextDelay: 1
-  questionBroadcastDelay: 2
-  timeBetweenQuestions: 2
+  initialTextDelay: 0.5
+  questionBroadcastDelay: 1
+  timeBetweenQuestions: 1
   voiceQuestionBufferTime: 0.5
+  clickResponseDuration: 1.5
   cameraTarget_FishStall: {fileID: 817338944}
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 682548504}
