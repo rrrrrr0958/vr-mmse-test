@@ -12563,7 +12563,6 @@ GameObject:
   - component: {fileID: 1276103493}
   - component: {fileID: 1276103492}
   - component: {fileID: 1276103491}
-  - component: {fileID: 1276103490}
   m_Layer: 0
   m_Name: QuestionBroadcastText_34
   m_TagString: Untagged
@@ -12571,14 +12570,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!33 &1276103490
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1276103489}
-  m_Mesh: {fileID: 0}
 --- !u!114 &1276103491
 MonoBehaviour:
   m_ObjectHideFlags: 0
