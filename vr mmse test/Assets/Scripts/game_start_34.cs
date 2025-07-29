@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using Firebase; // 引入 Firebase 命名空間
+using Firebase.Database; // 引入 Firebase Realtime Database 命名空間
+using Firebase.Extensions; // 引入 Firebase 擴展，用於 Task 的 `ContinueWithOnMainThread`
+
 
 public class GameManager : MonoBehaviour
 {
@@ -65,6 +69,10 @@ public class GameManager : MonoBehaviour
 
     // 【新增】標誌，表示當前是否處於等待玩家點擊的階段（針對初期三題）
     private bool isWaitingForClickInput = false;
+
+    // 【新增】Firebase 相關變數
+    private DatabaseReference dbReference; // Firebase Database 的參考
+    private FirebaseApp app; // Firebase 應用程式實例
 
     // =========================================================================
     // Unity 生命周期方法
@@ -129,6 +137,22 @@ public class GameManager : MonoBehaviour
         {
             highlightCircleImage.gameObject.SetActive(false);
         }
+
+        // 【新增】Firebase 初始化
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => {
+            var dependencyStatus = task.Result;
+            if (dependencyStatus == DependencyStatus.Available)
+            {
+                // 所有 Firebase 依賴都已解決，可以初始化應用程式
+                app = FirebaseApp.DefaultInstance;
+                dbReference = FirebaseDatabase.DefaultInstance.RootReference; // 取得資料庫根參考
+                Debug.Log("Firebase 已成功初始化！");
+            }
+            else
+            {
+                Debug.LogError($"無法解決 Firebase 依賴問題: {dependencyStatus}");
+            }
+        });
     }
 
     void Start()
@@ -268,6 +292,46 @@ public class GameManager : MonoBehaviour
 
         // 【新增】記錄總分到 Console
         Debug.Log($"正確題目數: {correctAnswersCount}/3");
+
+        // 【新增】記錄總分到 Console (這行您已經有了)
+        Debug.Log($"正確題目數: {correctAnswersCount}/3");
+
+        // 【新增】將分數寫入 Firebase
+        if (dbReference != null)
+        {
+            // 您需要一個使用者 ID 或某種方式來區分不同的分數記錄
+            // 這裡我們假設使用一個簡單的唯一 ID，例如時間戳或隨機生成
+            // 或者，如果您有登入系統，可以使用 Firebase Authentication 的 User ID
+
+            string userId = SystemInfo.deviceUniqueIdentifier; // 一個簡單的唯一 ID，不推薦用於正式發布的遊戲
+                                                               // 更安全的做法是結合 Firebase Authentication
+            string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss"); // 使用時間戳作為記錄的唯一識別
+            string recordKey = $"{userId}_{timestamp}"; // 建立一個唯一的記錄鍵
+
+            // 建立一個字典來儲存要寫入的資料
+            Dictionary<string, object> scoreData = new Dictionary<string, object>();
+            scoreData["correctAnswers"] = correctAnswersCount;
+            scoreData["totalQuestions"] = 3;
+            scoreData["timestamp"] = ServerValue.Timestamp; // 使用 Firebase 伺服器時間，避免用戶端時間差異
+            scoreData["userName"] = "PlayerName"; // 如果有用戶名系統可以設定
+
+            // 將資料寫入到 "scores" 路徑下的一個新節點
+            dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompleted)
+                {
+                    Debug.Log($"成功將分數寫入 Firebase: 正確 {correctAnswersCount}/3");
+                }
+                else if (task.IsFaulted)
+                {
+                    Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
+                }
+            });
+        }
+        else
+        {
+            Debug.LogWarning("Firebase Database 未初始化，無法寫入分數。");
+        }
 
         Debug.Log("所有點擊任務完成，準備進入魚攤流程。");
         hasClickedStall = true;
