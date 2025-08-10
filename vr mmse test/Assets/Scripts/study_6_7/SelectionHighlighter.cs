@@ -2,83 +2,57 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
-// 只依賴 Hover 顯示藍圈；被 ManualSelect() 後白圈常亮（直到別的被選中）
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable))]
 public class SelectionHighlighter : MonoBehaviour
 {
-    #region Inspector
-    [Header("Size（統一大小）")]
-    [Min(0.001f)] public float ringRadius = 0.18f;   // 半徑（公尺）
-    [Min(0.001f)] public float ringWidth  = 0.03f;   // 線寬
-    public float yOffset = 0.02f;                    // 離地高度
-    [Range(12,256)] public int segments = 64;        // 圓解析度
+    [Header("Size (統一大小)")]
+    public float ringRadius = 0.18f;
+    public float ringWidth  = 0.03f;
+    public float yOffset    = 0.02f;
+    public int   segments   = 64;
 
     [Header("Visual")]
-    public Color hoverColor  = new Color(0.20f, 0.80f, 1.00f); // 懸停顏色
-    public Color selectColor = new Color(2.0f,  2.0f,  2.0f);  // 選取顏色（HDR 讓 Bloom 更明顯）
+    public Color hoverColor  = new Color(0.20f, 0.80f, 1.00f); // 藍
+    public Color selectColor = new Color(2.0f,  2.0f,  2.0f);  // 白（HDR）
 
     [Header("Behaviour")]
-    public bool compensateParentScale = true; // 抵銷父層縮放，半徑固定以世界公尺計
-    public int sortingOrder = 4000;           // 確保不被其它透明物擋掉
-    #endregion
+    public bool compensateParentScale = true;
+    public int  sortingOrder = 4000;
 
     const string kRingName = "HighlightRing";
 
-    // 注意：你專案在 XRI v3，型別位於 Interactables 子命名空間
-    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
+    UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
+    LineRenderer ring;
+    Material ringMat;
+    Coroutine pulseCo;
 
-    private LineRenderer ring;
-    private Material ringMat;
-    private Coroutine pulseCo;
-    private bool _stickySelected = false; // 被 dwell 選取後維持白圈
+    // 便捷：目前是否就是「全域唯一選中者」
+    public bool IsCurrentSelected => SelectionHighlightRegistry.Current == this;
 
-    #region Public API（給 Dwell 腳本呼叫）
-    /// <summary>被 dwell 選取時呼叫：白圈常亮且保證唯一</summary>
-    public void ManualSelect()
-    {
-        SelectionHighlightRegistry.Take(this); // 關掉上一個
-        _stickySelected = true;
 
-        if (ring == null) return;
-        SetRingColor(selectColor);
-        if (pulseCo != null) StopCoroutine(pulseCo);
-        pulseCo = StartCoroutine(Pulse());
-        ring.enabled = true;
-    }
-
-    /// <summary>外部取消選取（例如 Registry 切換目標時）</summary>
-    public void ManualDeselect()
-    {
-        _stickySelected = false;
-        ForceDeselect();
-    }
-    #endregion
-
-    #region Unity
     void Awake()
     {
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
         CreateOrReuseRing();
-        BindHoverEvents(true);
+        BindEvents(true);
     }
 
-    void OnDestroy() => BindHoverEvents(false);
-
-    void LateUpdate()
+    void OnDestroy()
     {
-        if (ring) ApplyScaleCompensation(ring.transform);
+        BindEvents(false);
+        if (IsCurrentSelected) SelectionHighlightRegistry.Clear(this);
     }
-    #endregion
 
-    #region Events（只保留 Hover）
-    void BindHoverEvents(bool on)
+    void BindEvents(bool on)
     {
         if (!interactable) return;
 
         if (on)
         {
+            // XRI v3 用 AddListener/RemoveListener
             interactable.hoverEntered.AddListener(OnHoverEntered);
             interactable.hoverExited.AddListener(OnHoverExited);
+            // 你若還有 select/activate 也可掛，但我們現在靠 ManualSelect()
         }
         else
         {
@@ -87,29 +61,6 @@ public class SelectionHighlighter : MonoBehaviour
         }
     }
 
-    void OnHoverEntered(HoverEnterEventArgs _)
-    {
-        // 進入 hover：若已被選取顯示白圈；否則藍圈
-        ring.enabled = true;
-        SetRingColor(_stickySelected ? selectColor : hoverColor);
-    }
-
-    void OnHoverExited(HoverExitEventArgs _)
-    {
-        // 離開 hover：若已被 dwell 選取則維持白圈，否則關閉
-        if (_stickySelected)
-        {
-            ring.enabled = true;
-            SetRingColor(selectColor);
-        }
-        else
-        {
-            ring.enabled = false;
-        }
-    }
-    #endregion
-
-    #region Ring build
     void CreateOrReuseRing()
     {
         Transform t = transform.Find(kRingName);
@@ -137,12 +88,12 @@ public class SelectionHighlighter : MonoBehaviour
         ring.receiveShadows = false;
         ring.alignment = LineAlignment.View;
 
-        // URP 粒子 Unlit（吃頂點色），排序抬高避免被遮
         var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
         ringMat = new Material(shader);
         ringMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
         ring.material = ringMat;
 
+        // 讓線也能依顏色排序到前面（保險）
         var mr = ring.GetComponent<MeshRenderer>();
         if (mr) mr.sortingOrder = sortingOrder;
 
@@ -171,16 +122,28 @@ public class SelectionHighlighter : MonoBehaviour
         float sz = Mathf.Approximately(s.z, 0f) ? 1f : 1f / s.z;
         ringTransform.localScale = new Vector3(sx, 1f, sz);
     }
-    #endregion
 
-    #region Helpers
-    void SetRingColor(Color c)
+    void LateUpdate()
     {
-        if (!ring) return;
-        ring.startColor = c;
-        ring.endColor   = c;
+        if (ring) ApplyScaleCompensation(ring.transform);
     }
 
+    void SetRingColor(Color c) { ring.startColor = c; ring.endColor = c; }
+
+    // ========== 公開 API：讓其它系統（例如 DwellSelectOnHover）呼叫 ==========
+    // 被選中 → 成為全域唯一選中者（白圈常亮）
+    public void ManualSelect()
+    {
+        SelectionHighlightRegistry.Take(this);   // 把上一顆熄掉，登記我
+        if (!ring) return;
+
+        SetRingColor(selectColor);
+        if (pulseCo != null) StopCoroutine(pulseCo);
+        pulseCo = StartCoroutine(Pulse());
+        ring.enabled = true;
+    }
+
+    // 被別人搶走或要關閉時呼叫
     public void ForceDeselect()
     {
         if (!ring) return;
@@ -188,21 +151,35 @@ public class SelectionHighlighter : MonoBehaviour
         if (pulseCo != null) { StopCoroutine(pulseCo); pulseCo = null; }
     }
 
+    // ========== XRI 事件（只用來處理 hover 顏色） ==========
+    void OnHoverEntered(HoverEnterEventArgs _)
+    {
+        ring.enabled = true;
+        // 只有「目前被選中的那顆」在 hover 時保持白色，其它顯示藍色
+        SetRingColor(IsCurrentSelected ? selectColor : hoverColor);
+    }
+
+    void OnHoverExited(HoverExitEventArgs _)
+    {
+        // 不是目前選中者才在離開時關閉；目前那顆保持常亮
+        if (!IsCurrentSelected && pulseCo == null)
+            ring.enabled = false;
+    }
+
     IEnumerator Pulse()
     {
         float t = 0f;
         float baseW = ringWidth;
         ring.enabled = true;
-        // 保持呼吸直到外部切換（ManualDeselect / Registry）
-        while (_stickySelected)
+        while (SelectionHighlightRegistry.Current == this)
         {
             t += Time.deltaTime * 4f;
             ring.widthMultiplier = baseW * (1f + 0.15f * Mathf.Sin(t));
             yield return null;
         }
         ring.widthMultiplier = baseW;
+        pulseCo = null;
     }
-    #endregion
 
 #if UNITY_EDITOR
     void OnValidate()
@@ -211,8 +188,6 @@ public class SelectionHighlighter : MonoBehaviour
         {
             ApplyScaleCompensation(ring.transform);
             RebuildCircle();
-            var mr = ring.GetComponent<MeshRenderer>();
-            if (mr) mr.sortingOrder = sortingOrder;
         }
     }
 #endif
