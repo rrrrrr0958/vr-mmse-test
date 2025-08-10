@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using UnityEngine.SceneManagement;
 
 public class VRButtonSelector : MonoBehaviour
 {
@@ -40,7 +41,9 @@ public class VRButtonSelector : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, maxDistance))
         {
-            Button btn = hit.collider.GetComponent<Button>();
+            // 無論打到本體還是子物件都能抓到 Button
+            Button btn = hit.collider.GetComponent<Button>() ?? hit.collider.GetComponentInParent<Button>();
+
             if (btn != null)
             {
                 currentButton = btn;
@@ -55,6 +58,7 @@ public class VRButtonSelector : MonoBehaviour
             }
         }
 
+        // 沒打到按鈕
         if (lastButton != null)
         {
             ResetButtonColor(lastButton);
@@ -71,36 +75,25 @@ public class VRButtonSelector : MonoBehaviour
         if (leftController.isValid)
         {
             if (leftController.TryGetFeatureValue(CommonUsages.primaryButton, out bool p1) && p1)
-            {
                 pressed = true;
-                Debug.Log("Left Controller A 按下");
-            }
             if (leftController.TryGetFeatureValue(CommonUsages.secondaryButton, out bool p2) && p2)
-            {
                 pressed = true;
-                Debug.Log("Left Controller B 按下");
-            }
         }
 
         // 右手
         if (rightController.isValid)
         {
             if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool p3) && p3)
-            {
                 pressed = true;
-                Debug.Log("Right Controller A 按下");
-            }
             if (rightController.TryGetFeatureValue(CommonUsages.secondaryButton, out bool p4) && p4)
-            {
                 pressed = true;
-                Debug.Log("Right Controller B 按下");
-            }
         }
 
         if (pressed && currentButton != null)
         {
-            Debug.Log($"觸發按鈕：{currentButton.name}");
-            currentButton.onClick.Invoke();
+            Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 Prefabs 場景");
+            // 切換到場景 Prefabs
+            SceneManager.LoadScene("Prefabs", LoadSceneMode.Single);
         }
     }
 
