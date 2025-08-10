@@ -8,7 +8,8 @@ public class SelectionHighlighter : MonoBehaviour
     [Header("Size (統一大小)")]
     public float ringRadius = 0.18f;
     public float ringWidth  = 0.03f;
-    public float yOffset    = 0.02f;
+    public float yOffset    = 0.02f;   // ↑ 往上抬
+    public float zOffset    = 0.00f;   // ★ 新增：沿本地 Z 推前/後（正值=往前）
     public int   segments   = 64;
 
     [Header("Visual")]
@@ -19,6 +20,10 @@ public class SelectionHighlighter : MonoBehaviour
     public bool compensateParentScale = true;
     public int  sortingOrder = 4000;
 
+    [Header("Orientation")]
+    [Tooltip("繞 Y 軸額外旋轉角度（例如 180° 做翻轉）")]
+    public float yawDegrees = 0f;      // ★ 新增：Y 軸翻轉/旋轉
+
     const string kRingName = "HighlightRing";
 
     UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
@@ -28,7 +33,6 @@ public class SelectionHighlighter : MonoBehaviour
 
     // 便捷：目前是否就是「全域唯一選中者」
     public bool IsCurrentSelected => SelectionHighlightRegistry.Current == this;
-
 
     void Awake()
     {
@@ -52,7 +56,7 @@ public class SelectionHighlighter : MonoBehaviour
             // XRI v3 用 AddListener/RemoveListener
             interactable.hoverEntered.AddListener(OnHoverEntered);
             interactable.hoverExited.AddListener(OnHoverExited);
-            // 你若還有 select/activate 也可掛，但我們現在靠 ManualSelect()
+            // 選取改由 ManualSelect() 觸發，不在此處掛 select/activate
         }
         else
         {
@@ -76,8 +80,12 @@ public class SelectionHighlighter : MonoBehaviour
             ring = t.GetComponent<LineRenderer>() ?? t.gameObject.AddComponent<LineRenderer>();
         }
 
-        t.localPosition = new Vector3(0f, yOffset, 0f);
-        t.localRotation = Quaternion.Euler(90, 0, 0);
+        // 位置：X=0、Y=Offset、Z=Offset（★ 新增 zOffset）
+        t.localPosition = new Vector3(0f, yOffset, zOffset);
+
+        // 轉向：先讓圓躺在地上（X=90），再繞 Y 軸加上可調的 yawDegrees（★）
+        t.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+
         ApplyScaleCompensation(t);
 
         ring.loop = true;
@@ -103,6 +111,8 @@ public class SelectionHighlighter : MonoBehaviour
 
     void RebuildCircle()
     {
+        if (!ring) return;
+
         var pts = new Vector3[segments];
         float r = Mathf.Max(0.0001f, ringRadius);
         for (int i = 0; i < segments; i++)
@@ -110,6 +120,7 @@ public class SelectionHighlighter : MonoBehaviour
             float a = i * Mathf.PI * 2f / segments;
             pts[i] = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
         }
+        ring.positionCount = segments;
         ring.SetPositions(pts);
         ring.widthMultiplier = ringWidth;
     }
@@ -125,10 +136,22 @@ public class SelectionHighlighter : MonoBehaviour
 
     void LateUpdate()
     {
-        if (ring) ApplyScaleCompensation(ring.transform);
+        if (!ring) return;
+
+        // 持續補償父縮放
+        ApplyScaleCompensation(ring.transform);
+
+        // 若你在 Play 時調 Inspector，讓位置/旋轉即時反映
+        ring.transform.localPosition = new Vector3(0f, yOffset, zOffset);
+        ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
     }
 
-    void SetRingColor(Color c) { ring.startColor = c; ring.endColor = c; }
+    void SetRingColor(Color c)
+    {
+        if (!ring) return;
+        ring.startColor = c;
+        ring.endColor = c;
+    }
 
     // ========== 公開 API：讓其它系統（例如 DwellSelectOnHover）呼叫 ==========
     // 被選中 → 成為全域唯一選中者（白圈常亮）
@@ -154,13 +177,15 @@ public class SelectionHighlighter : MonoBehaviour
     // ========== XRI 事件（只用來處理 hover 顏色） ==========
     void OnHoverEntered(HoverEnterEventArgs _)
     {
+        if (!ring) return;
         ring.enabled = true;
-        // 只有「目前被選中的那顆」在 hover 時保持白色，其它顯示藍色
+        // 目前被選中的那顆在 hover 時保持白色，其它顯示藍色
         SetRingColor(IsCurrentSelected ? selectColor : hoverColor);
     }
 
     void OnHoverExited(HoverExitEventArgs _)
     {
+        if (!ring) return;
         // 不是目前選中者才在離開時關閉；目前那顆保持常亮
         if (!IsCurrentSelected && pulseCo == null)
             ring.enabled = false;
@@ -184,10 +209,16 @@ public class SelectionHighlighter : MonoBehaviour
 #if UNITY_EDITOR
     void OnValidate()
     {
+        // 編輯器中即時反映參數變化
         if (ring != null)
         {
             ApplyScaleCompensation(ring.transform);
             RebuildCircle();
+            ring.transform.localPosition = new Vector3(0f, yOffset, zOffset);
+            ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+
+            var mr = ring.GetComponent<MeshRenderer>();
+            if (mr) mr.sortingOrder = sortingOrder;
         }
     }
 #endif
