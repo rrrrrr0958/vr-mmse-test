@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class VRButtonSelector : MonoBehaviour
 {
@@ -9,6 +10,10 @@ public class VRButtonSelector : MonoBehaviour
     public float maxDistance = 10f;
     public Color normalColor = Color.white;
     public Color highlightColor = Color.green;
+
+    [Header("Fade Settings")]
+    public CanvasGroup fadeCanvasGroup;  // 拖全螢幕黑色 UI
+    public float fadeDuration = 1f;      // 淡入/淡出時間
 
     private Button currentButton;
     private Button lastButton;
@@ -20,11 +25,16 @@ public class VRButtonSelector : MonoBehaviour
     {
         leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
         rightController = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+
+        // 讓遊戲一開始就透明，不做淡入
+        if (fadeCanvasGroup != null)
+        {
+            fadeCanvasGroup.alpha = 0;
+        }
     }
 
     void Update()
     {
-        // 確保控制器裝置是有效的
         if (!leftController.isValid)
             leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
         if (!rightController.isValid)
@@ -41,7 +51,6 @@ public class VRButtonSelector : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, maxDistance))
         {
-            // 無論打到本體還是子物件都能抓到 Button
             Button btn = hit.collider.GetComponent<Button>() ?? hit.collider.GetComponentInParent<Button>();
 
             if (btn != null)
@@ -58,7 +67,6 @@ public class VRButtonSelector : MonoBehaviour
             }
         }
 
-        // 沒打到按鈕
         if (lastButton != null)
         {
             ResetButtonColor(lastButton);
@@ -71,7 +79,6 @@ public class VRButtonSelector : MonoBehaviour
     {
         bool pressed = false;
 
-        // 左手
         if (leftController.isValid)
         {
             if (leftController.TryGetFeatureValue(CommonUsages.primaryButton, out bool p1) && p1)
@@ -80,7 +87,6 @@ public class VRButtonSelector : MonoBehaviour
                 pressed = true;
         }
 
-        // 右手
         if (rightController.isValid)
         {
             if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool p3) && p3)
@@ -92,8 +98,12 @@ public class VRButtonSelector : MonoBehaviour
         if (pressed && currentButton != null)
         {
             Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 Prefabs 場景");
-            // 切換到場景 Prefabs
-            SceneManager.LoadScene("Prefabs", LoadSceneMode.Single);
+
+            // 使用淡出再切換場景
+            if (fadeCanvasGroup != null)
+                StartCoroutine(FadeOutAndLoad("Prefabs"));
+            else
+                SceneManager.LoadScene("Prefabs", LoadSceneMode.Single);
         }
     }
 
@@ -111,5 +121,30 @@ public class VRButtonSelector : MonoBehaviour
         var img = btn.GetComponent<Image>();
         if (img != null)
             img.color = normalColor;
+    }
+
+    IEnumerator FadeIn()
+    {
+        float t = 0f;
+        while (t < fadeDuration)
+        {
+            t += Time.deltaTime;
+            fadeCanvasGroup.alpha = 1 - (t / fadeDuration);
+            yield return null;
+        }
+        fadeCanvasGroup.alpha = 0;
+    }
+
+    IEnumerator FadeOutAndLoad(string sceneName)
+    {
+        float t = 0f;
+        while (t < fadeDuration)
+        {
+            t += Time.deltaTime;
+            fadeCanvasGroup.alpha = t / fadeDuration;
+            yield return null;
+        }
+        fadeCanvasGroup.alpha = 1;
+        SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
     }
 }
