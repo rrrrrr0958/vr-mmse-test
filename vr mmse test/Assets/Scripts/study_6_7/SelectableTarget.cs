@@ -12,10 +12,8 @@ public class SelectableTarget : MonoBehaviour
     void Awake()
     {
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
-        // Grip = Select
-        interactable.selectEntered.AddListener(OnSelect);
-        // Trigger = Activate
-        interactable.activated.AddListener(OnActivated);
+        interactable.selectEntered.AddListener(OnSelect);   // Grip
+        interactable.activated.AddListener(OnActivated);    // Trigger
     }
 
     void OnDestroy()
@@ -28,11 +26,9 @@ public class SelectableTarget : MonoBehaviour
     void OnSelect(SelectEnterEventArgs _)  { Submit(); }
     void OnActivated(ActivateEventArgs _)  { Submit(); }
 
-// 只展示差異：把 Submit 改成 public
     public void Submit()
     {
         var qm = FindAnyObjectByType<QuizManager>();
-        if (qm != null) qm.Submit(targetId);
+        if (qm != null) qm.SubmitCandidate(targetId, gameObject.name);
     }
-
 }
