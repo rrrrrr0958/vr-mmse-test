@@ -1,13 +1,13 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 using TMPro;
-using System.IO;
 using System;
+using System.IO;
 
 public class RecordingState2 : MonoBehaviour
 {
     public TextMeshProUGUI statusText;
-    public HostFlask2 flaskHost;  // 連結 Flask 傳送腳本
+    public HostFlask2 flaskHost;
 
     public void StartRecording(float duration)
     {
@@ -17,25 +17,29 @@ public class RecordingState2 : MonoBehaviour
     IEnumerator RecordPlayerVoice(float duration)
     {
         statusText.text = "錄音中...";
+        if (Microphone.devices.Length == 0) {
+            statusText.text = "沒有偵測到麥克風";
+            yield break;
+        }
+
         string micName = Microphone.devices[0];
-        AudioClip clip = Microphone.Start(micName, false, (int)duration, 44100);
+        int sampleRate = 44100;
+        AudioClip clip = Microphone.Start(micName, false, Mathf.CeilToInt(duration), sampleRate);
 
         yield return new WaitForSeconds(duration);
 
         Microphone.End(micName);
         statusText.text = "錄音完成";
 
-        // 產生唯一檔名（使用時間戳記）
+        // save with timestamped filename
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"recorded_{timestamp}.wav";
-        string filePath = Path.Combine(Application.persistentDataPath, fileName);
+        string filename = $"recorded_{timestamp}.wav";
+        string savedPath = SaveWave.SavWav.Save(clip, filename);
 
-        SaveWave.SavWav.Save(clip, fileName);
+        Debug.Log("Saved wav: " + savedPath);
+        statusText.text = "已儲存：" + Path.GetFileName(savedPath);
 
-        // 顯示儲存位置（可選）
-        Debug.Log("儲存音檔：" + filePath);
-
-        // 傳送到 Flask
-        flaskHost.SendFileToWhisper(filePath);
+        // call flask
+        flaskHost.SendFileToWhisper(savedPath);
     }
 }

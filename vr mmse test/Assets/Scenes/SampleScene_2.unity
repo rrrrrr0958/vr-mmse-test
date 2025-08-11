@@ -2917,6 +2917,8 @@ GameObject:
   - component: {fileID: 245282001}
   - component: {fileID: 245282000}
   - component: {fileID: 245281999}
+  - component: {fileID: 245282004}
+  - component: {fileID: 245282003}
   m_Layer: 0
   m_Name: Camera
   m_TagString: Untagged
@@ -3043,6 +3045,46 @@ Transform:
   - {fileID: 1766374910}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -1.909, y: 190.702, z: 0.059}
+--- !u!114 &245282003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 245281998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cf6b19ef94ec064b9b586f9cd89185a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 3.5
+  mouseSensitivity: 2
+  cameraTransform: {fileID: 0}
+--- !u!143 &245282004
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 245281998}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &245478248
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15798,6 +15840,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1597536243}
   - component: {fileID: 1597536242}
+  - component: {fileID: 1597536244}
   m_Layer: 0
   m_Name: Flask_manager_2
   m_TagString: Untagged
@@ -15818,6 +15861,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   statusText: {fileID: 1707024648}
+  serverUrl: http://localhost:5000/transcribe
+  targetSentence: "\u9B5A\u8089\u7279\u50F9\u5FEB\u4F86\u8CB7"
 --- !u!4 &1597536243
 Transform:
   m_ObjectHideFlags: 0
@@ -15827,12 +15872,37 @@ Transform:
   m_GameObject: {fileID: 1597536241}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.751906, y: 3.146996, z: -0.5272899}
+  m_LocalPosition: {x: 0.59, y: 3.146996, z: 3.19}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &1597536244
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1597536241}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1598330043
 PrefabInstance:
   m_ObjectHideFlags: 0
