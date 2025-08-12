@@ -1,36 +1,38 @@
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterController))]
 public class SimpleFPS : MonoBehaviour
 {
-    public float moveSpeed = 3.5f;
-    public float mouseSensitivity = 2.0f;
-    public Transform cameraTransform;
-    private CharacterController cc;
-    private float pitch = 0f;
+    public Transform cameraTransform; // 拖 Main Camera 進來
+    public float moveSpeed = 5f;
+    public float mouseSensitivity = 2f;
+
+    float xRotation = 0f;
 
     void Start()
     {
-        cc = GetComponent<CharacterController>();
-        if (cameraTransform == null) cameraTransform = Camera.main.transform;
-        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.lockState = CursorLockMode.Locked; // 鎖定滑鼠
+        transform.rotation = Quaternion.Euler(0f, 20.247f, 0f); // 人物本體朝向
+        cameraTransform.localRotation = Quaternion.Euler(0f, 20.247f, 0f); // 相機抬頭/低頭角度
         Cursor.visible = false;
     }
 
     void Update()
     {
-        // mouse look
+        // 滑鼠視角
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
-        pitch -= mouseY;
-        pitch = Mathf.Clamp(pitch, -80f, 80f);
-        cameraTransform.localEulerAngles = new Vector3(pitch, 0, 0);
+
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+
+        cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
 
-        // movement
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-        Vector3 dir = transform.forward * v + transform.right * h;
-        cc.SimpleMove(dir * moveSpeed);
+        // WASD 移動
+        float moveX = Input.GetAxis("Horizontal");
+        float moveZ = Input.GetAxis("Vertical");
+
+        Vector3 move = transform.right * moveX + transform.forward * moveZ;
+        transform.position += move * moveSpeed * Time.deltaTime;
     }
 }
