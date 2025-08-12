@@ -1,18 +1,26 @@
+#pip install faster-whisper
+#pip install ffmpeg-python
 from flask import Flask, request, jsonify
 from pypinyin import lazy_pinyin
 from difflib import SequenceMatcher
 import os
 from datetime import datetime
-import openai  # 確保你已經 pip install openai
+import json
+from faster_whisper import WhisperModel
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "uploads"
+RESULT_FOLDER = "results"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 TARGET_PASS_THRESHOLD = 0.7  # 70%
 
-openai.api_key = os.getenv("OPENAI_API_KEY")  # 你的 API key
+# 1. 初始化本地 Whisper 模型（第一次會下載模型檔）
+# 可選 "tiny", "base", "small", "medium", "large-v3"
+model_size = "small"
+model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
 def calc_similarity(target, spoken):
     """將文字轉成拼音後比較相似度"""
@@ -34,16 +42,12 @@ def transcribe():
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
 
-    # Whisper 語音辨識
+    # 2. 本地 Whisper 語音辨識
     try:
-        with open(filepath, "rb") as audio_file:
-            transcript = openai.Audio.transcriptions.create(
-                model="whisper-1",  # 或者你自己本地模型
-                file=audio_file
-            )
-        spoken_text = transcript.text.strip()
+        segments, _ = model.transcribe(filepath, beam_size=5)
+        spoken_text = "".join([segment.text for segment in segments]).strip()
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Speech recognition failed: {e}"}), 500
 
     # 計算相似度
     similarity = calc_similarity(target, spoken_text)
@@ -56,10 +60,14 @@ def transcribe():
         "passed": passed
     }
 
-    # TODO: 存資料庫
-    print("儲存資料到 DB:", result)
+    # 存成 JSON 檔案
+    result_filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".json"
+    result_path = os.path.join(RESULT_FOLDER, result_filename)
+    with open(result_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
 
     return jsonify(result)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+#cd Assets/Scripts
