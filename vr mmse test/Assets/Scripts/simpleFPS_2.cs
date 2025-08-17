@@ -2,18 +2,22 @@ using UnityEngine;
 
 public class SimpleFPS : MonoBehaviour
 {
-    public Transform cameraTransform; // 拖 Main Camera 進來
+    public Transform cameraTransform; 
     public float moveSpeed = 5f;
     public float mouseSensitivity = 2f;
 
     float xRotation = 0f;
+    float cameraInitialY = 0f;  // 🔹多加一個變數記住初始 Y
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked; // 鎖定滑鼠
-        transform.rotation = Quaternion.Euler(0f, 20.247f, 0f); // 人物本體朝向
-        cameraTransform.localRotation = Quaternion.Euler(0f, 20.247f, 0f); // 相機抬頭/低頭角度
+        Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        // 讀取初始旋轉
+        Vector3 camAngles = cameraTransform.localEulerAngles;
+        xRotation = camAngles.x;
+        cameraInitialY = camAngles.y;   // 🔹存下 Y 軸
     }
 
     void Update()
@@ -25,13 +29,15 @@ public class SimpleFPS : MonoBehaviour
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+        // 🔹保留初始 Y，不要硬塞 0
+        cameraTransform.localRotation = Quaternion.Euler(xRotation, cameraInitialY, 0f);
+
+        // 🔹角色本體控制左右轉
         transform.Rotate(Vector3.up * mouseX);
 
-        // WASD 移動
+        // 移動
         float moveX = Input.GetAxis("Horizontal");
         float moveZ = Input.GetAxis("Vertical");
-
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         transform.position += move * moveSpeed * Time.deltaTime;
     }
