@@ -3,6 +3,8 @@ using TMPro; // 引入TextMeshPro命名空間
 using System.Collections; // 引入用於協程的命名空間
 using System.Collections.Generic; // 引入用於List的命名空間
 using System.Linq; // 引入用於LINQ，方便隨機選擇
+using UnityEngine.Networking; // 新增這行
+using System.Text.RegularExpressions; // 用於正規表達式，提取數字
 
 public class QuestionManager : MonoBehaviour
 {
@@ -12,7 +14,6 @@ public class QuestionManager : MonoBehaviour
 
     public AudioSource questionAudioSource; // 用於播放題目語音的 AudioSource
 
-    // 所有的題目文字都直接在 Script 中定義
     private string initialMoneyQuestion = "現在你有100元";
     private List<string> answerOptions = new List<string>
     {
@@ -23,16 +24,22 @@ public class QuestionManager : MonoBehaviour
         "花費30元買了肉之後剩多少?"
     };
 
-    // 所有題目對應的音頻片段，需要在 Inspector 中連接
-    public AudioClip initialMoneyAudio; // "現在你有100元" 的音頻
-    public List<AudioClip> answerOptionAudios; // a-e 題目的音頻列表
+    public AudioClip initialMoneyAudio;
+    public List<AudioClip> answerOptionAudios;
 
-    private List<int> currentQuestionSequenceIndices = new List<int>(); // 儲存隨機選擇的題目在 answerOptions中的索引
-    private int currentQuestionIndexInSequence = 0; // 當前在隨機序列中的題目索引
+    private List<int> currentQuestionSequenceIndices = new List<int>();
+
+    // 追蹤目前金額
+    private int currentMoney = 100;
+
+    [Header("伺服器設定")]
+    public string serverUrl = "http://localhost:5000/recognize_speech";
+    public float recordingDuration = 5.0f;
+
+    private AudioClip recordingClip;
 
     void Start()
     {
-        // 檢查必要的組件是否已連接
         if (questionText == null)
         {
             Debug.LogError("請將 TextMeshPro (3D) 組件拖曳到 Question Text 欄位！");
@@ -48,121 +55,222 @@ public class QuestionManager : MonoBehaviour
             Debug.LogError("請將 AudioSource 組件拖曳到 Question Audio Source 欄位！");
             return;
         }
-
-        // 檢查音頻文件是否已連接
         if (initialMoneyAudio == null)
         {
             Debug.LogError("請為 '現在你有100元' 提供音頻文件 (Initial Money Audio)！");
             return;
         }
-        // 確保音頻列表的數量與題目文字列表的數量一致
         if (answerOptionAudios == null || answerOptionAudios.Count != answerOptions.Count)
         {
             Debug.LogError("請確保 Answer Option Audios 列表中有 " + answerOptions.Count + " 個音頻文件，且與題目順序一致！");
             return;
         }
 
-        panelBackground.SetActive(false); // 初始時隱藏面板和文字
-
+        panelBackground.SetActive(false);
         StartCoroutine(StartGameSequence());
     }
 
     IEnumerator StartGameSequence()
     {
         GenerateRandomQuestions();
-        yield return StartCoroutine(DisplayAndPlayQuestion()); // 啟動顯示和播放語音的協程
+        currentMoney = 100;
+        panelBackground.SetActive(true);
+
+        // 1. 處理固定題目
+        questionText.text = initialMoneyQuestion;
+        Debug.Log("顯示題目: " + initialMoneyQuestion);
+
+        if (initialMoneyAudio != null)
+        {
+            questionAudioSource.clip = initialMoneyAudio;
+            questionAudioSource.Play();
+            yield return new WaitForSeconds(Mathf.Max(initialMoneyAudio.length, delayBetweenQuestions));
+        }
+        else
+        {
+            yield return new WaitForSeconds(delayBetweenQuestions);
+        }
+
+        // 2. 依序處理每個隨機題目
+        for (int i = 0; i < currentQuestionSequenceIndices.Count; i++)
+        {
+            int questionListIndex = currentQuestionSequenceIndices[i];
+            string currentQuestionText = answerOptions[questionListIndex];
+            AudioClip currentQuestionAudio = answerOptionAudios[questionListIndex];
+
+            questionText.text = currentQuestionText;
+            Debug.Log("顯示題目: " + currentQuestionText);
+
+            if (currentQuestionAudio != null)
+            {
+                questionAudioSource.clip = currentQuestionAudio;
+                questionAudioSource.Play();
+                yield return new WaitForSeconds(Mathf.Max(currentQuestionAudio.length, delayBetweenQuestions));
+            }
+            else
+            {
+                yield return new WaitForSeconds(delayBetweenQuestions);
+            }
+
+            // 關鍵修改: 傳遞當前題目的索引 'i' 到 WaitForAnswer
+            yield return StartCoroutine(WaitForAnswer(i));
+        }
+
+        Debug.Log("所有題目已顯示完畢！");
+        questionText.text = "所有題目已顯示完畢！";
     }
 
     void GenerateRandomQuestions()
     {
-        // 從 0 到 answerOptions.Count-1 的索引中隨機選擇3個
-        // 這樣可以確保隨機選擇的題目對應到正確的音頻索引
         currentQuestionSequenceIndices = Enumerable.Range(0, answerOptions.Count)
                                          .OrderBy(x => System.Guid.NewGuid())
                                          .Take(3)
                                          .ToList();
-
-        // 輸出隨機順序，用於調試
-        Debug.Log("隨機題目順序 (索引)：");
-        foreach (var index in currentQuestionSequenceIndices)
-        {
-            Debug.Log($"題目: {answerOptions[index]}, 音頻: {answerOptionAudios[index]?.name}");
-        }
     }
 
-    IEnumerator DisplayAndPlayQuestion()
+    // 接收一個參數，以便正確判斷是哪一道題目
+    IEnumerator WaitForAnswer(int questionSequenceIndex)
     {
-        panelBackground.SetActive(true); // 顯示面板和文字
+        Debug.Log("請說出你的答案...");
+        questionText.text = "請說出你的答案...";
 
-        // 處理固定題目 "現在你有100元"
-        if (currentQuestionIndexInSequence == 0)
+        if (Microphone.devices.Length > 0)
         {
-            questionText.text = initialMoneyQuestion; // 顯示固定文字
-            Debug.Log("顯示題目: " + initialMoneyQuestion);
+            Debug.Log("開始錄音...");
+            recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
+            yield return new WaitForSeconds(recordingDuration);
+            Microphone.End(null);
+            Debug.Log("錄音結束。");
 
-            if (initialMoneyAudio != null)
-            {
-                questionAudioSource.clip = initialMoneyAudio;
-                questionAudioSource.Play();
-                // 等待音頻播放完畢，或至少 delayBetweenQuestions 時間
-                yield return new WaitForSeconds(Mathf.Max(initialMoneyAudio.length, delayBetweenQuestions));
-            }
-            else
-            {
-                yield return new WaitForSeconds(delayBetweenQuestions); // 如果沒有音頻，只延遲
-            }
+            byte[] wavData = ConvertAudioClipToWav(recordingClip);
+            // 傳遞參數到 SendAudioToServer
+            yield return StartCoroutine(SendAudioToServer(wavData, questionSequenceIndex));
         }
-
-        // 處理隨機選擇的題目 (a-e)
-        // 注意這裡的判斷條件，currentQuestionIndexInSequence 已經包含初始題目，所以要檢查是否小於隨機序列的總長度 + 1 (因為初始題目佔用一個階段)
-        if (currentQuestionIndexInSequence < currentQuestionSequenceIndices.Count + 1)
+        else
         {
-            // 如果當前索引是 0，表示已經顯示過初始題目，現在要開始顯示第一個隨機題目
-            // 如果當前索引大於 0，表示要顯示第 currentQuestionIndexInSequence 個隨機題目
-            int actualRandomQuestionIndex = currentQuestionIndexInSequence - 1; // 減1因為隨機題目從索引0開始，而我們的sequence索引0已經給了固定題目
-
-            if (actualRandomQuestionIndex >= 0 && actualRandomQuestionIndex < currentQuestionSequenceIndices.Count)
-            {
-                int questionListIndex = currentQuestionSequenceIndices[actualRandomQuestionIndex]; // 獲取隨機選中題目的原始列表索引
-                string currentQuestionText = answerOptions[questionListIndex]; // 獲取對應的文字
-                AudioClip currentQuestionAudio = answerOptionAudios[questionListIndex]; // 獲取對應的音頻
-
-                questionText.text = currentQuestionText;
-                Debug.Log("顯示題目: " + currentQuestionText);
-
-                if (currentQuestionAudio != null)
-                {
-                    questionAudioSource.clip = currentQuestionAudio;
-                    questionAudioSource.Play();
-                    // 等待音頻播放完畢，或至少 delayBetweenQuestions 時間
-                    yield return new WaitForSeconds(Mathf.Max(currentQuestionAudio.length, delayBetweenQuestions));
-                }
-                else
-                {
-                    yield return new WaitForSeconds(delayBetweenQuestions); // 如果沒有音頻，只延遲
-                }
-            }
-
-            currentQuestionIndexInSequence++; // 前進到下一個題目（無論是固定還是隨機）
-
-            // 如果還有題目需要顯示（包括隨機題目和初始題目），則繼續遞迴呼叫
-            // 總共會顯示 1 (固定題目) + 3 (隨機題目) = 4 個階段
-            if (currentQuestionIndexInSequence <= currentQuestionSequenceIndices.Count) // <= 表示還沒顯示完所有隨機題目
-            {
-                yield return StartCoroutine(DisplayAndPlayQuestion());
-            }
-            else
-            {
-                Debug.Log("所有題目已顯示完畢！");
-                questionText.text = "所有題目已顯示完畢！";
-                // panelBackground.SetActive(false); // 可以選擇最後隱藏
-            }
-        }
-        else // 所有題目都顯示完畢了
-        {
-            Debug.Log("所有題目已顯示完畢！");
-            questionText.text = "所有題目已顯示完畢！";
-            // panelBackground.SetActive(false); // 可以選擇最後隱藏
+            Debug.LogError("沒有找到麥克風設備！");
+            questionText.text = "沒有找到麥克風設備！";
+            yield return new WaitForSeconds(2.0f);
         }
     }
+
+    // 接收一個參數，以便正確判斷是哪一道題目
+    IEnumerator SendAudioToServer(byte[] audioData, int questionSequenceIndex)
+    {
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("file", audioData, "recording.wav", "audio/wav");
+
+        UnityWebRequest request = UnityWebRequest.Post(serverUrl, form);
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string jsonResponse = request.downloadHandler.text;
+            Debug.Log("伺服器回應: " + jsonResponse);
+
+            try
+            {
+                RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
+                // 傳遞參數到 CheckAnswer
+                CheckAnswer(response.transcription, questionSequenceIndex);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError("解析 JSON 失敗: " + ex.Message);
+                questionText.text = "辨識失敗，請再試一次。";
+            }
+        }
+        else
+        {
+            Debug.LogError("語音辨識請求失敗: " + request.error);
+            questionText.text = "網路錯誤或伺服器問題。";
+        }
+    }
+
+    // 接收一個參數，以便正確判斷是哪一道題目
+    void CheckAnswer(string userResponse, int questionSequenceIndex)
+    {
+        if (string.IsNullOrEmpty(userResponse))
+        {
+            Debug.Log("沒有聽到回答。");
+            questionText.text = "沒有聽到回答。";
+            return;
+        }
+
+        int questionListIndex = currentQuestionSequenceIndices[questionSequenceIndex];
+        string question = answerOptions[questionListIndex];
+
+        Match match = Regex.Match(question, @"花費(\d+)元");
+        int spentMoney = 0;
+        if (match.Success)
+        {
+            spentMoney = int.Parse(match.Groups[1].Value);
+        }
+
+        // 關鍵修改：使用 currentMoney 而不是 100
+        int correctAnswer = currentMoney - spentMoney;
+        string correctAnswerStr = correctAnswer.ToString();
+
+        string normalizedResponse = userResponse.Replace("。", "").Replace("元", "").Trim();
+
+        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案是: \"{correctAnswerStr}\"");
+
+        if (normalizedResponse == correctAnswerStr)
+        {
+            Debug.Log("答案正確！");
+            questionText.text = "答案正確！";
+            // 答案正確時，更新 currentMoney 為新值
+            currentMoney = correctAnswer;
+        }
+        else
+        {
+            Debug.Log("答案錯誤！");
+            questionText.text = $"答案錯誤。正確答案是 {correctAnswer}。";
+        }
+    }
+
+    // 將 AudioClip 轉換為 WAV 位元組陣列的輔助函式
+    byte[] ConvertAudioClipToWav(AudioClip clip)
+    {
+        const int headerSize = 44;
+        byte[] bytes = new byte[clip.samples * 2 * clip.channels + headerSize];
+
+        int format = 1;
+        int channels = clip.channels;
+        int sampleRate = clip.frequency;
+        int bitDepth = 16;
+        int byteRate = sampleRate * channels * (bitDepth / 8);
+        int blockAlign = channels * (bitDepth / 8);
+
+        System.Text.Encoding.UTF8.GetBytes("RIFF").CopyTo(bytes, 0);
+        System.BitConverter.GetBytes(bytes.Length - 8).CopyTo(bytes, 4);
+        System.Text.Encoding.UTF8.GetBytes("WAVE").CopyTo(bytes, 8);
+        System.Text.Encoding.UTF8.GetBytes("fmt ").CopyTo(bytes, 12);
+        System.BitConverter.GetBytes(16).CopyTo(bytes, 16);
+        System.BitConverter.GetBytes((short)format).CopyTo(bytes, 20);
+        System.BitConverter.GetBytes((short)channels).CopyTo(bytes, 22);
+        System.BitConverter.GetBytes(sampleRate).CopyTo(bytes, 24);
+        System.BitConverter.GetBytes(byteRate).CopyTo(bytes, 28);
+        System.BitConverter.GetBytes((short)blockAlign).CopyTo(bytes, 32);
+        System.BitConverter.GetBytes((short)bitDepth).CopyTo(bytes, 34);
+        System.Text.Encoding.UTF8.GetBytes("data").CopyTo(bytes, 36);
+        System.BitConverter.GetBytes(clip.samples * blockAlign).CopyTo(bytes, 40);
+
+        float[] samples = new float[clip.samples * clip.channels];
+        clip.GetData(samples, 0);
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            short pcmValue = (short)(samples[i] * short.MaxValue);
+            System.BitConverter.GetBytes(pcmValue).CopyTo(bytes, headerSize + i * 2);
+        }
+
+        return bytes;
+    }
+}
+
+[System.Serializable]
+public class RecognitionResponse
+{
+    public string transcription;
 }
