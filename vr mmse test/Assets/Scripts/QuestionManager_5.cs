@@ -269,8 +269,8 @@ public class QuestionManager : MonoBehaviour
     }
 }
 
-[System.Serializable]
-public class RecognitionResponse
-{
-    public string transcription;
-}
+//[System.Serializable]
+//public class RecognitionResponse
+//{
+//    public string transcription;
+//}
