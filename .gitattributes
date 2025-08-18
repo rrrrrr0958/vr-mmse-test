@@ -1,0 +1,4 @@
+Assets/Firebase/Plugins/**/*.bundle filter=lfs diff=lfs merge=lfs -text
+Assets/Firebase/Plugins/**/*.dll filter=lfs diff=lfs merge=lfs -text
+Assets/Firebase/Plugins/**/*.so filter=lfs diff=lfs merge=lfs -text
+Assets/Plugins/tvOS/Firebase/*.a filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 2ad8e9df86eea9f4c884f59a0b6621e9
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - cameraTarget_FishStall: {instanceID: 0}
+  - questionBroadcastTextMeshPro: {instanceID: 0}
+  - highlightCircleImage: {instanceID: 0}
+  - voiceAudioSource: {instanceID: 0}
+  - fishStallAudioClip: {fileID: 8300000, guid: 44ba767a2c2717441861d1b966e58f09, type: 3}
+  - fruitStallAudioClip: {fileID: 8300000, guid: 51d418ef5220e014787240a7bb4b7811, type: 3}
+  - weaponStallAudioClip: {instanceID: 0}
+  - breadStallAudioClip: {instanceID: 0}
+  - meatStallAudioClip: {instanceID: 0}
+  - whatIsSellingAudioClip: {instanceID: 0}
+  - fishColorAudioClip: {instanceID: 0}
+  - whatIsThatAudioClip: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
