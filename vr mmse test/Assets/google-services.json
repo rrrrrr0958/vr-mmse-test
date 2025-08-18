@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "914496434850",
+    "project_id": "vr-mmse-test-710d8",
+    "storage_bucket": "vr-mmse-test-710d8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:914496434850:android:af1033a2e0426ae63c5dfb",
+        "android_client_info": {
+          "package_name": "com.UnityTechnologies.com.unity.template.urpblank"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsrXHdYjO5v57g637OHi260VmqCF8F5FI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

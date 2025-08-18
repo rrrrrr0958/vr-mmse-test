@@ -343,8 +343,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 3976200192
-  m_fontColor: {r: 0, g: 0, b: 0, a: 0.92941177}
+    rgba: 4282795590
+  m_fontColor: {r: 0.27450982, g: 0.27450982, b: 0.27450982, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1990,8 +1990,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 3405774848
-  m_fontColor: {r: 0, g: 0, b: 0, a: 0.79607844}
+    rgba: 4282795590
+  m_fontColor: {r: 0.2735849, g: 0.2735849, b: 0.2735849, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2465,6 +2465,7 @@ MonoBehaviour:
   maxDistance: 10
   normalColor: {r: 1, g: 0.2783019, b: 0.63296586, a: 1}
   highlightColor: {r: 0.5849056, g: 0, b: 0.25775874, a: 1}
+  targetSceneName: Login Scene
   fadeCanvasGroup: {fileID: 824689953}
   fadeDuration: 1
 --- !u!4 &1578262971

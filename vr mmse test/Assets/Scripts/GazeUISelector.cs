@@ -6,14 +6,16 @@ using System.Collections;
 
 public class VRButtonSelector : MonoBehaviour
 {
+    [Header("VR Settings")]
     public Camera vrCamera;
     public float maxDistance = 10f;
     public Color normalColor = Color.white;
     public Color highlightColor = Color.green;
 
-    [Header("Fade Settings")]
-    public CanvasGroup fadeCanvasGroup;  // 拖全螢幕黑色 UI
-    public float fadeDuration = 1f;      // 淡入/淡出時間
+    [Header("Scene Transition")]
+    public string targetSceneName = "Login Scene"; // 這裡可以在 Inspector 設定要切換的場景名稱
+    public CanvasGroup fadeCanvasGroup;  
+    public float fadeDuration = 1f;
 
     private Button currentButton;
     private Button lastButton;
@@ -21,16 +23,27 @@ public class VRButtonSelector : MonoBehaviour
     private InputDevice leftController;
     private InputDevice rightController;
 
+    void Awake()
+    {
+        // 確保淡入淡出控制器跨場景保留
+        DontDestroyOnLoad(gameObject);
+    }
+
     void Start()
     {
         leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
         rightController = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
 
-        // 讓遊戲一開始就透明，不做淡入
         if (fadeCanvasGroup != null)
         {
             fadeCanvasGroup.alpha = 0;
         }
+
+        // 每次場景載入後自動淡入
+        SceneManager.sceneLoaded += (scene, mode) =>
+        {
+            StartCoroutine(FadeIn());
+        };
     }
 
     void Update()
@@ -97,13 +110,8 @@ public class VRButtonSelector : MonoBehaviour
 
         if (pressed && currentButton != null)
         {
-            Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 Prefabs 場景");
-
-            // 使用淡出再切換場景
-            if (fadeCanvasGroup != null)
-                StartCoroutine(FadeOutAndLoad("Prefabs"));
-            else
-                SceneManager.LoadScene("Prefabs", LoadSceneMode.Single);
+            Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 {targetSceneName} 場景");
+            StartCoroutine(FadeOutAndLoad(targetSceneName));
         }
     }
 
@@ -125,7 +133,10 @@ public class VRButtonSelector : MonoBehaviour
 
     IEnumerator FadeIn()
     {
+        if (fadeCanvasGroup == null) yield break;
+
         float t = 0f;
+        fadeCanvasGroup.alpha = 1;
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
@@ -137,7 +148,14 @@ public class VRButtonSelector : MonoBehaviour
 
     IEnumerator FadeOutAndLoad(string sceneName)
     {
+        if (fadeCanvasGroup == null)
+        {
+            SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+            yield break;
+        }
+
         float t = 0f;
+        fadeCanvasGroup.alpha = 0;
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
@@ -145,6 +163,8 @@ public class VRButtonSelector : MonoBehaviour
             yield return null;
         }
         fadeCanvasGroup.alpha = 1;
-        SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+
+        yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+        // 淡入會在 sceneLoaded 事件中自動觸發
     }
 }
