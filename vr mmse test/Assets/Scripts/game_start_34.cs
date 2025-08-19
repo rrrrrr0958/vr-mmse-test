@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -13,29 +13,30 @@ using System.Text;
 public class GameManager : MonoBehaviour
 {
     // =========================================================================
-    // ¤½¶}ÅÜ¼Æ (¦b Unity Inspector ¤¤³]©w)
+    // å…¬é–‹è®Šæ•¸ (åœ¨ Unity Inspector ä¸­è¨­å®š)
     // =========================================================================
 
-    [Header("¹CÀ¸¶}©l³]©w")]
+    [Header("éŠæˆ²é–‹å§‹è¨­å®š")]
     public float initialTextDelay = 3f;
     public float questionBroadcastDelay = 2f;
     public float timeBetweenQuestions = 2f;
-    public float voiceQuestionBufferTime = 0.5f;
+    [Tooltip("èªéŸ³å•é¡ŒçµæŸå¾Œï¼Œåˆ°é–‹å§‹éŒ„éŸ³å‰çš„ç·©è¡æ™‚é–“ã€‚èª¿ä½é€™å€‹å€¼å¯ä»¥æ›´å¿«é–‹å§‹éŒ„éŸ³ã€‚")]
+    public float voiceQuestionBufferTime = 0; // å¯ä»¥ç›´æ¥åœ¨ Unity Inspector ä¸­èª¿æ•´ç‚ºæ›´å°çš„å€¼ï¼Œä¾‹å¦‚ 0
 
-    [Header("ÂIÀ»ÃD³]©w")]
+    [Header("é»æ“Šé¡Œè¨­å®š")]
     public float clickResponseDuration = 3.0f;
 
-    [Header("Äá¼v¾÷¥Ø¼ĞÂI")]
+    [Header("æ”å½±æ©Ÿç›®æ¨™é»")]
     public Transform cameraTarget_FishStall;
 
-    [Header("Äá¼v¾÷²¾°Ê³]©w")]
+    [Header("æ”å½±æ©Ÿç§»å‹•è¨­å®š")]
     public float cameraMoveSpeed = 50.0f;
 
-    [Header("UI ³sµ²")]
+    [Header("UI é€£çµ")]
     public TMPro.TextMeshPro questionBroadcastTextMeshPro;
     public Image highlightCircleImage;
 
-    [Header("»y­µ°İÃD³]©w")]
+    [Header("èªéŸ³å•é¡Œè¨­å®š")]
     public AudioSource voiceAudioSource;
     public AudioClip fishStallAudioClip;
     public AudioClip fruitStallAudioClip;
@@ -43,17 +44,17 @@ public class GameManager : MonoBehaviour
     public AudioClip breadStallAudioClip;
     public AudioClip meatStallAudioClip;
 
-    [Header("³½Åu°İÃD»y­µ³]©w")]
+    [Header("é­šæ”¤å•é¡ŒèªéŸ³è¨­å®š")]
     public AudioClip whatIsSellingAudioClip;
     public AudioClip fishColorAudioClip;
     public AudioClip whatIsThatAudioClip;
 
-    [Header("»y­µ¿ëÃÑ³]©w")]
+    [Header("èªéŸ³è¾¨è­˜è¨­å®š")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
     public float recordingDuration = 5.0f;
 
     // =========================================================================
-    // ¨p¦³ÅÜ¼Æ (¸}¥»¤º³¡¨Ï¥Î)
+    // ç§æœ‰è®Šæ•¸ (è…³æœ¬å…§éƒ¨ä½¿ç”¨)
     // =========================================================================
 
     private GameObject[] stallRootObjects;
@@ -63,6 +64,7 @@ public class GameManager : MonoBehaviour
     private Coroutine initialQuestionCoroutine;
     private string currentTargetStallName = "";
     private int correctAnswersCount = 0;
+    private int voiceCorrectAnswersCount = 0; // æ–°å¢ï¼šèªéŸ³é¡Œç›®çš„ç­”å°é¡Œæ•¸
     private bool isWaitingForClickInput = false;
 
     private DatabaseReference dbReference;
@@ -72,7 +74,7 @@ public class GameManager : MonoBehaviour
 
 
     // =========================================================================
-    // Unity ¥Í©R©P´Á¤èªk
+    // Unity ç”Ÿå‘½å‘¨æœŸæ–¹æ³•
     // =========================================================================
 
     void Awake()
@@ -88,7 +90,7 @@ public class GameManager : MonoBehaviour
             {
                 string stallName = textMeshPro.text;
                 stallNames.Add(stallName);
-                if (stallName != "³½Åu")
+                if (stallName != "é­šæ”¤")
                 {
                     nonFishStallNames.Add(stallName);
                 }
@@ -120,11 +122,11 @@ public class GameManager : MonoBehaviour
             {
                 app = FirebaseApp.DefaultInstance;
                 dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-                Debug.Log("Firebase ¤w¦¨¥\ªì©l¤Æ¡I");
+                Debug.Log("Firebase å·²æˆåŠŸåˆå§‹åŒ–ï¼");
             }
             else
             {
-                Debug.LogError($"µLªk¸Ñ¨M Firebase ¨Ì¿à°İÃD: {dependencyStatus}");
+                Debug.LogError($"ç„¡æ³•è§£æ±º Firebase ä¾è³´å•é¡Œ: {dependencyStatus}");
             }
         });
     }
@@ -156,12 +158,12 @@ public class GameManager : MonoBehaviour
                     TMPro.TextMeshPro clickedTextMeshPro = hit.collider.GetComponentInChildren<TMPro.TextMeshPro>();
                     if (clickedTextMeshPro != null && clickedTextMeshPro.text == currentTargetStallName)
                     {
-                        Debug.Log($"¥¿½T°»´ú¨ìÂIÀ»¥Ø¼ĞÅu¦ì: {currentTargetStallName}¡C¦¹ÃD¥¿½T¡I");
+                        Debug.Log($"æ­£ç¢ºåµæ¸¬åˆ°é»æ“Šç›®æ¨™æ”¤ä½: {currentTargetStallName}ã€‚æ­¤é¡Œæ­£ç¢ºï¼");
                         correctAnswersCount++;
                     }
                     else
                     {
-                        Debug.LogWarning($"ÂIÀ»¤F¿ù»~ªºÅu¦ì: {clickedTextMeshPro?.text ?? "¥¼ª¾Åu¦ì"}¡C¥¿½Tµª®×¬O {currentTargetStallName}¡C¦¹ÃD¿ù»~¡I");
+                        Debug.LogWarning($"é»æ“Šäº†éŒ¯èª¤çš„æ”¤ä½: {clickedTextMeshPro?.text ?? "æœªçŸ¥æ”¤ä½"}ã€‚æ­£ç¢ºç­”æ¡ˆæ˜¯ {currentTargetStallName}ã€‚æ­¤é¡ŒéŒ¯èª¤ï¼");
                     }
                     currentTargetStallName = "";
                 }
@@ -170,7 +172,7 @@ public class GameManager : MonoBehaviour
     }
 
     // =========================================================================
-    // ¹CÀ¸¬yµ{±±¨î¤èªk
+    // éŠæˆ²æµç¨‹æ§åˆ¶æ–¹æ³•
     // =========================================================================
 
     void HideAllStallNamesAndQuestion()
@@ -192,7 +194,7 @@ public class GameManager : MonoBehaviour
         {
             stallRoot.SetActive(true);
         }
-        Debug.Log("©Ò¦³Åu¦ì¦WºÙ¤wÅã¥Ü¡C");
+        Debug.Log("æ‰€æœ‰æ”¤ä½åç¨±å·²é¡¯ç¤ºã€‚");
     }
 
     IEnumerator MainClickSequence()
@@ -207,15 +209,15 @@ public class GameManager : MonoBehaviour
         {
             if (tempNonFishStallNames.Count == 0)
             {
-                Debug.LogWarning("¨S¦³¨¬°÷ªº«D³½Åu¦WºÙ¥i¨ÑÀH¾÷¿ï¾Ü¡I½Ğ½T«O¦Ü¤Ö¦³¨â­Ó«D³½Åu¡C");
+                Debug.LogWarning("æ²’æœ‰è¶³å¤ çš„éé­šæ”¤åç¨±å¯ä¾›éš¨æ©Ÿé¸æ“‡ï¼è«‹ç¢ºä¿è‡³å°‘æœ‰å…©å€‹éé­šæ”¤ã€‚");
                 yield break;
             }
 
             int randomIndex = Random.Range(0, tempNonFishStallNames.Count);
             currentTargetStallName = tempNonFishStallNames[randomIndex];
 
-            string initialQuestion = $"½ĞÂI¿ï {currentTargetStallName} Åu¦ì¡I";
-            Debug.Log($"Console °İÃD (²Ä {i + 1} ¦¸): {initialQuestion}");
+            string initialQuestion = $"è«‹é»é¸ {currentTargetStallName} æ”¤ä½ï¼";
+            Debug.Log($"Console å•é¡Œ (ç¬¬ {i + 1} æ¬¡): {initialQuestion}");
             PlayInitialVoiceQuestion(currentTargetStallName);
 
             tempNonFishStallNames.RemoveAt(randomIndex);
@@ -233,21 +235,21 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSeconds(timeBetweenQuestions);
         }
 
-        currentTargetStallName = "³½Åu";
-        string finalQuestion = $"½ĞÂI¿ï {currentTargetStallName} Åu¦ì¡I";
-        Debug.Log($"Console °İÃD (²Ä 3 ¦¸¡A©T©w³½Åu): {finalQuestion}");
+        currentTargetStallName = "é­šæ”¤";
+        string finalQuestion = $"è«‹é»é¸ {currentTargetStallName} æ”¤ä½ï¼";
+        Debug.Log($"Console å•é¡Œ (ç¬¬ 3 æ¬¡ï¼Œå›ºå®šé­šæ”¤): {finalQuestion}");
         PlayInitialVoiceQuestion(currentTargetStallName);
 
         isWaitingForClickInput = true;
 
-        AudioClip fishStallClip = GetAudioClipForStall("³½Åu");
+        AudioClip fishStallClip = GetAudioClipForStall("é­šæ”¤");
         float fishStallTotalWaitTime = (fishStallClip != null ? fishStallClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
         yield return new WaitForSeconds(fishStallTotalWaitTime);
 
         currentTargetStallName = "";
         isWaitingForClickInput = false;
 
-        Debug.Log($"¥¿½TÃD¥Ø¼Æ: {correctAnswersCount}/3");
+        Debug.Log($"é»æ“Šé¡Œç›®æ­£ç¢ºæ•¸: {correctAnswersCount}/3"); // æ”¹è®Šäº† Log è¨Šæ¯
 
         if (dbReference != null)
         {
@@ -256,7 +258,7 @@ public class GameManager : MonoBehaviour
             string recordKey = $"{userId}_{timestamp}";
 
             Dictionary<string, object> scoreData = new Dictionary<string, object>();
-            scoreData["correctAnswers"] = correctAnswersCount;
+            scoreData["Command_score"] = correctAnswersCount; // æ›´æ”¹é¡åˆ¥åç¨±
             scoreData["totalQuestions"] = 3;
             scoreData["timestamp"] = ServerValue.Timestamp;
             scoreData["userName"] = "PlayerName";
@@ -265,20 +267,20 @@ public class GameManager : MonoBehaviour
             {
                 if (task.IsCompleted)
                 {
-                    Debug.Log($"¦¨¥\±N¤À¼Æ¼g¤J Firebase: ¥¿½T {correctAnswersCount}/3");
+                    Debug.Log($"æˆåŠŸå°‡é»æ“Šåˆ†æ•¸å¯«å…¥ Firebase: æ­£ç¢º {correctAnswersCount}/3"); // æ›´æ”¹äº† Log è¨Šæ¯
                 }
                 else if (task.IsFaulted)
                 {
-                    Debug.LogError($"¼g¤J Firebase ¥¢±Ñ: {task.Exception}");
+                    Debug.LogError($"å¯«å…¥ Firebase å¤±æ•—: {task.Exception}");
                 }
             });
         }
         else
         {
-            Debug.LogWarning("Firebase Database ¥¼ªì©l¤Æ¡AµLªk¼g¤J¤À¼Æ¡C");
+            Debug.LogWarning("Firebase Database æœªåˆå§‹åŒ–ï¼Œç„¡æ³•å¯«å…¥åˆ†æ•¸ã€‚");
         }
 
-        Debug.Log("©Ò¦³ÂIÀ»¥ô°È§¹¦¨¡A·Ç³Æ¶i¤J³½Åu¬yµ{¡C");
+        Debug.Log("æ‰€æœ‰é»æ“Šä»»å‹™å®Œæˆï¼Œæº–å‚™é€²å…¥é­šæ”¤æµç¨‹ã€‚");
         hasClickedStall = true;
         HideAllStallNamesAndQuestion();
         StartCoroutine(MoveCameraToFishStallAndStartFishStallQuestions());
@@ -286,58 +288,95 @@ public class GameManager : MonoBehaviour
 
     IEnumerator MoveCameraToFishStallAndStartFishStallQuestions()
     {
-        Debug.Log("·Ç³Æ±NÄá¼v¾÷Âà¦V³½Åu...");
+        Debug.Log("æº–å‚™å°‡æ”å½±æ©Ÿè½‰å‘é­šæ”¤...");
         if (cameraTarget_FishStall == null)
         {
             Debug.LogError("cameraTarget_FishStall is not assigned! Cannot move camera.");
             yield break;
         }
         yield return StartCoroutine(SmoothCameraMove(cameraTarget_FishStall.position, cameraTarget_FishStall.rotation));
-        Debug.Log("Äá¼v¾÷¤w¦¨¥\Âà¦V³½Åu¡C");
+        Debug.Log("æ”å½±æ©Ÿå·²æˆåŠŸè½‰å‘é­šæ”¤ã€‚");
         StartCoroutine(FishStallQuestionSequence());
     }
 
-    // ¡i­×§ï¡j±N»y­µ¼½©ñÅŞ¿è±q StartCoroutine(WaitForAnswer) ¤¤¤ÀÂ÷
     IEnumerator FishStallQuestionSequence()
     {
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        // ²Ä¤@­Ó»y­µ°İÃD
-        Debug.Log("Console °İÃD: ³o­ÓÅu¦ì¦b½æ¤°»ò¡H");
+        voiceCorrectAnswersCount = 0; // æ–°å¢ï¼šåœ¨èªéŸ³é¡Œé–‹å§‹å‰é‡ç½®åˆ†æ•¸
+
+        // ç¬¬ä¸€å€‹èªéŸ³å•é¡Œ
+        Debug.Log("Console å•é¡Œ: é€™å€‹æ”¤ä½åœ¨è³£ä»€éº¼ï¼Ÿ");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "³½", "³½¦×", "³½Åu", "¦×", "®üÂA", "³½¦×Åu" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "é­š", "é­šè‚‰", "é­šæ”¤", "è‚‰", "æµ·é®®", "é­šè‚‰æ”¤", "ä¸€", "ä¸€è‚‰", "ä¸€æ”¤","ä¸€è‚‰æ”¤", "éœ²", "é­šéœ²", "ä¸€éœ²", "é­šéœ²æ”¤", "ä¸€éœ²æ”¤" }));
 
-        // ²Ä¤G­Ó»y­µ°İÃD
-        Debug.Log("Console °İÃD: ³½ªºÃC¦â¬O¤°»ò¡H");
+        // ç¬¬äºŒå€‹èªéŸ³å•é¡Œ
+        Debug.Log("Console å•é¡Œ: é­šçš„é¡è‰²æ˜¯ä»€éº¼ï¼Ÿ");
         yield return StartCoroutine(PlayAudioClipAndThenWait(fishColorAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "ÂÅ¦â", "ÂÅ", "ÂÅ¥Õ", "ÂÅ¥Õ¦â", "²LÂÅ", "²LÂÅ¦â" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "è—è‰²", "è—", "è—ç™½", "è—ç™½è‰²", "ç™½è—", "ç™½è—è‰²", "æ·ºè—", "æ·ºè—è‰²" }));
 
-        // ²Ä¤T­Ó»y­µ°İÃD (±a°é°é)
-        Debug.Log("Console °İÃD: ¨º­Ó¬O¤°»ò¡H");
+        // ç¬¬ä¸‰å€‹èªéŸ³å•é¡Œ (å¸¶åœˆåœˆ)
+        Debug.Log("Console å•é¡Œ: é‚£å€‹æ˜¯ä»€éº¼ï¼Ÿ");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
         ShowHighlightCircle();
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "¿O", "¸ô¿O" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "ç‡ˆ", "è·¯ç‡ˆ", "è·Ÿ", "è·¯è·Ÿ", "è†¯", "è·¯è†¯", "å…¥ç‡ˆ", "å…¥è†¯", "å…¥è·Ÿ" }));
         HideHighlightCircle();
 
-        Debug.Log("Console: ©Ò¦³³½Åu°İÃD¤w§¹¦¨¡I");
+        Debug.Log("Console: æ‰€æœ‰é­šæ”¤å•é¡Œå·²å®Œæˆï¼");
+        Debug.Log($"èªéŸ³é¡Œç›®æ­£ç¢ºæ•¸: {voiceCorrectAnswersCount}/3"); // æ–°å¢ï¼šé¡¯ç¤ºèªéŸ³é¡Œåˆ†æ•¸
+
+        // æ–°å¢ï¼šä¸Šå‚³èªéŸ³é¡Œç›®åˆ†æ•¸åˆ° Firebase
+        UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
     }
 
-    // ¡i·s¼W¡j¤@­Ó±Mªù¥Î©ó¼½©ñ­µ°T¨Ãµ¥«İ¨ä¼½©ñ§¹²¦ªº¨óµ{
     IEnumerator PlayAudioClipAndThenWait(AudioClip clip)
     {
         if (voiceAudioSource == null || clip == null)
         {
-            Debug.LogWarning("µLªk¼½©ñ­µ°T¡AAudioSource ©Î AudioClip ¬°ªÅ¡C");
+            Debug.LogWarning("ç„¡æ³•æ’­æ”¾éŸ³è¨Šï¼ŒAudioSource æˆ– AudioClip ç‚ºç©ºã€‚");
             yield break;
         }
 
-        // ®Ö¤ß­×§ï¡G±N­µ°T«ü©wµ¹ voiceAudioSource.clip
         voiceAudioSource.clip = clip;
         voiceAudioSource.Play();
-        Debug.Log($"¥¿¦b¼½©ñ»y­µ¡Aªø«×: {clip.length} ¬í");
+        Debug.Log($"æ­£åœ¨æ’­æ”¾èªéŸ³ï¼Œé•·åº¦: {clip.length} ç§’");
 
-        // µ¥«İ»y­µ¼½©ñ§¹²¦
+        // ç­‰å¾…èªéŸ³æ’­æ”¾å®Œç•¢
         yield return new WaitForSeconds(clip.length + voiceQuestionBufferTime);
+    }
+
+    // æ–°å¢ï¼šä¸Šå‚³èªéŸ³åˆ†æ•¸åˆ° Firebase çš„æ–¹æ³•
+    void UploadVoiceScoreToFirebase(int score)
+    {
+        if (dbReference != null)
+        {
+            string userId = SystemInfo.deviceUniqueIdentifier;
+            string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss");
+            string recordKey = $"{userId}_{timestamp}";
+
+            Dictionary<string, object> scoreData = new Dictionary<string, object>();
+            scoreData["AnswerName_score"] = score; // æ–°å¢ï¼šä½¿ç”¨ AnswerName_score ä½œç‚ºé¡åˆ¥åç¨±
+            scoreData["totalQuestions"] = 3;
+            scoreData["timestamp"] = ServerValue.Timestamp;
+            scoreData["userName"] = "PlayerName";
+
+            // æ–°å¢ï¼šä½¿ç”¨ä¸åŒçš„è·¯å¾‘ä¾†å€åˆ†èªéŸ³åˆ†æ•¸å’Œé»æ“Šåˆ†æ•¸
+            dbReference.Child("voiceScores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompleted)
+                {
+                    Debug.Log($"æˆåŠŸå°‡èªéŸ³åˆ†æ•¸å¯«å…¥ Firebase: æ­£ç¢º {score}/3");
+                }
+                else if (task.IsFaulted)
+                {
+                    Debug.LogError($"å¯«å…¥ Firebase å¤±æ•—: {task.Exception}");
+                }
+            });
+        }
+        else
+        {
+            Debug.LogWarning("Firebase Database æœªåˆå§‹åŒ–ï¼Œç„¡æ³•å¯«å…¥åˆ†æ•¸ã€‚");
+        }
     }
 
 
@@ -346,11 +385,11 @@ public class GameManager : MonoBehaviour
         if (highlightCircleImage != null)
         {
             highlightCircleImage.gameObject.SetActive(true);
-            Debug.Log("HighlightCircle ¤w±Ò¥Î¨ÃÅã¥Ü¡C¨ä¦ì¸m©M¤j¤p¥Ñ Editor ³]©w¡C");
+            Debug.Log("HighlightCircle å·²å•Ÿç”¨ä¸¦é¡¯ç¤ºã€‚å…¶ä½ç½®å’Œå¤§å°ç”± Editor è¨­å®šã€‚");
         }
         else
         {
-            Debug.LogError("HighlightCircleImage ¥¼½á­È¡AµLªkÅã¥Ü°é°é¡I");
+            Debug.LogError("HighlightCircleImage æœªè³¦å€¼ï¼Œç„¡æ³•é¡¯ç¤ºåœˆåœˆï¼");
         }
     }
 
@@ -359,13 +398,13 @@ public class GameManager : MonoBehaviour
         if (highlightCircleImage != null)
         {
             highlightCircleImage.gameObject.SetActive(false);
-            Debug.Log("HighlightCircle ¤w¸T¥Î¡C");
+            Debug.Log("HighlightCircle å·²ç¦ç”¨ã€‚");
         }
     }
 
     void PlayInitialVoiceQuestion(string stallName)
     {
-        Debug.Log($"¹Á¸Õ¼½©ñ»y­µµ¹Åu¦ì: '{stallName}' (ªø«×: {stallName.Length})");
+        Debug.Log($"å˜—è©¦æ’­æ”¾èªéŸ³çµ¦æ”¤ä½: '{stallName}' (é•·åº¦: {stallName.Length})");
         AudioClip clipToPlay = GetAudioClipForStall(stallName);
         PlayVoiceClip(clipToPlay, stallName);
     }
@@ -374,16 +413,15 @@ public class GameManager : MonoBehaviour
     {
         switch (stallName)
         {
-            case "³½Åu": return fishStallAudioClip;
-            case "½­ªG": return fruitStallAudioClip;
-            case "ªZ¾¹": return weaponStallAudioClip;
-            case "ÄÑ¥]": return breadStallAudioClip;
-            case "¦×Åu": return meatStallAudioClip;
+            case "é­šæ”¤": return fishStallAudioClip;
+            case "è”¬æœ": return fruitStallAudioClip;
+            case "æ­¦å™¨": return weaponStallAudioClip;
+            case "éºµåŒ…": return breadStallAudioClip;
+            case "è‚‰æ”¤": return meatStallAudioClip;
             default: return null;
         }
     }
 
-    // ¡i­×§ï¡j¦¹¨ç¦¡§ï¬° PlayOneShot¡A¥u¥Î©óÂIÀ»ÃD¥Øªº»y­µ¼½©ñ
     private void PlayVoiceClip(AudioClip clip, string debugMessageContext)
     {
         if (voiceAudioSource != null)
@@ -395,12 +433,12 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"µLªk¼½©ñ»y­µµ¹ '{debugMessageContext}'¡C­ì¦]: AudioClip ¥¼³]©w¡C");
+                Debug.LogWarning($"ç„¡æ³•æ’­æ”¾èªéŸ³çµ¦ '{debugMessageContext}'ã€‚åŸå› : AudioClip æœªè¨­å®šã€‚");
             }
         }
         else
         {
-            Debug.LogWarning($"µLªk¼½©ñ»y­µµ¹ '{debugMessageContext}'¡C­ì¦]: AudioSource ¥¼³]©w¡C");
+            Debug.LogWarning($"ç„¡æ³•æ’­æ”¾èªéŸ³çµ¦ '{debugMessageContext}'ã€‚åŸå› : AudioSource æœªè¨­å®šã€‚");
         }
     }
 
@@ -421,37 +459,50 @@ public class GameManager : MonoBehaviour
         }
         mainCameraTransform.position = targetPosition;
         mainCameraTransform.rotation = targetRotation;
-        Debug.Log("Äá¼v¾÷¥­·Æ²¾°Ê§¹¦¨¡C");
+        Debug.Log("æ”å½±æ©Ÿå¹³æ»‘ç§»å‹•å®Œæˆã€‚");
     }
 
     // =========================================================================
-    // ¡i·s¼W¡j»y­µ¿ëÃÑ¬ÛÃöªº®Ö¤ß¨ç¦¡
+    // èªéŸ³è¾¨è­˜ç›¸é—œçš„æ ¸å¿ƒå‡½å¼
     // =========================================================================
 
     IEnumerator WaitForAnswer(List<string> correctAnswers)
     {
-        // ®Ö¤ß­×§ï¡G²¾°£­ì¦³ªºµ¥«İ­µ°T¼½©ñ®É¶¡ªºµ{¦¡½X
-        // ¦]¬°²{¦b§Ú­Ì¦b©I¥s³o­Ó¨óµ{«e¤w¸g¥ıµ¥«İ­µ°T¼½©ñ§¹²¦¤F
+        // ç¢ºä¿ TextMeshPro ç‰©ä»¶æ˜¯å•Ÿç”¨çš„
+        if (questionBroadcastTextMeshPro != null)
+        {
+            questionBroadcastTextMeshPro.gameObject.SetActive(true);
+        }
 
-        Debug.Log("½Ğ»¡¥X§Aªºµª®×...");
-        questionBroadcastTextMeshPro.text = "½Ğ»¡¥X§Aªºµª®×...";
-
+        // ä¸å†ç­‰å¾…é¡å¤–çš„ç·©è¡æ™‚é–“ï¼Œç›´æ¥é–‹å§‹éŒ„éŸ³
         if (Microphone.devices.Length > 0)
         {
-            Debug.Log("¶}©l¿ı­µ...");
+            Debug.Log("é–‹å§‹éŒ„éŸ³...");
+            if (questionBroadcastTextMeshPro != null)
+            {
+                questionBroadcastTextMeshPro.text = "é–‹å§‹éŒ„éŸ³";
+            }
+
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
             yield return new WaitForSeconds(recordingDuration);
             Microphone.End(null);
-            Debug.Log("¿ı­µµ²§ô¡C");
+            Debug.Log("éŒ„éŸ³çµæŸã€‚");
+
+            if (questionBroadcastTextMeshPro != null)
+            {
+                questionBroadcastTextMeshPro.text = "è™•ç†ä¸­";
+            }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
         }
         else
         {
-            Debug.LogError("¨S¦³§ä¨ì³Á§J­·³]³Æ¡I");
-            questionBroadcastTextMeshPro.text = "¨S¦³§ä¨ì³Á§J­·³]³Æ¡I";
-            yield return new WaitForSeconds(2.0f);
+            Debug.LogError("æ²’æœ‰æ‰¾åˆ°éº¥å…‹é¢¨è¨­å‚™ï¼");
+            if (questionBroadcastTextMeshPro != null)
+            {
+                questionBroadcastTextMeshPro.gameObject.SetActive(false);
+            }
         }
     }
 
@@ -466,7 +517,7 @@ public class GameManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             string jsonResponse = request.downloadHandler.text;
-            Debug.Log("¦øªA¾¹¦^À³: " + jsonResponse);
+            Debug.Log("ä¼ºæœå™¨å›æ‡‰: " + jsonResponse);
             try
             {
                 RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
@@ -474,14 +525,12 @@ public class GameManager : MonoBehaviour
             }
             catch (System.Exception ex)
             {
-                Debug.LogError("¸ÑªR JSON ¥¢±Ñ: " + ex.Message);
-                questionBroadcastTextMeshPro.text = "¿ëÃÑ¥¢±Ñ¡A½Ğ¦A¸Õ¤@¦¸¡C";
+                Debug.LogError("è§£æ JSON å¤±æ•—: " + ex.Message);
             }
         }
         else
         {
-            Debug.LogError("»y­µ¿ëÃÑ½Ğ¨D¥¢±Ñ: " + request.error);
-            questionBroadcastTextMeshPro.text = "ºô¸ô¿ù»~©Î¦øªA¾¹°İÃD¡C";
+            Debug.LogError("èªéŸ³è¾¨è­˜è«‹æ±‚å¤±æ•—: " + request.error);
         }
     }
 
@@ -489,21 +538,17 @@ public class GameManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(userResponse))
         {
-            Debug.Log("¨S¦³Å¥¨ì¦^µª¡C");
-            questionBroadcastTextMeshPro.text = "¨S¦³Å¥¨ì¦^µª¡C";
+            Debug.Log("æ²’æœ‰è½åˆ°å›ç­”ã€‚");
+            StartCoroutine(ShowResultAndContinue(false)); // æ²’æœ‰å›ç­”ä¹Ÿç®—ç­”éŒ¯
             return;
         }
 
         bool isCorrect = false;
-        // ±N¨Ï¥ÎªÌ¦^µª¥¿³W¤Æ¬°¤p¼g¡A¨Ã¥h°£«e«áªÅ¥Õ
         string normalizedResponse = userResponse.Trim().ToLower();
 
         foreach (string correctAnswer in correctAnswers)
         {
-            // ±N¥¿½Tµª®×¤]¥¿³W¤Æ
             string normalizedCorrectAnswer = correctAnswer.Trim().ToLower();
-
-            // ®Ö¤ß­×§ï¡G§PÂ_¤è¦¡±q Equals §ï¬° Contains¡A¥H¼W¥[¼u©Ê
             if (normalizedResponse.Contains(normalizedCorrectAnswer))
             {
                 isCorrect = true;
@@ -513,13 +558,11 @@ public class GameManager : MonoBehaviour
 
         if (isCorrect)
         {
-            Debug.Log($"µª®×¥¿½T¡I§A»¡¤F: \"{userResponse}\"");
-            questionBroadcastTextMeshPro.text = "µª®×¥¿½T¡I";
+            Debug.Log($"ç­”æ¡ˆæ­£ç¢ºï¼ä½ èªªäº†: \"{userResponse}\"");
         }
         else
         {
-            Debug.Log($"µª®×¿ù»~¡C§A»¡¤F: \"{userResponse}\"¡A¥¿½Tµª®×¬O: \"{string.Join("/", correctAnswers)}\"");
-            questionBroadcastTextMeshPro.text = $"µª®×¿ù»~¡C";
+            Debug.Log($"ç­”æ¡ˆéŒ¯èª¤ã€‚ä½ èªªäº†: \"{userResponse}\"ï¼Œæ­£ç¢ºç­”æ¡ˆæ˜¯: \"{string.Join("/", correctAnswers)}\"");
         }
 
         StartCoroutine(ShowResultAndContinue(isCorrect));
@@ -527,11 +570,18 @@ public class GameManager : MonoBehaviour
 
     IEnumerator ShowResultAndContinue(bool isCorrect)
     {
+        // æ–°å¢ï¼šæ ¹æ“šæ˜¯å¦æ­£ç¢ºä¾†å¢åŠ èªéŸ³åˆ†æ•¸
         if (isCorrect)
         {
-            correctAnswersCount++;
+            voiceCorrectAnswersCount++;
         }
+
         yield return new WaitForSeconds(timeBetweenQuestions);
+
+        if (questionBroadcastTextMeshPro != null)
+        {
+            questionBroadcastTextMeshPro.gameObject.SetActive(false);
+        }
     }
 
     byte[] ConvertAudioClipToWav(AudioClip clip)
@@ -573,11 +623,3 @@ public class GameManager : MonoBehaviour
         return bytes;
     }
 }
-
-// ½T«O¦¹Ãş§O¥u¦b§Aªº±M®×¤¤¦s¦b¤@­Ó°Æ¥»
-// ¦pªG¥¦¤w¸g¦b¥t¤@­Ó¸}¥»¤¤¡A½Ğ±N¥¦§R°£
-// [System.Serializable]
-// public class RecognitionResponse
-// {
-//     public string transcription;
-// }
