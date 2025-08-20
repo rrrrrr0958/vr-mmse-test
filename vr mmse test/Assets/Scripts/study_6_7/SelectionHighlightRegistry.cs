@@ -1,21 +1,30 @@
 using UnityEngine;
 
-public class SelectionHighlightRegistry : MonoBehaviour
+public static class SelectionHighlightRegistry
 {
-    private static SelectionHighlighter _current;
-    public  static SelectionHighlighter Current => _current;
+    public static SelectionHighlighter Current { get; private set; }
 
-    /// 取得唯一選中權（會先讓上一個熄掉）
-    public static void Take(SelectionHighlighter next)
+    public static void Take(SelectionHighlighter h)
     {
-        if (_current == next) return;
-        if (_current) _current.ForceDeselect();
-        _current = next;
+        if (Current == h) return;
+        if (Current != null) Current.ForceDeselect();
+        Current = h;
     }
 
-    /// 如果要主動清掉當前（很少用到）
-    public static void Clear(SelectionHighlighter who)
+    public static void Clear(SelectionHighlighter h)
     {
-        if (_current == who) _current = null;
+        if (Current == h) Current = null;
+    }
+
+    // ★ 新增：清掉全場所有白圈/藍圈
+    public static void ClearAll()
+    {
+#if UNITY_2022_2_OR_NEWER
+        var all = Object.FindObjectsByType<SelectionHighlighter>(FindObjectsSortMode.None);
+#else
+        var all = Object.FindObjectsOfType<SelectionHighlighter>(true);
+#endif
+        foreach (var h in all) h.ForceDeselect();
+        Current = null;
     }
 }

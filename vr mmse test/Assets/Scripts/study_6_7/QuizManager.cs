@@ -8,33 +8,36 @@ public class QuizManager : MonoBehaviour
     [Header("UI")]
     public TextMeshProUGUI questionText;
 
-    [Header("完成本關後要做的事")]
+    [Header("完成本關後要做的事（保留，可用也可不綁）")]
     public UnityEvent onQuestionCleared;
 
+    // 題庫（題目文字 與 對應正解 targetId 必須一一對齊）
     readonly List<(string prompt, string id)> pool = new()
     {
-        ("請用控制器點選右邊櫃子上的相機Camera",       "camera"),
-        ("請用控制器點選右邊櫃子上最大的盆栽Biggest Plant", "bigPlant"),
-        ("請用控制器點選右邊櫃子上的檯燈Lamp",           "lamp"),
+        ("請用控制器點選右邊櫃子上的相機Camera",           "camera"),
+        ("請用控制器點選右邊櫃子上最大的盆栽Biggest Plant",  "bigPlant"),
+        ("請用控制器點選右邊櫃子上的檯燈Lamp",               "lamp"),
         ("請用控制器點選右邊櫃子上的黃色小球Yellow Ball",    "yellowBall"),
         ("請用控制器點選右邊櫃子上的白色寶特瓶White Bottle", "whiteBottle"),
     };
 
-    int picked = -1;
-    string currentAnswer = "";
+    int picked = -1;            // 這次抽到第幾題
+    string currentAnswer = "";  // 這題正解的 targetId
 
-    // 候選資料（最後一次選中的選項）
-    string candidateId;
-    string candidateLabel;
-
-    int total, correct;
-
-    void Start() => PickOneQuestion();
+    void Start()
+    {
+        PickOneQuestion();
+    }
 
     void PickOneQuestion()
     {
         int last = PlayerPrefs.GetInt("last_quiz_idx", -1);
-        if (pool.Count == 0) { if (questionText) questionText.text = "（題庫是空的）"; return; }
+
+        if (pool.Count == 0)
+        {
+            if (questionText) questionText.text = "（題庫是空的）";
+            return;
+        }
 
         int tries = 10;
         do { picked = Random.Range(0, pool.Count); }
@@ -46,6 +49,7 @@ public class QuizManager : MonoBehaviour
         currentAnswer = q.id;
         if (questionText) questionText.text = q.prompt;
 
+        // 抽到場景不存在目標就換題（一次嘗試）
         if (!TargetExistsInScene(currentAnswer))
         {
             for (int i = 0; i < pool.Count; i++)
@@ -61,8 +65,6 @@ public class QuizManager : MonoBehaviour
                 }
             }
         }
-
-        candidateId = candidateLabel = null;
     }
 
     bool TargetExistsInScene(string id)
@@ -76,41 +78,20 @@ public class QuizManager : MonoBehaviour
         return false;
     }
 
-    // 物件被選中時（即時候選）
-    public void SubmitCandidate(string selectedId, string labelForLog = "")
+    // ===== 遊戲一的最終提交流程：給 SelectableTarget 呼叫 =====
+    public void Submit(string targetId)
     {
-        candidateId    = selectedId;
-        candidateLabel = string.IsNullOrEmpty(labelForLog) ? selectedId : labelForLog;
-
-        bool ok = candidateId == currentAnswer;
-        Debug.Log($"[候選] 目標物:{currentAnswer}  選擇:{candidateId} ({candidateLabel})  {(ok ? "✅ 正確" : "❌ 錯誤")}");
-    }
-
-    // UI 按鈕呼叫：最終判分
-    public void ConfirmAnswer()
-    {
-        if (string.IsNullOrEmpty(candidateId))
-        {
-            Debug.Log("[最終] 尚未選擇任何物件。");
+        // 若 GameDirector 不允許互動（已鎖定 / 非 Game1）則忽略
+        if (GameDirector.Instance == null || !GameDirector.Instance.CanInteractGame1())
             return;
-        }
 
-        bool ok = candidateId == currentAnswer;
-        total++; if (ok) correct++;
+        bool ok = targetId == currentAnswer;
 
-        Debug.Log($"[最終] 目標物:{currentAnswer}  選擇:{candidateId} ({candidateLabel})  {(ok ? "✅ 正確" : "❌ 錯誤")} ｜累積：{correct}/{total}");
+        // 交給 GameDirector：鎖定答案、關 UI、顯示面板、切換到 Game2
+        GameDirector.Instance.LockAndAdvance(ok, targetId);
 
+        //（可選）外部 UnityEvent 仍然可用
         if (ok) onQuestionCleared?.Invoke();
-        else StartCoroutine(BlinkWrong());
-    }
-
-    System.Collections.IEnumerator BlinkWrong()
-    {
-        if (!questionText) yield break;
-        var old = questionText.text;
-        questionText.text = "再找找看～";
-        yield return new WaitForSeconds(0.6f);
-        questionText.text = old;
     }
 
     // 若要外部手動切題可用
@@ -118,6 +99,5 @@ public class QuizManager : MonoBehaviour
     {
         if (questionText) questionText.text = prompt;
         currentAnswer = id;
-        candidateId = candidateLabel = null;
     }
 }

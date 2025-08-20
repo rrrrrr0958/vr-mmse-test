@@ -12,8 +12,10 @@ public class SelectableTarget : MonoBehaviour
     void Awake()
     {
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
-        interactable.selectEntered.AddListener(OnSelect);   // Grip
-        interactable.activated.AddListener(OnActivated);    // Trigger
+
+        // 這兩個事件任何一個觸發，都視為「選定」並送出最終答案
+        interactable.selectEntered.AddListener(OnSelect);
+        interactable.activated.AddListener(OnActivated);
     }
 
     void OnDestroy()
@@ -23,12 +25,30 @@ public class SelectableTarget : MonoBehaviour
         interactable.activated.RemoveListener(OnActivated);
     }
 
-    void OnSelect(SelectEnterEventArgs _)  { Submit(); }
-    void OnActivated(ActivateEventArgs _)  { Submit(); }
+    void OnSelect(SelectEnterEventArgs _)   => Submit();
+    void OnActivated(ActivateEventArgs  _)  => Submit();
 
+    /// <summary>
+    /// 最終送出答案：交給 QuizManager → GameDirector.LockAndAdvance()
+    /// </summary>
     public void Submit()
     {
-        var qm = FindAnyObjectByType<QuizManager>();
-        if (qm != null) qm.SubmitCandidate(targetId, gameObject.name);
+        // 若已鎖定或不在 Game1，直接忽略
+        if (GameDirector.Instance != null && !GameDirector.Instance.CanInteractGame1())
+            return;
+
+#if UNITY_2022_2_OR_NEWER
+        var qm = FindFirstObjectByType<QuizManager>();
+#else
+        var qm = FindObjectOfType<QuizManager>();
+#endif
+        if (qm != null)
+        {
+            qm.Submit(targetId);
+        }
+        else
+        {
+            Debug.LogWarning("[SelectableTarget] 場景裡找不到 QuizManager。");
+        }
     }
 }

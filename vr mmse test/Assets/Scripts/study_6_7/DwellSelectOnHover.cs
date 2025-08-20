@@ -13,7 +13,7 @@ public class DwellSelectOnHover : MonoBehaviour
 
     [Header("Position (統一位置)")]
     public float yOffset    = 0.05f;   // ↑ 往上抬
-    public float zOffset    = 0.12f;   // ★ 沿本地 Z 推前/後（正值=往前）
+    public float zOffset    = 0.12f;   // 沿本地 Z 推前/後（正值=往前）
 
     [Header("Text Size")]
     [Tooltip("TextMeshPro 字號")]
@@ -32,7 +32,7 @@ public class DwellSelectOnHover : MonoBehaviour
 
     [Header("Orientation")]
     [Tooltip("繞 Y 軸額外旋轉角度（例如 180° 做翻轉）")]
-    public float yawDegrees = 0f;      // ★ Y 軸翻轉/旋轉
+    public float yawDegrees = 0f;      // Y 軸翻轉/旋轉
 
     // 相依
     UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
@@ -40,7 +40,6 @@ public class DwellSelectOnHover : MonoBehaviour
     SelectableTarget selectable;
 
     // 文字
-    Camera cam;
     TMP_Text countdownText;
     Transform textTf;
 
@@ -51,7 +50,6 @@ public class DwellSelectOnHover : MonoBehaviour
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
         highlighter  = GetComponent<SelectionHighlighter>();
         selectable   = GetComponent<SelectableTarget>();
-        cam = Camera.main ?? Camera.current;
 
         BuildCountdownText();
         ApplyVisualToTMP();
@@ -74,10 +72,16 @@ public class DwellSelectOnHover : MonoBehaviour
     // -------- Hover / Dwell --------
     void OnHoverEntered(HoverEnterEventArgs _)
     {
+        // 已鎖定或不是 Game1 → 不倒數
+        if (GameDirector.Instance != null && !GameDirector.Instance.CanInteractGame1())
+        { HideText(); return; }
+
         if (highlighter != null && highlighter.IsCurrentSelected) { HideText(); return; }
         StartDwell();
     }
+
     void OnHoverExited(HoverExitEventArgs _) => StopDwell();
+
     void OnAnySelected(SelectEnterEventArgs _) { HideText(); StopDwell(); }
 
     void StartDwell()
@@ -98,7 +102,12 @@ public class DwellSelectOnHover : MonoBehaviour
         ShowText();
         while (t < dwellSeconds)
         {
+            // 中途若已鎖定或不在 Game1，立刻中止
+            if (GameDirector.Instance != null && !GameDirector.Instance.CanInteractGame1())
+            { HideText(); yield break; }
+
             if (highlighter != null && highlighter.IsCurrentSelected) { HideText(); yield break; }
+
             t += Time.deltaTime;
             float remain = Mathf.Max(0f, dwellSeconds - t);
             countdownText.text = showTenths ? $"{remain:0.0}" : $"{Mathf.CeilToInt(remain)}";
@@ -108,6 +117,7 @@ public class DwellSelectOnHover : MonoBehaviour
         HideText();
         dwellCo = null;
 
+        // 正式選取（會一路走到 QuizManager.Submit → GameDirector.LockAndAdvance）
         if (highlighter) highlighter.ManualSelect();
         if (selectable)  selectable.Submit();
     }
@@ -121,10 +131,7 @@ public class DwellSelectOnHover : MonoBehaviour
 
         // 位置：X=0、Y=Offset、Z=Offset（對齊 SelectionHighlighter）
         textTf.localPosition = new Vector3(0f, yOffset, zOffset);
-
-        // 轉向：先讓文字正向（X=0），再繞 Y 軸加上可調的 yawDegrees
-        textTf.localRotation = Quaternion.Euler(0f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
-
+        textTf.localRotation = Quaternion.Euler(0f, yawDegrees, 0f);
         ApplyScaleCompensation(textTf);
 
         var tmp = go.AddComponent<TextMeshPro>();
@@ -141,28 +148,26 @@ public class DwellSelectOnHover : MonoBehaviour
         HideText();
     }
 
-    void ApplyScaleCompensation(Transform textTransform)
+    void ApplyScaleCompensation(Transform t)
     {
-        if (!compensateParentScale) 
-        { 
-            textTransform.localScale = Vector3.one * textWorldScale; 
-            return; 
-        }
-        
+        if (!compensateParentScale)
+        { t.localScale = Vector3.one * textWorldScale; return; }
+
         Vector3 s = transform.lossyScale;
         float sx = Mathf.Approximately(s.x, 0f) ? 1f : 1f / s.x;
         float sy = Mathf.Approximately(s.y, 0f) ? 1f : 1f / s.y;
         float sz = Mathf.Approximately(s.z, 0f) ? 1f : 1f / s.z;
-        textTransform.localScale = new Vector3(sx, sy, sz) * textWorldScale;
+        t.localScale = new Vector3(sx, sy, sz) * textWorldScale;
     }
 
     void ApplyVisualToTMP()
     {
         if (!countdownText) return;
-        countdownText.color = textColor;
-        countdownText.fontSize = fontSize;
+        countdownText.color        = textColor;
+        countdownText.fontSize     = fontSize;
         countdownText.outlineWidth = outlineWidth;
         countdownText.outlineColor = outlineColor;
+
         var mr = countdownText.GetComponent<MeshRenderer>();
         if (mr) mr.sortingOrder = sortingOrder;
     }
@@ -172,14 +177,9 @@ public class DwellSelectOnHover : MonoBehaviour
     {
         if (!textTf || !countdownText) return;
 
-        // 持續補償父縮放
         ApplyScaleCompensation(textTf);
-
-        // 位置：X=0、Y=Offset、Z=Offset
         textTf.localPosition = new Vector3(0f, yOffset, zOffset);
-        
-        // 轉向：文字正向 + Y軸旋轉
-        textTf.localRotation = Quaternion.Euler(0f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+        textTf.localRotation = Quaternion.Euler(0f, yawDegrees, 0f);
     }
 
     void ShowText() { if (countdownText) countdownText.gameObject.SetActive(true); }
@@ -189,13 +189,11 @@ public class DwellSelectOnHover : MonoBehaviour
     void OnValidate()
     {
         ApplyVisualToTMP();
-        
-        // 編輯器中即時反映參數變化
         if (textTf != null)
         {
             ApplyScaleCompensation(textTf);
             textTf.localPosition = new Vector3(0f, yOffset, zOffset);
-            textTf.localRotation = Quaternion.Euler(0f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+            textTf.localRotation = Quaternion.Euler(0f, yawDegrees, 0f);
 
             var mr = countdownText?.GetComponent<MeshRenderer>();
             if (mr) mr.sortingOrder = sortingOrder;
