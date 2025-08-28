@@ -1508,7 +1508,7 @@ Transform:
   m_GameObject: {fileID: 395446083}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 12.21, y: 1.41, z: -2.85}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1559,8 +1559,37 @@ MonoBehaviour:
   audioSource: {fileID: 0}
   correctSFX: {fileID: 0}
   incorrectSFX: {fileID: 0}
-  seasonMaterials: []
-  sceneryRenderer: {fileID: 0}
+  seasonMaterials:
+  - {fileID: 2100000, guid: 7662f2de4c6d2804b86c038f8634feaf, type: 2}
+  - {fileID: 2100000, guid: 4b6d87b6d752cd3438d5f216fe27afca, type: 2}
+  - {fileID: 2100000, guid: 0ae211ee76448ac49b4dc234f58efeb6, type: 2}
+  - {fileID: 2100000, guid: 5450672b59100fa40b53cf17232b30f6, type: 2}
+  sceneryRenderer: {fileID: 1083460890}
+  seasonTransitionDuration: 1
+  transitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -7441,6 +7470,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2160559851638519360, guid: bfa974a01b4cbd94eb18f3e7956f9aca, type: 3}
   m_PrefabInstance: {fileID: 1785704577}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1843581242
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1843581243}
+  m_Layer: 0
+  m_Name: SeasonDebugger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1843581243
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843581242}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1857276907
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8958,3 +9018,4 @@ SceneRoots:
   - {fileID: 1255097517}
   - {fileID: 2057719610}
   - {fileID: 1857523362}
+  - {fileID: 1843581243}

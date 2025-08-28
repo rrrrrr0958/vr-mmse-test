@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 public class SimpleTestManager : MonoBehaviour
@@ -31,6 +32,15 @@ public class SimpleTestManager : MonoBehaviour
     [Header("Scenery")]
     public Material[] seasonMaterials; // 0:春, 1:夏, 2:秋, 3:冬
     public Renderer sceneryRenderer;
+    
+    [Header("Season Visual Effects")]
+    public float seasonTransitionDuration = 1.0f;
+    public AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    
+    [Header("DEBUG - 測試用")]
+    public bool forceSeasonChange = false;
+    [Range(0, 3)]
+    public int testSeasonIndex = 0; // 0:春, 1:夏, 2:秋, 3:冬
 
     private int currentQuestionIndex = 0;
     private int score = 0;
@@ -41,7 +51,72 @@ public class SimpleTestManager : MonoBehaviour
 
     void Start()
     {
+        // 啟動時立即測試材質設置
+        ValidateSeasonSetup();
         InitializeTest();
+        
+        // 強制測試季節切換（調試用）
+        if (forceSeasonChange)
+        {
+            Invoke("TestAllSeasons", 1f);
+        }
+    }
+
+    // 驗證季節設置
+    void ValidateSeasonSetup()
+    {
+        Debug.Log("=== 驗證季節設置 ===");
+        
+        if (sceneryRenderer == null)
+        {
+            Debug.LogError("❌ Scenery Renderer 未設置！請拖入 Window_Interactive 的 Renderer 組件");
+            return;
+        }
+        else
+        {
+            Debug.Log($"✅ Scenery Renderer 已設置：{sceneryRenderer.name}");
+        }
+        
+        if (seasonMaterials == null || seasonMaterials.Length < 4)
+        {
+            Debug.LogError("❌ Season Materials 數組不足4個！請設置春夏秋冬4個材質");
+            return;
+        }
+        
+        for (int i = 0; i < 4; i++)
+        {
+            if (seasonMaterials[i] == null)
+            {
+                Debug.LogError($"❌ Season Material[{i}] 未設置！");
+            }
+            else
+            {
+                string[] seasons = {"春", "夏", "秋", "冬"};
+                Debug.Log($"✅ {seasons[i]}天材質已設置：{seasonMaterials[i].name}");
+            }
+        }
+        
+        Debug.Log("=== 驗證完成 ===");
+    }
+
+    // 測試所有季節（調試用）
+    void TestAllSeasons()
+    {
+        StartCoroutine(CycleAllSeasons());
+    }
+    
+    IEnumerator CycleAllSeasons()
+    {
+        string[] seasonNames = {"春天", "夏天", "秋天", "冬天"};
+        
+        for (int i = 0; i < 4; i++)
+        {
+            Debug.Log($"🔄 測試切換到 {seasonNames[i]}");
+            SetSceneryBySeason(seasonNames[i], true);
+            yield return new WaitForSeconds(2f);
+        }
+        
+        Debug.Log("✅ 所有季節測試完成");
     }
 
     void InitializeTest()
@@ -64,8 +139,9 @@ public class SimpleTestManager : MonoBehaviour
         // 季節改為真實季節
         correctAnswers["Season"] = GetCurrentSeason();
         
-        // 場景材質也根據真實季節設定
-        SetSceneryBySeason(correctAnswers["Season"]);
+        // 初始化時設定場景材質
+        Debug.Log($"🌍 初始化設定季節為：{correctAnswers["Season"]}");
+        SetSceneryBySeason(correctAnswers["Season"], false);
 
         // 設定題目順序
         questions = new List<string> { "Year", "Season", "Month", "DayOfWeek" };
@@ -91,7 +167,6 @@ public class SimpleTestManager : MonoBehaviour
                  ", 星期=" + correctAnswers["DayOfWeek"]);
     }
 
-    // 根據月份判斷真實季節
     string GetCurrentSeason()
     {
         int month = DateTime.Now.Month;
@@ -111,43 +186,115 @@ public class SimpleTestManager : MonoBehaviour
         }
     }
 
-    // 根據季節設定場景材質
-    void SetSceneryBySeason(string season)
+    // 強化版材質切換，包含更多調試信息
+    void SetSceneryBySeason(string season, bool animated = true)
     {
-        if (seasonMaterials != null && seasonMaterials.Length >= 4 && sceneryRenderer != null)
+        Debug.Log($"🎨 開始設定場景材質：{season}，動畫：{animated}");
+        
+        if (sceneryRenderer == null)
         {
-            int seasonIndex = 0;
-            switch(season)
-            {
-                case "春天": seasonIndex = 0; break;
-                case "夏天": seasonIndex = 1; break;
-                case "秋天": seasonIndex = 2; break;
-                case "冬天": seasonIndex = 3; break;
-            }
+            Debug.LogError("❌ sceneryRenderer 為空！請檢查設置");
+            return;
+        }
+        
+        if (seasonMaterials == null || seasonMaterials.Length < 4)
+        {
+            Debug.LogError("❌ seasonMaterials 未正確設置！");
+            return;
+        }
+
+        int seasonIndex = 0;
+        switch(season)
+        {
+            case "春天": seasonIndex = 0; break;
+            case "夏天": seasonIndex = 1; break;
+            case "秋天": seasonIndex = 2; break;
+            case "冬天": seasonIndex = 3; break;
+            default:
+                Debug.LogWarning($"⚠️ 未知季節：{season}，使用春天");
+                seasonIndex = 0;
+                break;
+        }
+        
+        if (seasonMaterials[seasonIndex] == null)
+        {
+            Debug.LogError($"❌ 季節材質[{seasonIndex}]為空！");
+            return;
+        }
+        
+        Material oldMaterial = sceneryRenderer.material;
+        Debug.Log($"📝 當前材質：{(oldMaterial != null ? oldMaterial.name : "null")}");
+        Debug.Log($"📝 目標材質：{seasonMaterials[seasonIndex].name}");
+        
+        if (animated && Application.isPlaying)
+        {
+            Debug.Log("🔄 使用動畫切換");
+            StartCoroutine(TransitionToSeasonMaterial(seasonIndex));
+        }
+        else
+        {
+            Debug.Log("⚡ 直接切換材質");
             sceneryRenderer.material = seasonMaterials[seasonIndex];
+            Debug.Log($"✅ 材質已設置為：{sceneryRenderer.material.name}");
         }
     }
+    
+    IEnumerator TransitionToSeasonMaterial(int targetSeasonIndex)
+    {
+        Debug.Log($"🔄 開始材質動畫過渡到索引 {targetSeasonIndex}");
+        
+        if (seasonMaterials[targetSeasonIndex] == null)
+        {
+            Debug.LogError($"❌ 目標材質[{targetSeasonIndex}]為空！");
+            yield break;
+        }
 
-    // 生成年份選項（1個正確+3個錯誤）
+        Material currentMaterial = sceneryRenderer.material;
+        Material targetMaterial = seasonMaterials[targetSeasonIndex];
+        
+        if (currentMaterial == targetMaterial)
+        {
+            Debug.Log("ℹ️ 已經是目標材質，無需切換");
+            yield break;
+        }
+        
+        float elapsedTime = 0;
+        
+        Debug.Log($"⏱️ 開始 {seasonTransitionDuration} 秒的過渡動畫");
+        
+        while (elapsedTime < seasonTransitionDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float progress = elapsedTime / seasonTransitionDuration;
+            
+            if (progress >= 0.5f && sceneryRenderer.material != targetMaterial)
+            {
+                sceneryRenderer.material = targetMaterial;
+                Debug.Log($"🔄 動畫中途切換材質：{targetMaterial.name}");
+            }
+            
+            yield return null;
+        }
+        
+        sceneryRenderer.material = targetMaterial;
+        Debug.Log($"✅ 動畫完成，最終材質：{sceneryRenderer.material.name}");
+    }
+
+    // 其他方法保持不變...
     List<string> GenerateYearOptions()
     {
         int currentYear = DateTime.Now.Year;
         List<string> options = new List<string>();
         
-        // 正確答案
         options.Add(currentYear.ToString());
-        
-        // 3個錯誤選項
         options.Add((currentYear - 1).ToString());
         options.Add((currentYear + 1).ToString());
         options.Add((currentYear - 2).ToString());
         
-        // 打亂順序
         ShuffleList(options);
         return options;
     }
 
-    // 生成季節選項
     List<string> GenerateSeasonOptions()
     {
         string[] allSeasons = { "春天", "夏天", "秋天", "冬天" };
@@ -156,7 +303,6 @@ public class SimpleTestManager : MonoBehaviour
         List<string> options = new List<string>();
         options.Add(correctSeason);
         
-        // 添加其他3個季節作為錯誤選項
         foreach(string season in allSeasons)
         {
             if(season != correctSeason)
@@ -167,7 +313,6 @@ public class SimpleTestManager : MonoBehaviour
         return options;
     }
 
-    // 生成月份選項
     List<string> GenerateMonthOptions()
     {
         string[] monthNames = { "", "1月", "2月", "3月", "4月", "5月", "6月",
@@ -178,7 +323,6 @@ public class SimpleTestManager : MonoBehaviour
         List<string> options = new List<string>();
         options.Add(correctMonth);
         
-        // 隨機選3個其他月份
         List<string> otherMonths = new List<string>();
         for(int i = 1; i <= 12; i++)
         {
@@ -186,7 +330,6 @@ public class SimpleTestManager : MonoBehaviour
                 otherMonths.Add(monthNames[i]);
         }
         
-        // 隨機選3個
         for(int i = 0; i < 3; i++)
         {
             int randomIndex = UnityEngine.Random.Range(0, otherMonths.Count);
@@ -198,7 +341,6 @@ public class SimpleTestManager : MonoBehaviour
         return options;
     }
 
-    // 生成星期選項
     List<string> GenerateDayOfWeekOptions()
     {
         string[] dayNames = { "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六" };
@@ -207,7 +349,6 @@ public class SimpleTestManager : MonoBehaviour
         List<string> options = new List<string>();
         options.Add(correctDay);
         
-        // 隨機選3個其他星期
         List<string> otherDays = new List<string>();
         foreach(string day in dayNames)
         {
@@ -226,7 +367,6 @@ public class SimpleTestManager : MonoBehaviour
         return options;
     }
 
-    // 打亂列表順序的輔助方法
     void ShuffleList<T>(List<T> list)
     {
         for(int i = 0; i < list.Count; i++)
@@ -238,7 +378,6 @@ public class SimpleTestManager : MonoBehaviour
         }
     }
 
-    // 更新按鈕文字和事件的通用方法
     void UpdateButtonsForQuestion(string questionType, List<string> options)
     {
         Button[] buttons = null;
@@ -253,30 +392,25 @@ public class SimpleTestManager : MonoBehaviour
         
         if(buttons == null) return;
         
-        // 更新按鈕文字和事件
         for(int i = 0; i < buttons.Length && i < options.Count; i++)
         {
             if(buttons[i] != null)
             {
-                // 更新按鈕文字
                 Text buttonText = buttons[i].GetComponentInChildren<Text>();
                 if(buttonText != null)
                 {
                     buttonText.text = options[i];
                 }
                 
-                // 移除舊的事件監聽器
                 buttons[i].onClick.RemoveAllListeners();
                 
-                // 添加新的事件監聽器
-                string optionValue = options[i]; // 重要：需要捕獲局部變量
+                string optionValue = options[i];
                 buttons[i].onClick.AddListener(() => RecordSelection(optionValue));
                 
                 buttons[i].gameObject.SetActive(true);
             }
         }
         
-        // 隱藏多餘的按鈕（雖然我們都是4個選項，但保險起見）
         for(int i = options.Count; i < buttons.Length; i++)
         {
             if(buttons[i] != null)
@@ -288,7 +422,7 @@ public class SimpleTestManager : MonoBehaviour
 
     public void StartTest()
     {
-        Debug.Log("測驗開始");
+        Debug.Log("🎯 測驗開始");
         HideAllPanels();
         AskNextQuestion();
     }
@@ -305,9 +439,16 @@ public class SimpleTestManager : MonoBehaviour
         if (feedbackText != null) feedbackText.text = "";
        
         string currentQuestionKey = questions[currentQuestionIndex];
-        Debug.Log("詢問問題: " + currentQuestionKey);
+        Debug.Log($"❓ 詢問問題: {currentQuestionKey}");
        
-        // 生成選項並更新按鈕
+        // ★ 強化版季節場景切換
+        if (currentQuestionKey == "Season")
+        {
+            string currentSeason = GetCurrentSeason();
+            Debug.Log($"🌟 季節問題觸發！當前季節：{currentSeason}");
+            SetSceneryBySeason(currentSeason, true);
+        }
+       
         List<string> options = null;
         switch(currentQuestionKey)
         {
@@ -329,19 +470,16 @@ public class SimpleTestManager : MonoBehaviour
                 break;
         }
         
-        // 更新按鈕
         if(options != null)
         {
             UpdateButtonsForQuestion(currentQuestionKey, options);
         }
 
-        // 顯示對應面板
         if (questionPanels.ContainsKey(currentQuestionKey) && questionPanels[currentQuestionKey] != null)
         {
             questionPanels[currentQuestionKey].SetActive(true);
         }
        
-        // 顯示確認按鈕但禁用
         if (confirmButton != null)
         {
             confirmButton.gameObject.SetActive(true);
@@ -426,6 +564,17 @@ public class SimpleTestManager : MonoBehaviour
         InitializeTest();
     }
 
-    // 注意：刪除了所有固定的選擇方法，因為現在使用動態事件處理
-    // 不再需要 SelectSpring()、Select2024() 等方法
+    // 新增的調試方法
+    [ContextMenu("強制測試季節切換")]
+    public void ForceTestSeasonChange()
+    {
+        string[] seasons = {"春天", "夏天", "秋天", "冬天"};
+        SetSceneryBySeason(seasons[testSeasonIndex], true);
+    }
+    
+    [ContextMenu("驗證設置")]
+    public void ValidateSetup()
+    {
+        ValidateSeasonSetup();
+    }
 }
