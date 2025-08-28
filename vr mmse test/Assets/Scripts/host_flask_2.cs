@@ -8,7 +8,7 @@ public class HostFlask2 : MonoBehaviour
 {
     public TextMeshProUGUI statusText;
     public string serverUrl = "http://localhost:5000/transcribe";
-    public string targetSentence = "魚肉特價快來買";
+    [HideInInspector] public string targetSentence;  // 改成由 BackgroundVoice2 設定
 
     public void SendFileToWhisper(string path)
     {
@@ -48,7 +48,8 @@ public class HostFlask2 : MonoBehaviour
                 }
                 else
                 {
-                    statusText.text = $"辨識：{res.spoken_text}\n" +
+                    statusText.text = $"題目：{targetSentence}\n" +
+                                      $"辨識：{res.spoken_text}\n" +
                                       $"正確率：{res.accuracy:0.00}%\n" +
                                       $"通過：{(res.passed ? "是" : "否")}";
                 }
