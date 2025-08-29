@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Firebase;
+using Firebase.Database;
 
 public class FirebaseManager : MonoBehaviour
 {
@@ -71,6 +73,126 @@ public class FirebaseManager : MonoBehaviour
             }
         }
     }
+
+    public void SaveAge(string age)
+    {
+        if (user != null)
+        {
+            DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+            // reference.Child(user.UserId).Child("email").SetValueAsync(user.Email).ContinueWith(task =>
+            // {
+            //     if (task.IsCompletedSuccessfully)
+            //     {
+            //         print("saved!");
+            //     }
+            // });
+            reference.Child(user.UserId).Child("age").SetValueAsync(age).ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    print("saved!");
+                }
+            });
+        }
+        else
+        {
+            print("no user.");
+        }
+        
+    }
+
+    public void SaveMale(string gender)
+    {
+        if (user != null)
+        {
+            DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+            // reference.Child(user.UserId).Child("email").SetValueAsync(user.Email).ContinueWith(task =>
+            // {
+            //     if (task.IsCompletedSuccessfully)
+            //     {
+            //         print("saved!");
+            //     }
+            // });
+            reference.Child(user.UserId).Child("gender").SetValueAsync(gender).ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    print("saved!");
+                }
+            });
+        }
+        else
+        {
+            print("no user.");
+        }
+    }
+
+    public void SaveFemale(string gender)
+    {
+        if (user != null)
+        {
+            DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+            // reference.Child(user.UserId).Child("email").SetValueAsync(user.Email).ContinueWith(task =>
+            // {
+            //     if (task.IsCompletedSuccessfully)
+            //     {
+            //         print("saved!");
+            //     }
+            // });
+            reference.Child(user.UserId).Child("gender").SetValueAsync(gender).ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    print("saved!");
+                }
+            });
+        }
+        else
+        {
+            print("no user.");
+        }
+    }
+
+    public void LoadAge()
+    {
+        if (user != null)
+        {
+            DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+            reference.Child(user.UserId).Child("age").GetValueAsync().ContinueWith(task =>
+            {
+                DataSnapshot snapshot = task.Result;
+                print(snapshot.Value);
+            });
+        }
+        else
+        {
+            print("No user.");
+        }
+    }
+
+    public void LoadGender()
+    {
+        if (user != null)
+        {
+            DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+            reference.Child(user.UserId).Child("gender").GetValueAsync().ContinueWith(task =>
+            {
+                DataSnapshot snapshot = task.Result;
+                print(snapshot.Value);
+            });
+        }
+        else
+        {
+            print("No user.");
+        }
+    }
+
+    public DatabaseReference GetUserReference()
+    {
+        DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+        return reference.Child(user.UserId);
+    }
+
     void OnDestroy()
     {
         auth.StateChanged -= AuthStateChanged;
