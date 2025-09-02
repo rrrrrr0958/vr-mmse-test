@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class ResultManager : MonoBehaviour
 {
@@ -10,23 +10,10 @@ public class ResultManager : MonoBehaviour
         if (instance == null) instance = this;
     }
 
-    public void ShowResult(List<string> clicked, List<string> correct, float startTime, float endTime)
+    // 每回合結束呼叫（由 GameManager 觸發）
+    public void OnRoundFinished(List<string> clicked, List<string> correct, float accuracy, float timeUsed)
     {
-        float timeUsed = endTime - startTime;
-
-        int correctCount = 0;
-        for (int i = 0; i < correct.Count; i++)
-        {
-            if (i < clicked.Count && clicked[i] == correct[i])
-            {
-                correctCount++;
-            }
-        }
-        float accuracy = (float)correctCount / correct.Count * 100f;
-
-        Debug.Log($"✅ 答對數量: {correctCount}/{correct.Count}, 準確率: {accuracy:F2}%, 用時: {timeUsed:F2}秒");
-
-        // 🔥 每次結束自動產生 JSON
+        // 這裡可以擴充：寫檔 / 上傳 / 儲存到資料庫…
         GameManager.instance.ConvertGameDataToJson("Player001", accuracy, timeUsed);
     }
 }

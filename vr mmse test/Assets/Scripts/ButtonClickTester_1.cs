@@ -1,46 +1,41 @@
 using UnityEngine;
-using UnityEngine.UI;
 using System.Collections;
 
 public class ButtonClickTester : MonoBehaviour
 {
     void Start()
     {
-        // 測試按鈕點擊功能
         StartCoroutine(TestButtonClicks());
     }
-    
+
     IEnumerator TestButtonClicks()
     {
-        // 等待 2 秒讓系統初始化
         yield return new WaitForSeconds(2f);
-        
+
         Debug.Log("=== 開始測試按鈕點擊 ===");
-        
-        // 尋找所有按鈕並模擬點擊
+
+        // 找所有有 AnimalButtonScript 的物件，直接呼叫它的 OnButtonClick()
         AnimalButtonScript[] buttons = FindObjectsOfType<AnimalButtonScript>();
-        
-        foreach (AnimalButtonScript buttonScript in buttons)
+        foreach (var buttonScript in buttons)
         {
-            // 模擬點擊
             buttonScript.OnButtonClick();
-            yield return new WaitForSeconds(0.5f); // 等待 0.5 秒
+            yield return new WaitForSeconds(0.2f);
         }
-        
+
         Debug.Log("=== 測試完成，顯示當前點擊序列 ===");
-        
-        // 顯示 GameManager 中的點擊序列
+
         if (GameManager.instance != null)
         {
-            Debug.Log($"點擊序列長度: {GameManager.instance.clickedAnimalSequence.Count}");
-            for (int i = 0; i < GameManager.instance.clickedAnimalSequence.Count; i++)
+            var seq = GameManager.instance.ClickedAnimalSequence; // ★ 使用屬性
+            Debug.Log($"點擊序列長度: {seq.Count}");
+            for (int i = 0; i < seq.Count; i++)
             {
-                Debug.Log($"第 {i + 1} 次點擊: {GameManager.instance.clickedAnimalSequence[i]}");
+                Debug.Log($"第 {i + 1} 次點擊: {seq[i]}");
             }
-            
-            // 測試 JSON 轉換
+
+            // JSON（GameManager.ConvertGameDataToJson 有預設 playerId/accuracy/timeUsed 才可這樣呼叫）
             string json = GameManager.instance.ConvertGameDataToJson();
-            Debug.Log("JSON 測試完成！");
+            Debug.Log("JSON 測試完成！\n" + json);
         }
         else
         {
