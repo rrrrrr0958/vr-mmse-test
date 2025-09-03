@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.IO;
 
 public class GameManager : MonoBehaviour
 {
@@ -19,13 +20,19 @@ public class GameManager : MonoBehaviour
     [Header("Animal Buttons (可留空)")]
     public List<Button> animalButtons = new List<Button>(); // 只用來重置顏色
 
-    [Header("正確答案(順序)")]
-    public List<string> correctAnswerSequence = new List<string> { "兔子", "熊貓", "鹿" };
+    [Header("正確答案設定")]
+    public bool loadFromPreviousScene = true;  // 是否從前場景載入正確答案
+    public List<string> correctAnswerSequence = new List<string> { "兔子", "熊貓", "鹿" }; // 預設答案（備用）
 
     // 內部狀態
     private readonly List<string> clickedOrder = new List<string>();   // 保留點擊順序（不重覆）
     private readonly HashSet<string> selectedSet = new HashSet<string>(); // 判斷是否已選
     private readonly Dictionary<Button, Color> originalColors = new Dictionary<Button, Color>();
+
+    // 資料載入相關
+    private const string SAVE_FILE_NAME = "gamedata.json";
+    private const string CUSTOM_DATA_FOLDER = @"C:\Users\USER\Desktop\vr-mmse-test\vr-mmse-test\vr mmse test\Assets\Data";
+    private string saveFilePath;
 
     private float startTime;
     private float endTime;
@@ -34,7 +41,19 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        if (instance == null) instance = this;
+        if (instance == null) 
+        {
+            instance = this;
+            
+            // 設定檔案路徑
+            saveFilePath = Path.Combine(CUSTOM_DATA_FOLDER, SAVE_FILE_NAME);
+            
+            // 如果設定要從前場景載入，就載入資料
+            if (loadFromPreviousScene)
+            {
+                LoadCorrectAnswerFromFile();
+            }
+        }
     }
 
     void Start()
@@ -43,6 +62,9 @@ public class GameManager : MonoBehaviour
 
         if (confirmPanel) confirmPanel.SetActive(false);
         if (resultText) resultText.gameObject.SetActive(false);
+
+        // 顯示當前使用的正確答案
+        Debug.Log($"當前正確答案序列：{string.Join("、", correctAnswerSequence)}");
 
         // 只用來記錄原色（不在這裡綁 onClick；交給 AnimalButtonScript）
         foreach (var btn in animalButtons)
@@ -62,6 +84,46 @@ public class GameManager : MonoBehaviour
             retryButton.onClick.RemoveAllListeners();
             retryButton.onClick.AddListener(OnRetry);
         }
+    }
+
+    // 從前場景的資料檔案載入正確答案
+    private void LoadCorrectAnswerFromFile()
+    {
+        try
+        {
+            if (File.Exists(saveFilePath))
+            {
+                string json = File.ReadAllText(saveFilePath);
+                GameDataMenu data = JsonUtility.FromJson<GameDataMenu>(json);
+                
+                if (data != null && data.selections != null && data.selections.Count > 0)
+                {
+                    // 使用前場景的選擇作為這場景的正確答案
+                    correctAnswerSequence = new List<string>(data.selections);
+                    Debug.Log($"✅ 成功從前場景載入正確答案：{string.Join("、", correctAnswerSequence)}");
+                    Debug.Log($"正確答案數量：{correctAnswerSequence.Count}");
+                }
+                else
+                {
+                    Debug.LogWarning("前場景資料為空，使用預設正確答案");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"找不到前場景資料檔案：{saveFilePath}，使用預設正確答案");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"載入前場景資料失敗：{e.Message}，使用預設正確答案");
+        }
+    }
+
+    // 手動重新載入正確答案（測試用）
+    [ContextMenu("重新載入正確答案")]
+    public void ReloadCorrectAnswer()
+    {
+        LoadCorrectAnswerFromFile();
     }
 
     // 由 AnimalButtonScript 呼叫
@@ -113,21 +175,29 @@ public class GameManager : MonoBehaviour
         // 全對的條件：選到的「不同物件數」與正解數量相同，且每一個都屬於正解集合
         bool allCorrect = (selectedSet.Count == correctSet.Count) && (matches == correctSet.Count);
 
-
         if (resultText)
         {
             resultText.gameObject.SetActive(true);
             resultText.text =
                 $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
                 $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
-                $"正確率：{accuracy * 100f:F1}%  用時 {timeUsed:F2}s";
+                $"正確率：{accuracy * 100f:F1}%  用時 {timeUsed:F2}s\n" +
+                $"結果：{(allCorrect ? "完全正確！🎉" : "請再試試")}";
         }
 
         if (confirmPanel) confirmPanel.SetActive(false);
         if (panel1) panel1.SetActive(false);
 
+        // 輸出詳細結果到 Console
+        Debug.Log($"🎯 遊戲結果：");
+        Debug.Log($"   玩家選擇：{string.Join("、", clickedOrder)}");
+        Debug.Log($"   正確答案：{string.Join("、", correctAnswerSequence)}");
+        Debug.Log($"   正確率：{accuracy * 100f:F1}%");
+        Debug.Log($"   用時：{timeUsed:F2}秒");
+        Debug.Log($"   結果：{(allCorrect ? "完全正確！" : "答錯了")}");
+
         // 若要輸出 JSON：
-        // ConvertGameDataToJson("Player001", accuracy, timeUsed);
+        ConvertGameDataToJson("Player001", accuracy, timeUsed);
     }
 
     public void OnRetry()

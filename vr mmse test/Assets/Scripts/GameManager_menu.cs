@@ -176,6 +176,25 @@ public class GameManagerMenu : MonoBehaviour
         return CUSTOM_DATA_FOLDER;
     }
 
+    // 手動重置選擇（可用於重新開始）
+    public void ResetSelection()
+    {
+        clickedAnimalSequence.Clear();
+        Debug.Log("選擇已重置，可以重新選擇3個動物");
+    }
+
+    // 檢查是否已選滿
+    public bool IsSelectionComplete()
+    {
+        return clickedAnimalSequence.Count >= 3;
+    }
+
+    // 取得剩餘可選數量
+    public int GetRemainingSelections()
+    {
+        return Mathf.Max(0, 3 - clickedAnimalSequence.Count);
+    }
+
     // 保存並退出（只使用本地存儲）
     public void OnSaveAndQuitButtonClicked()
     {
