@@ -7,14 +7,15 @@ public class WhiteBoard : MonoBehaviour
     public RenderTexture renderTexture;
 
     [Header("BrushSettings")]
-    [Tooltip("Max distance for brush detection")]
+    [Tooltip("Max distance for brush detection (for physical pen mode)")]
     public float maxDistance = 0.2f;
+
     [Tooltip("Minimum distance between brush positions (pixels)")]
-    public float minBrushDistance = 2f;
+    public float minBrushDistance = 1f;
 
     private Material brushMaterial; // Material used for GL drawing
 
-    public Color backGroundColor = Color.white;  // 只用來初始化清空畫布
+    public Color backGroundColor = Color.white;  // 初始化清空畫布
     [Range(0, 1)]
     public float markerAlpha = 0.7f;
 
@@ -22,11 +23,18 @@ public class WhiteBoard : MonoBehaviour
     [Tooltip("Set false to use a MeshCollider for 3d objects")]
     public bool useBoxCollider = true;
 
+    [Header("Raycast Filter")]
+    [Tooltip("只讓繪圖 Ray 命中這些層（建議只勾 Whiteboard 層）")]
+    public LayerMask drawLayers = ~0;
+
+    [Header("Lifecycle")]
+    public bool autoClearOnExit = false; // 停止 Play/關閉物件時自動清空（方便開發）
+
     [System.Serializable]
     public class BrushSettings
     {
         [Header("Brush Object")]
-        public Transform brushTransform;   // 筆尖 Transform（forward 指向白板）
+        public Transform brushTransform;   // 筆尖 Transform（physical-pen 模式會用到）
         public bool isHeld = true;         // 是否啟用/拿著（可由其他腳本控制）
 
         [Header("Visual")]
@@ -50,23 +58,25 @@ public class WhiteBoard : MonoBehaviour
         if (r != null && renderTexture != null)
             r.material.mainTexture = renderTexture;
 
-        // 初始化畫布
         if (renderTexture != null)
         {
-            // 建議確保 RT 設定（可選）
             EnsureRTSettings(renderTexture);
 
+            var prev = RenderTexture.active;
             RenderTexture.active = renderTexture;
             GL.Clear(true, true, backGroundColor);
 
             foreach (var b in brushes)
             {
                 var c = b.color;
-                c.a = markerAlpha; // 設定筆透明度
+                c.a = markerAlpha;
                 b.color = c;
+                // 起手狀態
+                b.isFirstDraw = true;
+                b.isDrawing = false;
             }
 
-            RenderTexture.active = null;
+            RenderTexture.active = prev;
         }
         else
         {
@@ -74,97 +84,132 @@ public class WhiteBoard : MonoBehaviour
         }
     }
 
+    void OnDisable()
+    {
+#if UNITY_EDITOR
+        if (autoClearOnExit) ClearBoard();
+#endif
+    }
+
     void Update()
     {
+        // 仍保留「實體筆」模式（brushTransform + isHeld）：
         if (renderTexture == null) return;
 
+        var prev = RenderTexture.active;
         RenderTexture.active = renderTexture;
 
         foreach (var brush in brushes)
         {
-            if (brush.isHeld)
-                DrawBrushOnTexture(brush);
+            if (!brush.isHeld) continue;
+            if (brush.brushTransform == null) continue;
+
+            // 從筆尖 forward 發射 Ray（只打到 drawLayers）
+            Ray ray = new Ray(brush.brushTransform.position, brush.brushTransform.forward);
+            if (Physics.Raycast(ray, out RaycastHit hit, maxDistance, drawLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.collider.gameObject == gameObject)
+                {
+                    Vector2 current = HitToTexel(hit);
+                    ProcessStroke(brush, current, brush.brushTransform.rotation.eulerAngles.z);
+                }
+            }
+            else
+            {
+                brush.isDrawing = false;
+                brush.isFirstDraw = true;
+            }
         }
 
-        RenderTexture.active = null;
+        RenderTexture.active = prev;
     }
 
-    void DrawBrushOnTexture(BrushSettings brush)
+    // ======= 供「XR Ray + 扳機」直接呼叫的 API =======
+
+    /// <summary>用 RaycastHit（必須命中這塊 WhiteBoard）來畫，適用射線模式。</summary>
+    public void StrokeFromHit(RaycastHit hit, int brushIndex, float rotationZDeg = 0f)
     {
-        if (brush.brushTransform == null) return;
+        if (renderTexture == null) return;
+        if (brushIndex < 0 || brushIndex >= brushes.Count) return;
+        if (hit.collider.gameObject != gameObject) return;
 
-        Ray ray = new Ray(brush.brushTransform.position, brush.brushTransform.forward);
+        var brush = brushes[brushIndex];
+        var prev = RenderTexture.active;
+        RenderTexture.active = renderTexture;
 
-        if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
+        Vector2 current = HitToTexel(hit);
+        ProcessStroke(brush, current, rotationZDeg);
+
+        RenderTexture.active = prev;
+    }
+
+    /// <summary>結束該支筆的筆劃（扳機放開）</summary>
+    public void EndStroke(int brushIndex)
+    {
+        if (brushIndex < 0 || brushIndex >= brushes.Count) return;
+        var brush = brushes[brushIndex];
+        brush.isDrawing = false;
+        brush.isFirstDraw = true;
+    }
+
+    // ======= 內部工具 =======
+
+    // 把命中位置轉成 RenderTexture 的像素座標
+    Vector2 HitToTexel(RaycastHit hit)
+    {
+        Vector2 uv;
+        if (useBoxCollider)
         {
-            if (hit.collider.gameObject == gameObject)
+            var box = GetComponent<BoxCollider>();
+            if (box == null)
             {
-                Vector2 uv;
-                if (useBoxCollider)
-                {
-                    var box = GetComponent<BoxCollider>();
-                    if (box == null)
-                    {
-                        Debug.LogError("缺少 BoxCollider，請改用 MeshCollider 或加上 BoxCollider。");
-                        return;
-                    }
-                    Vector3 local = transform.InverseTransformPoint(hit.point);
-                    uv = new Vector2(
-                        (local.x / box.size.x) + 0.5f,
-                        1.0f - ((local.y / box.size.y) + 0.5f)
-                    );
-                }
-                else
-                {
-                    uv = hit.textureCoord;
-                    uv.y = 1.0f - uv.y;
-                }
-
-                int x = (int)(uv.x * renderTexture.width);
-                int y = (int)(uv.y * renderTexture.height);
-                Vector2 current = new Vector2(x, y);
-
-                if (!brush.isDrawing)
-                {
-                    brush.isFirstDraw = true;
-                    brush.isDrawing = true;
-                }
-
-                if (brush.isFirstDraw)
-                {
-                    DrawAtPosition(current, brush.color, brush.sizeX, brush.sizeY, brush.brushTransform.rotation.eulerAngles.z);
-                    brush.lastPosition = current;
-                    brush.isFirstDraw = false;
-                    return;
-                }
-
-                float dx = Mathf.Abs(current.x - brush.lastPosition.x);
-                float dy = Mathf.Abs(current.y - brush.lastPosition.y);
-                bool crossH = dx > renderTexture.width / 16;
-                bool crossV = dy > renderTexture.height / 16;
-
-                if (crossH || crossV)
-                {
-                    DrawAtPosition(current, brush.color, brush.sizeX, brush.sizeY, brush.brushTransform.rotation.eulerAngles.z);
-                }
-                else
-                {
-                    float dist = Vector2.Distance(current, brush.lastPosition);
-                    int steps = Mathf.CeilToInt(dist / minBrushDistance);
-                    for (int i = 1; i <= steps; i++)
-                    {
-                        Vector2 p = Vector2.Lerp(brush.lastPosition, current, i / (float)steps);
-                        DrawAtPosition(p, brush.color, brush.sizeX, brush.sizeY, brush.brushTransform.rotation.eulerAngles.z);
-                    }
-                }
-
-                brush.lastPosition = current;
+                Debug.LogError("缺少 BoxCollider，請改用 MeshCollider 或加上 BoxCollider。");
+                return Vector2.zero;
             }
+            Vector3 local = transform.InverseTransformPoint(hit.point);
+            uv = new Vector2(
+                (local.x / box.size.x) + 0.5f,
+                1f - ((local.y / box.size.y) + 0.5f)
+            );
         }
         else
         {
-            brush.isDrawing = false;
+            uv = hit.textureCoord;
+            uv.y = 1f - uv.y;
         }
+
+        int x = Mathf.Clamp((int)(uv.x * renderTexture.width), 0, renderTexture.width - 1);
+        int y = Mathf.Clamp((int)(uv.y * renderTexture.height), 0, renderTexture.height - 1);
+        return new Vector2(x, y);
+    }
+
+    // 統一處理插值與落筆
+    void ProcessStroke(BrushSettings brush, Vector2 current, float rotZDeg)
+    {
+        if (!brush.isDrawing)
+        {
+            brush.isFirstDraw = true;
+            brush.isDrawing = true;
+        }
+
+        if (brush.isFirstDraw)
+        {
+            DrawAtPosition(current, brush.color, brush.sizeX, brush.sizeY, rotZDeg);
+            brush.lastPosition = current;
+            brush.isFirstDraw = false;
+            return;
+        }
+
+        // BoxCollider / 射線模式：永遠插值（避免斷點）
+        float dist = Vector2.Distance(current, brush.lastPosition);
+        int steps = Mathf.Max(1, Mathf.CeilToInt(dist / Mathf.Max(0.1f, minBrushDistance)));
+        for (int i = 1; i <= steps; i++)
+        {
+            Vector2 p = Vector2.Lerp(brush.lastPosition, current, i / (float)steps);
+            DrawAtPosition(p, brush.color, brush.sizeX, brush.sizeY, rotZDeg);
+        }
+
+        brush.lastPosition = current;
     }
 
     void DrawAtPosition(Vector2 pos, Color color, float sizeX, float sizeY, float rotDeg)
@@ -197,13 +242,28 @@ public class WhiteBoard : MonoBehaviour
         GL.PopMatrix();
     }
 
-    // 可選：確保 RT 設定
+    // 清空畫布（Inspector 右鍵可呼叫）
+    [ContextMenu("Clear Board")]
+    public void ClearBoard()
+    {
+        if (renderTexture == null) return;
+        var prev = RenderTexture.active;
+        RenderTexture.active = renderTexture;
+        GL.Clear(true, true, backGroundColor);
+        RenderTexture.active = prev;
+
+        // 重置筆狀態
+        foreach (var b in brushes)
+        {
+            b.isFirstDraw = true;
+            b.isDrawing = false;
+        }
+    }
+
     static void EnsureRTSettings(RenderTexture rt)
     {
-        // 這些屬性通常可在 Inspector 直接設；這裡只是示意
         rt.filterMode = FilterMode.Bilinear;
         rt.wrapMode = TextureWrapMode.Clamp;
-        // 若 RT 是可重建的，確保 antiAliasing = 1
-        //（部分情況需重建 RT 才會生效，或直接在 Inspector 設定好）
+        // 建議在 Inspector 令 antiAliasing=1
     }
 }
