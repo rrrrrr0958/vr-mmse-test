@@ -5642,7 +5642,7 @@ Canvas:
   m_Enabled: 1
   serializedVersion: 3
   m_RenderMode: 2
-  m_Camera: {fileID: 0}
+  m_Camera: {fileID: 245282001}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
@@ -7008,7 +7008,7 @@ Canvas:
   m_Enabled: 1
   serializedVersion: 3
   m_RenderMode: 2
-  m_Camera: {fileID: 0}
+  m_Camera: {fileID: 245282001}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
@@ -7843,7 +7843,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -25545,12 +25545,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: F1
+  floorLabel: f1
   forwardVP: {fileID: 1946357296}
   leftVP: {fileID: 0}
   rightVP: {fileID: 0}
-  upScene: F2
-  downScene: B1
+  upScene: f2
+  downScene: b1
 --- !u!1001 &2108964534
 PrefabInstance:
   m_ObjectHideFlags: 0
