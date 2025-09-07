@@ -1,50 +1,29 @@
 using UnityEngine;
-using UnityEngine.UI;
 
-public class NavPanel : MonoBehaviour
-{
-    public Button upBtn, downBtn, leftBtn, rightBtn, forwardBtn;
+/// <summary>
+/// 可掛在「一組世界面板」上，透過 Inspector 綁 FloorNavNode 與 PlayerRigMover，
+/// 讓四顆按鈕（直走/左/右/上下樓）呼叫這裡的 public 方法。
+/// （若你已用 NavAction 逐顆按鈕設定，可以不使用本腳本）
+/// </summary>
+public class NavPanel : MonoBehaviour {
+    public PlayerRigMover mover;
+    public FloorNavNode node;
 
-    PlayerRigMover _mover;
-    FloorNavNode _node;
-
-    void Start()
-    {
-        _mover = FindObjectOfType<PlayerRigMover>();
-        _node  = FindObjectOfType<FloorNavNode>();
-
-        SetupSceneBtn(upBtn,   _node?.upScene,   () => SceneLoader.Load(_node.upScene));
-        SetupSceneBtn(downBtn, _node?.downScene, () => SceneLoader.Load(_node.downScene));
-
-        SetupMoveBtn(forwardBtn, _node?.forwardVP);
-        SetupMoveBtn(leftBtn,    _node?.leftVP);
-        SetupMoveBtn(rightBtn,   _node?.rightVP);
+    void Reset() {
+        if (!mover) mover = Object.FindFirstObjectByType<PlayerRigMover>();
+        if (!node) node = Object.FindFirstObjectByType<FloorNavNode>();
     }
 
-    void SetupSceneBtn(Button btn, string scene, System.Action action)
-    {
-        if (!btn) return;
-        bool active = !string.IsNullOrEmpty(scene);
-        btn.gameObject.SetActive(active);
-        if (active)
-        {
-            btn.onClick.RemoveAllListeners();
-            btn.onClick.AddListener(()=> action?.Invoke());
-        }
-    }
+    public void GoForward() { if (node && node.forwardVP) mover?.GoTo(node.forwardVP); }
+    public void GoLeft()    { if (node && node.leftVP)    mover?.GoTo(node.leftVP); }
+    public void GoRight()   { if (node && node.rightVP)   mover?.GoTo(node.rightVP); }
 
-    void SetupMoveBtn(Button btn, Transform vp)
-    {
-        if (!btn) return;
-        bool active = vp != null;
-        btn.gameObject.SetActive(active);
-        if (active)
-        {
-            btn.onClick.RemoveAllListeners();
-            btn.onClick.AddListener(() =>
-            {
-                if (_mover != null) _mover.MoveTo(vp);
-            });
-        }
+    public void GoUp() {
+        if (node && !string.IsNullOrEmpty(node.upScene))
+            SceneLoader.Load(node.upScene);
+    }
+    public void GoDown() {
+        if (node && !string.IsNullOrEmpty(node.downScene))
+            SceneLoader.Load(node.downScene);
     }
 }

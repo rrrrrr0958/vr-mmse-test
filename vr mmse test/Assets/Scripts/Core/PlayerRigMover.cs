@@ -1,69 +1,61 @@
 using UnityEngine;
+using UnityEngine.Events;
 using System.Collections;
 
-public class PlayerRigMover : MonoBehaviour
-{
+public class PlayerRigMover : MonoBehaviour {
+    [Header("Refs")]
+    public Transform cameraTransform;   // 指向主相機（非 VR/VR 皆可）
+    public CanvasGroup fadeOverlay;     // 全螢幕黑幕（Alpha 0~1）
+
     [Header("Fade")]
-    public CanvasGroup fadeCanvas;
-    public float fadeTime = 0.15f;
+    public float fadeDuration = 0.25f;
 
-    [Header("Rig parts")]
-    public Transform cameraTransform; // 指向場景中的 Main Camera（PlayerRig 的子物件）
+    [System.Serializable] public class TeleportEvent : UnityEvent {}
+    public TeleportEvent OnTeleported;  // 瞬移完成事件（給 SessionController）
 
-    void Awake()
-    {
-        if (cameraTransform == null && Camera.main != null)
-            cameraTransform = Camera.main.transform;
+    /// <summary>瞬移到指定 VP（含淡入淡出）</summary>
+    public void GoTo(Transform targetVP) {
+        if (!targetVP) return;
+        StopAllCoroutines();
+        StartCoroutine(MoveRoutine(targetVP));
     }
 
-    public void MoveTo(Transform targetCamPose)
-    {
-        if (targetCamPose == null) return;
-        StartCoroutine(MoveRoutine(targetCamPose));
+    IEnumerator MoveRoutine(Transform targetVP) {
+        // 淡出
+        if (fadeOverlay) yield return FadeTo(1f, fadeDuration);
+
+        // 位置&朝向（僅 Y 軸朝向）
+        transform.position = targetVP.position;
+        var fwd = targetVP.forward; fwd.y = 0f;
+        if (fwd.sqrMagnitude > 0.0001f)
+            transform.rotation = Quaternion.LookRotation(fwd.normalized, Vector3.up);
+
+        // 淡入
+        if (fadeOverlay) yield return FadeTo(0f, fadeDuration);
+
+        OnTeleported?.Invoke();
     }
 
-    IEnumerator MoveRoutine(Transform targetCamPose)
-    {
-        SetBlock(true);
-        yield return Fade(1f);
-
-        // 讓「相機」對齊目標 → 反推出「Rig 根」該放哪
-        // 1) 相機在 Rig 底下的「本地位姿」
-        Vector3 camLocalPos = transform.InverseTransformPoint(cameraTransform.position);
-        Quaternion camLocalRot = Quaternion.Inverse(transform.rotation) * cameraTransform.rotation;
-
-        // 2) 先算 Rig 需要的旋轉，讓 camLocalRot 被乘上去後 = 目標旋轉
-        Quaternion rigRot = targetCamPose.rotation * Quaternion.Inverse(camLocalRot);
-
-        // 3) 再算 Rig 需要的位置，讓 rigRot * camLocalPos 位移後落在目標位置
-        Vector3 rigPos = targetCamPose.position - (rigRot * camLocalPos);
-
-        transform.SetPositionAndRotation(rigPos, rigRot);
-
-        yield return Fade(0f);
-        SetBlock(false);
-
-        var sc = FindObjectOfType<SessionController>();
-        if (sc) sc.AskWhereAmINow();
-    }
-
-    IEnumerator Fade(float to)
-    {
-        if (fadeCanvas == null) yield break;
-        float from = fadeCanvas.alpha, t = 0f;
-        while (t < fadeTime)
-        {
+    IEnumerator FadeTo(float alpha, float dur) {
+        if (!fadeOverlay) yield break;
+        float s = fadeOverlay.alpha;
+        float t = 0f;
+        while (t < dur) {
             t += Time.deltaTime;
-            fadeCanvas.alpha = Mathf.Lerp(from, to, t / fadeTime);
+            fadeOverlay.alpha = Mathf.Lerp(s, alpha, Mathf.Clamp01(t / dur));
             yield return null;
         }
-        fadeCanvas.alpha = to;
+        fadeOverlay.alpha = alpha;
     }
 
-    void SetBlock(bool on)
-    {
-        if (fadeCanvas == null) return;
-        fadeCanvas.blocksRaycasts = on;
-        fadeCanvas.interactable   = on;
+    void Reset(){
+        if (!cameraTransform) {
+            var cam = GetComponentInChildren<Camera>();
+            if (cam) cameraTransform = cam.transform;
+        }
+        if (!fadeOverlay) {
+            var fo = GameObject.Find("FadeOverlay");
+            if (fo) fadeOverlay = fo.GetComponent<CanvasGroup>();
+        }
     }
 }

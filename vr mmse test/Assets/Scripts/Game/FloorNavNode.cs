@@ -1,16 +1,18 @@
 using UnityEngine;
 
-public class FloorNavNode : MonoBehaviour
-{
-    [Header("Meta")]
-    public string floorLabel = "F1";   // F1/F2/F3
+/// <summary>
+/// 每層樓的導航節點資料（Inspector 填值即可）
+/// </summary>
+public class FloorNavNode : MonoBehaviour {
+    [Header("標籤")]
+    public string floorLabel = "F1";
 
-    [Header("Same-scene viewpoints")]
-    public Transform forwardVP;        // 直走
-    public Transform leftVP;           // 左轉
-    public Transform rightVP;          // 右轉
+    [Header("本層 Viewpoints")]
+    public Transform forwardVP;
+    public Transform leftVP;
+    public Transform rightVP;
 
-    [Header("Cross-scene (stairs)")]
-    public string upScene;             // F2/F3
-    public string downScene;           // F1/F2
+    [Header("跨場景")]
+    public string upScene;    // 例如 "F2"
+    public string downScene;  // 例如 "B1"
 }

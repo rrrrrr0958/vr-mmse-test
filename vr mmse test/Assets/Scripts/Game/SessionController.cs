@@ -1,65 +1,112 @@
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-public class SessionController : MonoBehaviour
-{
-    [Header("Refs")]
+/// <summary>
+/// 抵達（瞬移/換場）後自動出題；接 QuizPanel；寫 RunLogger。
+/// 相容你的 QuizPanel(Action<int>) 寫法。
+/// </summary>
+public class SessionController : MonoBehaviour {
+    [Header("Data")]
     public LocationDB db;
+
+    [Header("UI")]
     public QuizPanel quizPanel;
-    public float quizDelay = 0.3f;
 
-    LocationEntry _correct;
-    List<LocationEntry> _opts = new();
-    float _tStart;
+    [Header("Logging")]
+    public RunLogger logger;
 
-    void Start()
-    {
-        if (RunLogger.I == null)
-            new GameObject("RunLogger").AddComponent<RunLogger>();
+    [Header("Options")]
+    [Range(2,6)] public int optionsPerQuestion = 4;
 
-        AskWhereAmINow(); // 進場也先出一次題（例如站在 Hub 可不出題則直接 return）
+    PlayerRigMover _mover;
+    System.Random _rng;
+    List<LocationEntry> _currentOptions = new();
+    int _correctIndex = -1;
+
+    void Awake() {
+        _rng = new System.Random();
+        _mover = UnityEngine.Object.FindFirstObjectByType<PlayerRigMover>();
+        if (_mover) _mover.OnTeleported.AddListener(OnArrived);
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        logger?.StartRun();
     }
 
-    // 給 PlayerRigMover 在瞬移後再次呼叫
-    public void AskWhereAmINow()
-    {
-        var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        var candidates = db.GetByScene(scene);
-        if (candidates == null || candidates.Count == 0)
-            return; // 例如 Hub 不出題就別加到 DB
+    void OnDestroy(){
+        if (_mover) _mover.OnTeleported.RemoveListener(OnArrived);
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        logger?.EndRun();
+    }
 
-        // 依你需求：若一個場景有多攤（F2），我們以最近一次「到達的 Viewpoint」決定正解；
-        // 先簡化：隨機抽本層的一個攤位作為正解
-        _correct = candidates[Random.Range(0, candidates.Count)];
+    void OnSceneLoaded(Scene s, LoadSceneMode m) => OnArrived();
 
-        _opts.Clear();
-        _opts.Add(_correct);
-        _opts.AddRange(db.GetDistractors(_correct, 3));
+    void OnArrived() {
+        var sceneName = SceneManager.GetActiveScene().name;
+        var vpName = GuessVPNameByNearest(sceneName); // 近點偵測；找不到時回退到第一筆
+        AskQuestion(sceneName, vpName);
+    }
 
-        // 打散
-        for (int i = 0; i < _opts.Count; i++)
-        {
-            int j = Random.Range(i, _opts.Count);
-            (_opts[i], _opts[j]) = (_opts[j], _opts[i]);
+    // 依據玩家位置，找當前場景中「名稱符合 DB 的 Viewpoint」裡最近的一個
+    string GuessVPNameByNearest(string sceneName) {
+        var candidates = db.AllByScene(sceneName).ToList();
+        if (candidates.Count == 0) return "";
+
+        Transform rig = _mover ? _mover.transform : null;
+        if (rig == null) return candidates[0].viewpointName;
+
+        float best = float.MaxValue;
+        string bestName = candidates[0].viewpointName;
+
+        foreach (var e in candidates) {
+            var go = GameObject.Find(e.viewpointName);
+            if (!go) continue;
+            float d = Vector3.SqrMagnitude(go.transform.position - rig.position);
+            if (d < best) { best = d; bestName = e.viewpointName; }
+        }
+        return bestName;
+    }
+
+    void AskQuestion(string sceneName, string vpName) {
+        var correct = db.FindBySceneAndVP(sceneName, vpName);
+        if (correct == null) {
+            Debug.LogWarning($"[Session] 找不到題目：scene={sceneName}, vp={vpName}");
+            return;
         }
 
-        Invoke(nameof(ShowQuiz), quizDelay);
-    }
+        _currentOptions = BuildOptions(correct, optionsPerQuestion);
+        _correctIndex   = _currentOptions.IndexOf(correct);
 
-    void ShowQuiz()
-    {
-        if (_correct == null) return;
-        string[] labels = _opts.ConvertAll(o => o.displayText).ToArray();
-        _tStart = Time.time;
-        RunLogger.I.Log("quiz_shown", _correct.floorLabel, _correct.stallLabel, "", false, 0);
+        var labels = _currentOptions.Select(e => e.displayText).ToArray();
+
         quizPanel.Show("你現在在哪裡？", labels, OnPick);
+
+        logger?.SetDisplayTextCache(correct.displayText);
+        logger?.BeginQuestion(sceneName, correct.viewpointName, correct.displayText);
     }
 
-    void OnPick(int idx)
-    {
-        long rt = (long)((Time.time - _tStart) * 1000f);
-        bool ok = _opts[idx] == _correct;
-        RunLogger.I.Log("quiz_answer", _correct.floorLabel, _correct.stallLabel, _opts[idx].displayText, ok, rt);
-        quizPanel.gameObject.SetActive(false);
+    List<LocationEntry> BuildOptions(LocationEntry correct, int count) {
+        var same   = db.entries.Where(e => e.sceneName == correct.sceneName && e != correct).OrderBy(_ => _rng.Next());
+        var others = db.entries.Where(e => e.sceneName != correct.sceneName).OrderBy(_ => _rng.Next());
+
+        var list = new List<LocationEntry>{ correct };
+        foreach (var e in same.Concat(others)) {
+            if (list.Count >= count) break;
+            if (!list.Contains(e)) list.Add(e);
+        }
+        return list.OrderBy(_ => _rng.Next()).ToList();
+    }
+
+    void OnPick(int idx) {
+        var sceneName = SceneManager.GetActiveScene().name;
+        bool isCorrect = (idx == _correctIndex);
+        string userKey = (idx >= 0 && idx < _currentOptions.Count) ? _currentOptions[idx].viewpointName : "";
+
+        logger?.EndQuestion(userKey, isCorrect, 0);
+
+        // （可選）顯示回饋後延遲關閉
+        // quizPanel.ShowFeedback(isCorrect);
+        // StartCoroutine(CloseLater(1f));
     }
 }
