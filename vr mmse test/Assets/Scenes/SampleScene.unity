@@ -2863,7 +2863,7 @@ GameObject:
   - component: {fileID: 245281999}
   m_Layer: 0
   m_Name: Camera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2979,13 +2979,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 245281998}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.015258904, y: 0.98131216, z: -0.16830178, w: -0.09202293}
-  m_LocalPosition: {x: 3.5309124, y: 7.804816, z: 23.664465}
+  m_LocalRotation: {x: -0.0064060674, y: 0.9928958, z: -0.073871605, w: -0.09305922}
+  m_LocalPosition: {x: 3.68, y: 2.84, z: 13.15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 30.168, y: 191.723, z: 0}
+  m_LocalEulerAnglesHint: {x: 8.504, y: 190.713, z: 0.06}
 --- !u!1001 &245478248
 PrefabInstance:
   m_ObjectHideFlags: 0
