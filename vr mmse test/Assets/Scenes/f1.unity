@@ -9021,8 +9021,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59ef2a6fffd59a64da0188790694a727, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  db: {fileID: 0}
-  quizPanel: {fileID: 0}
+  db: {fileID: 11400000, guid: 025979435d536f946894d7055637d163, type: 2}
+  quizPanel: {fileID: 939400638}
   logger: {fileID: 0}
   optionsPerQuestion: 4
 --- !u!1001 &700879854
