@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using OpenCvSharp;
@@ -5,70 +6,81 @@ using OpenCvSharp;
 public class WhiteboardChamferJudge : MonoBehaviour
 {
     [Header("Input")]
-    public RenderTexture whiteboardRT;     // 你在畫的那塊 RT
-    public Texture2D templatePNG;          // 目標圖（PNG）
+    public RenderTexture whiteboardRT;
+    public Texture2D templatePNG;
 
-    [Tooltip("白板/模板最大邊縮到這個尺寸後再比，越小越快")]
+    [Tooltip("Both images are resized so the longer side equals this before comparison.")]
     public int analysisMaxSide = 512;
 
     [Header("Edge Extract")]
-    public bool useCanny = true;
-    [Range(0, 1)] public double alphaThreshold = 0.05; // 非 Canny 時的灰階閾值
-    [Range(0, 7)] public int dilateKernel = 3;         // 連線粗一點避免斷
+    public bool useCanny = false;
+    [Range(0, 1)] public double alphaThreshold = 0.06;
+    [Range(0, 7)] public int dilateKernel = 3;
 
-    [Header("Search Range")]
-    public float scaleMin = 0.90f;
-    public float scaleMax = 1.10f;
+    [Header("Search Range (size not enforced)")]
+    public float scaleMin = 0.5f;
+    public float scaleMax = 1.8f;
     public float scaleStep = 0.05f;
 
-    public float angleMin = -10f;
-    public float angleMax = 10f;
+    public float angleMin = -20f;
+    public float angleMax = 20f;
     public float angleStep = 2f;
 
-    [Header("Debug Output (optional)")]
-    public RawImage preview;     // 疊圖顯示（紅=玩家、青=模板、白=重疊）
-    public Text scoreText;       // 分數顯示（可用 Text 或 TextMeshProUGUI 改型別）
+    [Header("Scoring (0–100)")]
+    [Tooltip("Strictness in pixels at analysisMaxSide=512. Larger = more tolerant.")]
+    public float tauPxAt512 = 6f;
+    [Range(0,100)] public int passScore = 75;
 
-    // 讓你可以在 Inspector 右鍵快速觸發
+    [Header("Debug Output")]
+    public RawImage preview;     // overlay: red=user, cyan=template, white=overlap
+    public Text scoreText;
+
     [ContextMenu("Evaluate Now")]
     public void EvaluateNow()
     {
         if (whiteboardRT == null || templatePNG == null)
         {
-            Debug.LogWarning("[Judge] 請指定 Whiteboard RT 與 Template PNG");
+            Debug.LogWarning("[Judge] Please assign Whiteboard RT and Template PNG.");
             return;
         }
 
-        // 讀 Mat
         using var userBgra = CvUnityBridge.FromRenderTexture(whiteboardRT);
         using var templBgra = CvUnityBridge.FromTexture2D(templatePNG);
 
-        // 等比縮圖（先把兩張都壓到 maxSide）
-        var (uSmall, uScale) = ShapeMatcher.ResizeToMaxSide(userBgra, analysisMaxSide);
-        var (tSmall, tScale) = ShapeMatcher.ResizeToMaxSide(templBgra, analysisMaxSide);
+        var (uSmall, _) = ShapeMatcher.ResizeToMaxSide(userBgra, analysisMaxSide);
+        var (tSmall, _) = ShapeMatcher.ResizeToMaxSide(templBgra, analysisMaxSide);
 
-        // 取邊緣
         using var uEdges = ShapeMatcher.ToEdges(uSmall, useCanny, alphaThreshold, dilateKernel);
         using var tEdges = ShapeMatcher.ToEdges(tSmall, useCanny, alphaThreshold, dilateKernel);
 
-        // 搜尋最佳縮放/角度（以模板對齊玩家）
-        var (sim, ang, sc, shift, overlay) =
-            ShapeMatcher.MatchByChamfer(
-                uEdges, tEdges,
-                scaleMin, scaleMax, scaleStep,
-                angleMin, angleMax, angleStep
-            );
+        var (sim, ang, sc, shift, overlay) = ShapeMatcher.MatchByChamfer(
+            uEdges, tEdges,
+            scaleMin, scaleMax, scaleStep,
+            angleMin, angleMax, angleStep
+        );
 
-        // 顯示
+        // --- 0~100 打分 ---
+        int score100 = ToScore100(sim, tauPxAt512, analysisMaxSide);
+        bool pass = (score100 >= passScore);
+
         if (preview != null && overlay != null)
             CvUnityBridge.SetRawImage(preview, overlay);
 
         if (scoreText != null)
-            scoreText.text = $"Similarity = {sim:0.000} (angle={ang:0}°, scale={sc:0.00})";
+            scoreText.text = $"Score {score100}/100  {(pass ? "PASS" : "FAIL")}\n"
+                           + $"sim={sim:0.###} px, angle={ang:0.#}°, scale={sc:0.###}, shift=({shift.X:0},{shift.Y:0})";
 
-        Debug.Log($"[Judge] Similarity={sim:0.000}, angle={ang:0.0} deg, scale={sc:0.000}, shift=({shift.X:0},{shift.Y:0})");
+        Debug.Log($"[Judge] Score={score100}/100 ({(pass?"PASS":"FAIL")}) | sim={sim:0.###} px, angle={ang:0.#}°, scale={sc:0.###}, shift=({shift.X:0},{shift.Y:0})");
 
         overlay?.Dispose();
         uSmall.Dispose(); tSmall.Dispose();
+    }
+
+    // 將像素誤差映射為 0~100 分（自動隨解析度縮放嚴格度）
+    static int ToScore100(double simPx, float tauAt512Px, int maxSide)
+    {
+        double tau = tauAt512Px * (maxSide / 512.0);
+        double s = 100.0 * Math.Exp(-simPx / Math.Max(1e-6, tau));
+        return Mathf.Clamp(Mathf.RoundToInt((float)s), 0, 100);
     }
 }

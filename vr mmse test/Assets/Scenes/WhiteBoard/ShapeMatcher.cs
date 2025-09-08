@@ -3,159 +3,182 @@ using OpenCvSharp;
 
 public static class ShapeMatcher
 {
-    // 前處理：把彩圖轉單通道邊緣圖（0/255）
-    public static Mat ToEdges(Mat srcBGRA, bool useCanny, double alphaThresh01, int dilateKernel)
+    // 把輸入 Mat 等比縮到最大邊 <= maxSide，回傳(縮圖, 縮放倍數)
+    public static (Mat mat, double scale) ResizeToMaxSide(Mat srcBgra, int maxSide)
     {
-        using var srcBGR = new Mat();
-        Cv2.CvtColor(srcBGRA, srcBGR, ColorConversionCodes.BGRA2BGR);
+        if (srcBgra.Empty()) throw new ArgumentException("src empty");
+        int w = srcBgra.Cols, h = srcBgra.Rows;
+        int side = Math.Max(w, h);
+        if (side <= maxSide) return (srcBgra.Clone(), 1.0);
 
-        using var gray = new Mat();
-        Cv2.CvtColor(srcBGR, gray, ColorConversionCodes.BGR2GRAY);
+        double s = maxSide / (double)side;
+        int nw = (int)Math.Round(w * s);
+        int nh = (int)Math.Round(h * s);
+
+        var dst = new Mat();
+        Cv2.Resize(srcBgra, dst, new Size(nw, nh), 0, 0, InterpolationFlags.Area);
+        return (dst, s);
+    }
+
+    // 轉成二值邊緣圖（單通道 8U，0/255）
+    public static Mat ToEdges(Mat srcBgra, bool useCanny, double alphaThreshold, int dilateKernel)
+    {
+        var bgra = srcBgra;
+        var gray = new Mat();
+        if (bgra.Channels() == 4)
+        {
+            // 取 RGB 作灰階（忽略 Alpha）
+            Cv2.CvtColor(bgra, gray, ColorConversionCodes.BGRA2GRAY);
+        }
+        else if (bgra.Channels() == 3)
+        {
+            Cv2.CvtColor(bgra, gray, ColorConversionCodes.BGR2GRAY);
+        }
+        else
+        {
+            gray = bgra.Clone();
+        }
 
         Mat edges = new Mat();
         if (useCanny)
         {
-            double t1 = 50, t2 = 150; // 可再調
-            Cv2.Canny(gray, edges, t1, t2, 3, true);
+            // Otsu 自動門檻可行；也能給定固定門檻
+            double th = Cv2.Threshold(gray, new Mat(), 0, 255, ThresholdTypes.Otsu);
+            Cv2.Canny(gray, edges, th * 0.5, th);
         }
         else
         {
-            // 直接二值（畫板常是白底紅線，也OK）
-            double thr = alphaThresh01 * 255.0;
-            Cv2.Threshold(gray, edges, thr, 255, ThresholdTypes.BinaryInv);
+            // 單純灰階門檻
+            double t = alphaThreshold * 255.0;
+            Cv2.Threshold(gray, edges, t, 255, ThresholdTypes.Binary);
         }
 
         if (dilateKernel > 0)
         {
             var k = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(dilateKernel, dilateKernel));
-            Cv2.MorphologyEx(edges, edges, MorphTypes.Dilate, k);
-            k.Dispose();
+            Cv2.Dilate(edges, edges, k);
         }
+
         return edges;
     }
 
-    // 把圖等比縮到最長邊 = maxSide（回傳縮放倍率）
-    public static (Mat resized, double scale) ResizeToMaxSide(Mat src, int maxSide)
+    // Chamfer 比對：窄範圍掃角度 + 縮放，回傳(相似分數、角度、縮放、平移、疊圖)
+    public static (double score, double bestAngle, double bestScale, Point2f bestShift, Mat overlay)
+        MatchByChamfer(
+            Mat userEdges, Mat templEdges,
+            float scaleMin, float scaleMax, float scaleStep,
+            float angleMin, float angleMax, float angleStep)
     {
-        var s = src.Size();
-        int mx = Math.Max(s.Width, s.Height);
-        if (mx <= maxSide) return (src.Clone(), 1.0);
+        if (userEdges.Empty() || templEdges.Empty()) throw new ArgumentException("edges empty");
 
-        double ratio = (double)maxSide / mx;
-        var dst = new Mat();
-        Cv2.Resize(src, dst, new Size((int)(s.Width * ratio), (int)(s.Height * ratio)), 0, 0, InterpolationFlags.Area);
-        return (dst, ratio);
-    }
+        // 1) 把 userEdges 做距離變換（Chamfer 會在這張圖上取樣）
+        //    先反相：物件=白(255)，背景=黑(0)；距離變換要以「零像素」當邊界。
+        var inv = new Mat();
+        Cv2.BitwiseNot(userEdges, inv);
+        var dist = new Mat(); // 32F
+        Cv2.DistanceTransform(inv, dist, DistanceTypes.L2, DistanceTransformMasks.Mask3);
 
-    // Chamfer 單向距離：A->B（以 B 的距離變換做查值）
-    public static double ChamferOneWay(Mat edgesA, Mat edgesB)
-    {
-        // 確保 8U 單通道
-        using var a = edgesA.Threshold(1, 255, ThresholdTypes.Binary);
-        using var b = edgesB.Threshold(1, 255, ThresholdTypes.Binary);
-
-        // 距離變換要對「非邊緣」做（以便取得到最近邊緣的距離）
-        using var bInv = new Mat();
-        Cv2.BitwiseNot(b, bInv);
-
-        using var dist = new Mat();
-        Cv2.DistanceTransform(bInv, dist, DistanceTypes.L2, 3);
-
-        // 找出 A 的邊緣點
-        Cv2.FindNonZero(a, out Point[] pts);
-        if (pts == null || pts.Length == 0) return double.MaxValue;
-
-        double sum = 0;
-        foreach (var p in pts)
-        {
-            // clamp 避免越界
-            int x = Math.Clamp(p.X, 0, dist.Cols - 1);
-            int y = Math.Clamp(p.Y, 0, dist.Rows - 1);
-            sum += dist.At<float>(y, x);
-        }
-        return sum / pts.Length; // 平均距離（像素）
-    }
-
-    // 對稱 Chamfer（A->B 與 B->A 的平均）
-    public static double ChamferSymmetric(Mat edgesA, Mat edgesB)
-    {
-        double d1 = ChamferOneWay(edgesA, edgesB);
-        double d2 = ChamferOneWay(edgesB, edgesA);
-        return (d1 + d2) * 0.5;
-    }
-
-    // 把距離轉成相似度（0~1；越大越相似）
-    public static double DistanceToSimilarity(double d, double sigmaPixels = 10.0)
-    {
-        // 高斯形式，d=0 => 1；d≈3σ => ~0.011
-        return Math.Exp(-(d * d) / (2.0 * sigmaPixels * sigmaPixels));
-    }
-
-    // 搜尋最佳縮放/旋轉，回傳（相似度、角度、縮放、平移、疊圖）
-    public static (double sim, double angle, double scale, OpenCvSharp.Point2f shift, Mat overlay)
-        MatchByChamfer(Mat userEdges, Mat templateEdges,
-                       double scaleMin, double scaleMax, double scaleStep,
-                       double angleMinDeg, double angleMaxDeg, double angleStepDeg)
-    {
-        double bestSim = -1;
-        double bestAngle = 0;
-        double bestScale = 1;
-        OpenCvSharp.Point2f bestShift = new(0, 0);
+        // 2) 掃縮放 & 角度
+        double bestScore = double.MaxValue;
+        double bestAngle = 0, bestScale = 1;
+        Point2f bestShift = new Point2f(0, 0);
         Mat bestOverlay = null;
 
-        var uSize = userEdges.Size();
-        var uCenter = new OpenCvSharp.Point2f(uSize.Width * 0.5f, uSize.Height * 0.5f);
-
-        for (double sc = scaleMin; sc <= scaleMax + 1e-6; sc += scaleStep)
+        for (float s = scaleMin; s <= scaleMax + 1e-6f; s += scaleStep)
         {
-            // 先縮放模板
-            using var scaled = new Mat();
-            Cv2.Resize(templateEdges, scaled, new Size(), sc, sc, InterpolationFlags.Linear);
+            // 對模板做縮放
+            int tw = (int)Math.Round(templEdges.Cols * s);
+            int th = (int)Math.Round(templEdges.Rows * s);
+            if (tw < 4 || th < 4) continue;
 
-            for (double ang = angleMinDeg; ang <= angleMaxDeg + 1e-6; ang += angleStepDeg)
+            var scaled = new Mat();
+            Cv2.Resize(templEdges, scaled, new Size(tw, th), 0, 0, InterpolationFlags.Linear);
+
+            for (float a = angleMin; a <= angleMax + 1e-6f; a += angleStep)
             {
-                // 旋轉
-                var c = new OpenCvSharp.Point2f(scaled.Cols * 0.5f, scaled.Rows * 0.5f);
-                using var rotMat = Cv2.GetRotationMatrix2D(c, ang, 1.0);
-                using var rotated = new Mat();
-                Cv2.WarpAffine(scaled, rotated, rotMat, scaled.Size(), interpolation: InterpolationFlags.Linear, borderMode: BorderTypes.Constant, borderValue: Scalar.Black);
+                // 旋轉模板
+                var rot = Cv2.GetRotationMatrix2D(new Point2f(tw * 0.5f, th * 0.5f), a, 1.0);
+                var rotated = new Mat();
+                Cv2.WarpAffine(scaled, rotated, rot, new Size(tw, th),
+                    InterpolationFlags.Linear, BorderTypes.Constant, Scalar.Black);
 
-                // 置中到 user 尺寸（簡單平移：把 rotated 中心貼到 user 中心）
-                var shift = new OpenCvSharp.Point2f(uCenter.X - rotated.Cols * 0.5f, uCenter.Y - rotated.Rows * 0.5f);
-                using var placed = new Mat(userEdges.Size(), MatType.CV_8UC1, Scalar.Black);
-                var roi = new OpenCvSharp.Rect(
-                    x: Math.Max(0, (int)shift.X),
-                    y: Math.Max(0, (int)shift.Y),
-                    width: Math.Min(rotated.Cols, placed.Cols - Math.Max(0, (int)shift.X)),
-                    height: Math.Min(rotated.Rows, placed.Rows - Math.Max(0, (int)shift.Y))
-                );
-                if (roi.Width <= 0 || roi.Height <= 0) continue;
-                var srcRoi = new OpenCvSharp.Rect(
-                    x: Math.Max(0, - (int)shift.X),
-                    y: Math.Max(0, - (int)shift.Y),
-                    width: roi.Width,
-                    height: roi.Height
-                );
-                rotated[srcRoi].CopyTo(placed[roi]);
+                // 以距離圖大小為畫布，嘗試把 rotated 放進來
+                double score; Point2f shift;
+                (score, shift) = EvaluateChamferScore(dist, rotated);
 
-                double d = ChamferSymmetric(userEdges, placed);
-                // sigma 用圖尺寸 2% 的像素數，較穩定
-                double sigma = Math.Max(uSize.Width, uSize.Height) * 0.02;
-                double sim = DistanceToSimilarity(d, sigma);
-
-                if (sim > bestSim)
+                if (score < bestScore)
                 {
-                    bestSim = sim;
-                    bestAngle = ang;
-                    bestScale = sc;
+                    bestScore = score;
+                    bestAngle = a;
+                    bestScale = s;
                     bestShift = shift;
 
                     bestOverlay?.Dispose();
-                    bestOverlay = CvUnityBridge.MakeEdgeOverlay(userEdges, placed);
+                    bestOverlay = MakeOverlay(userEdges, rotated, shift);
                 }
+
+                rotated.Dispose();
             }
+            scaled.Dispose();
         }
 
-        return (bestSim, bestAngle, bestScale, bestShift, bestOverlay);
+        return (bestScore, bestAngle, bestScale, bestShift, bestOverlay);
+    }
+
+    // 將模板邊緣圖(0/255)蓋到距離圖上，取非零點的距離平均作為分數
+    private static (double meanDist, Point2f shift) EvaluateChamferScore(Mat dist32F, Mat templEdge)
+    {
+        // 讓模板置中後再嘗試在 dist 畫布中間對齊（此處簡化：直接貼左上 = 0,0）
+        // 也可做小範圍平移搜尋，但先給一版快速的。
+        int W = dist32F.Cols, H = dist32F.Rows;
+        int w = templEdge.Cols, h = templEdge.Rows;
+
+        // 若模板比距離圖還大，先丟掉（你也可改用 padding）
+        if (w > W || h > H) return (double.MaxValue, new Point2f(0, 0));
+
+        // 粗暴對齊到中央
+        int offX = (W - w) / 2;
+        int offY = (H - h) / 2;
+
+        // 取模板邊緣為 255 的像素位置去抽樣 dist
+        using var mask = templEdge.Threshold(254, 255, ThresholdTypes.Binary);
+        using var roi = new Mat(dist32F, new OpenCvSharp.Rect(offX, offY, w, h));
+        Scalar mean = Cv2.Mean(roi, mask);
+
+        return (mean.Val0, new Point2f(offX, offY));
+    }
+
+    // 疊圖（紅=使用者邊緣，青=模板邊緣，重疊處接近白）
+    private static Mat MakeOverlay(Mat userEdges, Mat templEdge, Point2f shift)
+    {
+        var vis = new Mat();
+        Cv2.CvtColor(userEdges, vis, ColorConversionCodes.GRAY2BGRA);
+
+        int offX = (int)Math.Round(shift.X);
+        int offY = (int)Math.Round(shift.Y);
+
+        var dstRoi = new OpenCvSharp.Rect(
+            Math.Max(0, offX), Math.Max(0, offY),
+            Math.Min(templEdge.Cols, vis.Cols - Math.Max(0, offX)),
+            Math.Min(templEdge.Rows, vis.Rows - Math.Max(0, offY)));
+
+        if (dstRoi.Width <= 0 || dstRoi.Height <= 0) return vis;
+
+        var srcRoi = new OpenCvSharp.Rect(
+            Math.Max(0, -offX), Math.Max(0, -offY),
+            dstRoi.Width, dstRoi.Height);
+
+        using var tCrop = new Mat(templEdge, srcRoi);
+        using var color = new Mat();
+        Cv2.CvtColor(tCrop, color, ColorConversionCodes.GRAY2BGRA);
+
+        // 青色：B=255, G=255, R=0（把非邊緣清成透明）
+        var mask = tCrop.Threshold(254, 255, ThresholdTypes.Binary);
+        color.SetTo(new Scalar(255, 255, 0, 255), mask);
+
+        using var sub = new Mat(vis, dstRoi);
+        Cv2.AddWeighted(sub, 1.0, color, 0.7, 0, sub);
+
+        return vis;
     }
 }

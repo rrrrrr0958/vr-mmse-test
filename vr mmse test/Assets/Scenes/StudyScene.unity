@@ -4375,7 +4375,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58b684d51f8374a7c9b1ad3b4a8fc7fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  judge: {fileID: 1396059057}
+  judge: {fileID: 0}
 --- !u!114 &1327140357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4563,39 +4563,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1396059058}
-  - component: {fileID: 1396059057}
+  - component: {fileID: 1396059059}
   m_Layer: 0
-  m_Name: Judge
+  m_Name: WhiteboardChamferJudge
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1396059057
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1396059056}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a2223b95c8924241a80a59aed2e6e02, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  whiteboardRT: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
-  backgroundColor:
-    r: 1
-    g: 1
-    b: 1
-    a: 1
-  alphaThreshold: 1
-  colorDiffThreshold: 0.175
-  analysisSize: 512
-  minBlobPixels: 20
-  debugOverlay: {fileID: 0}
-  lastOverlap: 0
-  lastIoU: 0
 --- !u!4 &1396059058
 Transform:
   m_ObjectHideFlags: 0
@@ -4611,6 +4586,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1396059059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1396059056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb808b2366645465ca93064bf2c27d0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  whiteboardRT: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
+  templatePNG: {fileID: 2800000, guid: b4e354c1f095349e38cbde79ee0421e4, type: 3}
+  analysisMaxSide: 512
+  useCanny: 1
+  alphaThreshold: 0.05
+  dilateKernel: 3
+  scaleMin: 0.9
+  scaleMax: 1.1
+  scaleStep: 0.05
+  angleMin: -10
+  angleMax: 10
+  angleStep: 2
+  preview: {fileID: 0}
+  scoreText: {fileID: 0}
 --- !u!1001 &1431736758
 PrefabInstance:
   m_ObjectHideFlags: 0

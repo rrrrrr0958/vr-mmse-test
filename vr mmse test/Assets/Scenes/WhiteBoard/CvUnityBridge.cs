@@ -1,67 +1,69 @@
 using UnityEngine;
 using UnityEngine.UI;
 using OpenCvSharp;
-using OpenCvSharp.Unity;
+using URect = UnityEngine.Rect;
 
 public static class CvUnityBridge
 {
-    // 把 RenderTexture 讀成 Mat（RGBA32 -> BGRA）
+    // RenderTexture -> Mat (BGRA)
     public static Mat FromRenderTexture(RenderTexture rt)
     {
         var prev = RenderTexture.active;
         RenderTexture.active = rt;
-        var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false, true);
-        tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+
+        var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false, false);
+        tex.ReadPixels(new URect(0, 0, rt.width, rt.height), 0, 0);
         tex.Apply();
+
         RenderTexture.active = prev;
 
-        var mat = Unity.TextureToMat(tex); // BGRA
+        byte[] png = tex.EncodeToPNG();
         Object.Destroy(tex);
-        return mat;
+
+        // Unchanged: 會保留 4 通道（BGRA）
+        return Cv2.ImDecode(png, ImreadModes.Unchanged);
     }
 
-    // Texture2D 到 Mat
+    // Texture2D -> Mat (BGRA)
     public static Mat FromTexture2D(Texture2D tex)
     {
-        return Unity.TextureToMat(tex); // BGRA
+        var readable = tex;
+        if (!tex.isReadable)
+        {
+            // 建一張可讀副本
+            var rt = new RenderTexture(tex.width, tex.height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(tex, rt);
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            readable = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false, false);
+            readable.ReadPixels(new URect(0, 0, tex.width, tex.height), 0, 0); // ← 這行改用 URect
+            readable.Apply();
+            RenderTexture.active = prev;
+            rt.Release();
+        }
+
+        byte[] png = readable.EncodeToPNG();
+        if (readable != tex) Object.Destroy(readable);
+
+        return Cv2.ImDecode(png, ImreadModes.Unchanged);
     }
 
-    // Mat 到 Texture2D（顯示用）
-    public static Texture2D ToTexture(Mat mat)
-    {
-        return Unity.MatToTexture(mat);
-    }
-
-    // 把兩張邊緣圖（單通道 0/255）疊成彩色：A=紅、B=青，重疊=白
-    public static Mat MakeEdgeOverlay(Mat edgesA, Mat edgesB)
-    {
-        Mat r = new Mat(edgesA.Size(), MatType.CV_8UC3, Scalar.Black);
-        var chR = new Mat(); var chG = new Mat(); var chB = new Mat();
-        Cv2.Merge(new[] { chB, chG, chR }, r); // 先建 3 通道
-
-        // A 畫紅
-        var red = new Scalar(0, 0, 255);
-        r.SetTo(red, edgesA);
-
-        // B 畫青
-        var cyan = new Scalar(255, 255, 0);
-        r.SetTo(cyan, edgesB);
-
-        // 重疊處變白
-        var both = new Mat();
-        Cv2.BitwiseAnd(edgesA, edgesB, both);
-        r.SetTo(new Scalar(255, 255, 255), both);
-
-        chR.Dispose(); chG.Dispose(); chB.Dispose(); both.Dispose();
-        return r;
-    }
-
-    // 把 Mat 貼到 RawImage（方便預覽）
+    // Mat -> RawImage
     public static void SetRawImage(RawImage img, Mat mat)
     {
-        if (img == null) return;
-        var tex = ToTexture(mat);
+        if (img == null || mat == null || mat.Empty()) return;
+
+        Cv2.ImEncode(".png", mat, out var bytes);
+
+        var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+        ImageConversion.LoadImage(tex, bytes);
+
+        // 如需避免累積記憶體，可在合適時機 Destroy 舊的 Texture2D
+        if (img.texture != null && img.texture is Texture2D old && old != tex)
+        {
+            // Object.Destroy(old);
+        }
         img.texture = tex;
-        img.SetNativeSize();
+        // img.SetNativeSize(); // 需要時再開
     }
 }
