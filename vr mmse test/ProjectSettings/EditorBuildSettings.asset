@@ -12,16 +12,17 @@ EditorBuildSettings:
     path: Assets/Scenes/LocationRecognition/SampleScene_8.unity
     guid: 056cb950b7a462e4b9f10d54ec4d843f
   - enabled: 1
-    path: Assets/Scenes/f1.unity
+    path: Assets/Scenes/f2_8.unity
     guid: 7b2e024b74806f540922ae503806816a
   - enabled: 1
-    path: Assets/Scenes/b1.unity
+    path: Assets/Scenes/f1_8.unity
     guid: c486d6aad7970e449936a0dbad92100e
   - enabled: 1
-    path: Assets/Scenes/f2.unity
+    path: Assets/Scenes/f3_8.unity
     guid: c39645cb9a2d95545aa15eef922c867e
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 3bc4df8f976ff0540932ec01016672c6, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 0d631a29ec27a1a4c833d3d1bdc2fb9b, type: 2}
+    xr.sdk.mock-hmd.settings: {fileID: 11400000, guid: ca61350a2d824784d82c67ff67ac8cad, type: 2}
   m_UseUCBPForAssetBundles: 0
