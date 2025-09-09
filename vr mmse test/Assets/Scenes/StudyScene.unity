@@ -4375,7 +4375,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58b684d51f8374a7c9b1ad3b4a8fc7fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  judge: {fileID: 0}
 --- !u!114 &1327140357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4603,13 +4602,13 @@ MonoBehaviour:
   analysisMaxSide: 512
   useCanny: 1
   alphaThreshold: 0.05
-  dilateKernel: 3
-  scaleMin: 0.9
-  scaleMax: 1.1
-  scaleStep: 0.05
-  angleMin: -10
-  angleMax: 10
-  angleStep: 2
+  dilateKernel: 5
+  blurSigmaUser: 2.3
+  blurSigmaTemplate: 2
+  closeKernel: 7
+  jitterTolerancePx: 4
+  coverageWeight: 0.9
+  gamma: 0.85
   preview: {fileID: 0}
   scoreText: {fileID: 0}
 --- !u!1001 &1431736758
