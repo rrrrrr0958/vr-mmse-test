@@ -11790,6 +11790,7 @@ MonoBehaviour:
   - {fileID: 327106329}
   - {fileID: 704325976}
   - {fileID: 1029999450}
+  loadFromPreviousScene: 1
   correctAnswerSequence:
   - "\u5154\u5B50"
   - "\u718A\u8C93"
@@ -21421,8 +21422,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 123
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 02cdee6c03eebc94692d8cdd0aae7141, type: 2}
+  m_sharedMaterial: {fileID: 5779167594411848066, guid: 02cdee6c03eebc94692d8cdd0aae7141, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

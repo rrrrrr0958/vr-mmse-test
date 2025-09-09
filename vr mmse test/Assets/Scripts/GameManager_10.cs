@@ -31,7 +31,7 @@ public class GameManager : MonoBehaviour
 
     // 資料載入相關
     private const string SAVE_FILE_NAME = "gamedata.json";
-    private const string CUSTOM_DATA_FOLDER = @"C:\Users\USER\Desktop\vr-mmse-test\vr-mmse-test\vr mmse test\Assets\Data";
+    private const string CUSTOM_DATA_FOLDER = @"C:\Users\alanchang\Desktop\unity project_team\vr-mmse-test\vr mmse test\Assets\Data";
     private string saveFilePath;
 
     private float startTime;

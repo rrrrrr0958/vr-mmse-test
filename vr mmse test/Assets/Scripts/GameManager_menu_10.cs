@@ -10,7 +10,7 @@ public class GameManagerMenu : MonoBehaviour
     // 本地存儲相關變數
     private string saveFilePath;
     private const string SAVE_FILE_NAME = "gamedata.json";
-    private const string CUSTOM_DATA_FOLDER = @"C:\Users\USER\Desktop\vr-mmse-test\vr-mmse-test\vr mmse test\Assets\Data";
+    private const string CUSTOM_DATA_FOLDER = @"C:\Users\alanchang\Desktop\unity project_team\vr-mmse-test\vr mmse test\Assets\Data";
 
     void Awake()
     {
