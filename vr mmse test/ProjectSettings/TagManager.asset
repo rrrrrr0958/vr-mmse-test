@@ -4,6 +4,9 @@
 TagManager:
   serializedVersion: 3
   tags:
+  - Sofa
+  serializedVersion: 3
+  tags:
   - StallNameText
   layers:
   - Default
@@ -13,6 +16,8 @@ TagManager:
   - Water
   - UI
   - 
+  - SofaLayer
+  - FadeUI
   - 
   - 
   - StallLayer
