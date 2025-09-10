@@ -163,9 +163,9 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: long.term.care.VR
+    Android: com.UnityTechnologies.com.unity.template.urpblank
     Standalone: com.Unity-Technologies.com.unity.template.urp-blank
-    iPhone: long.term.care.VR
+    iPhone: com.UnityTechnologies.com.unity.template.urpblank
   buildNumber:
     Standalone: 0
     VisionOS: 0
