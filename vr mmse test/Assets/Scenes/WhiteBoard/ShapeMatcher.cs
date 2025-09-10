@@ -1,13 +1,16 @@
+using System;
+using System.Linq;
 using OpenCvSharp;
 
 public static class ShapeMatcher
 {
+    // ====== Resize ======
     public static (Mat small, double scale) ResizeToMaxSide(Mat src, int maxSide)
     {
         if (src.Empty()) return (src.Clone(), 1.0);
 
         int w = src.Cols, h = src.Rows;
-        int maxWH = w > h ? w : h;
+        int maxWH = Math.Max(w, h);
         if (maxWH <= maxSide) return (src.Clone(), 1.0);
 
         double scale = (double)maxSide / maxWH;
@@ -19,6 +22,7 @@ public static class ShapeMatcher
         return (dst, scale);
     }
 
+    // ====== Edge extraction ======
     public static Mat ToEdges(Mat bgra,
                               bool useCanny,
                               double alphaThreshold,
@@ -26,11 +30,18 @@ public static class ShapeMatcher
                               double blurSigma = 1.5,
                               int closeKernel = 0)
     {
-        using var bgr = new Mat();
-        Cv2.CvtColor(bgra, bgr, ColorConversionCodes.BGRA2BGR);
-
         using var gray = new Mat();
-        Cv2.CvtColor(bgr, gray, ColorConversionCodes.BGR2GRAY);
+        if (bgra.Channels() == 4)
+        {
+            using var bgr = new Mat();
+            Cv2.CvtColor(bgra, bgr, ColorConversionCodes.BGRA2BGR);
+            Cv2.CvtColor(bgr, gray, ColorConversionCodes.BGR2GRAY);
+        }
+        else if (bgra.Channels() == 3)
+        {
+            Cv2.CvtColor(bgra, gray, ColorConversionCodes.BGR2GRAY);
+        }
+        else bgra.CopyTo(gray);
 
         if (blurSigma > 0.1)
         {
@@ -49,16 +60,15 @@ public static class ShapeMatcher
             using var seClose = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(closeKernel, closeKernel));
             Cv2.MorphologyEx(edges, edges, MorphTypes.Close, seClose);
         }
-
         if (dilateKernel > 0)
         {
             using var seDil = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(dilateKernel, dilateKernel));
             Cv2.Dilate(edges, edges, seDil);
         }
-
         return edges;
     }
 
+    // ====== Coverage (0..1, 越大越好) ======
     public static double CoverageScore(Mat userEdges, Mat templEdges, int tolPx = 4)
     {
         using var se = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(tolPx * 2 + 1, tolPx * 2 + 1));
@@ -78,20 +88,20 @@ public static class ShapeMatcher
         return hitCount / userCount;
     }
 
+    // ====== Truncated Chamfer (像素距離, 越小越好) ======
     public static double TruncatedChamfer(Mat userEdges, Mat templEdges, int tauPx = 4)
     {
-        // 先做模板的距離變換（對模板邊緣取反 → 邊緣附近距離小）
         using var inv = new Mat();
         Cv2.BitwiseNot(templEdges, inv);
 
         using var dist = new Mat();
         Cv2.DistanceTransform(inv, dist, DistanceTypes.L2, DistanceTransformMasks.Mask3);
 
-        // 把距離截斷到 tau 以內，避免遠處懲罰過大
+        // 將距離「截斷」到 tauPx 內（用 TRUNC 等價於 min(dist, tauPx)）
         using var distClamped = new Mat();
-        Cv2.Min(dist, tauPx, distClamped);
+        Cv2.Threshold(dist, distClamped, tauPx, tauPx, ThresholdTypes.Trunc);
 
-        // 只在「玩家邊」的位置取樣距離
+        // 僅在玩家邊的位置取樣距離
         using var mask = new Mat();
         Cv2.Threshold(userEdges, mask, 127, 255, ThresholdTypes.Binary);
 
@@ -105,11 +115,10 @@ public static class ShapeMatcher
         double count = Cv2.CountNonZero(mask);
         if (count <= 1e-6) return tauPx;
 
-        return sum / count; // 單位：像素
+        return sum / count;
     }
 
-    // 估計使用者筆劃粗細（像素）
-    // 傳入的 edges：前處理後的二值邊緣影像（255=邊，0=背景）
+    // ====== 筆劃寬度估計（像素） ======
     public static double EstimateStrokeWidth(Mat edges)
     {
         using var inv = new Mat();
@@ -119,5 +128,72 @@ public static class ShapeMatcher
         return Cv2.Mean(dist).Val0 * 2.0;
     }
 
-}
+    // ====== Hu-moments 規範化 & 距離 ======
+    public static Mat NormalizeFilled(Mat src, int outSize = 300, int closeK = 3, int dilateK = 2)
+    {
+        // 灰階 + Otsu 二值（線→白）
+        using var gray = new Mat();
+        if (src.Channels() == 4)
+        {
+            using var bgr = new Mat();
+            Cv2.CvtColor(src, bgr, ColorConversionCodes.BGRA2BGR);
+            Cv2.CvtColor(bgr, gray, ColorConversionCodes.BGR2GRAY);
+        }
+        else if (src.Channels() == 3)
+        {
+            Cv2.CvtColor(src, gray, ColorConversionCodes.BGR2GRAY);
+        }
+        else src.CopyTo(gray);
 
+        using var bin = new Mat();
+        Cv2.Threshold(gray, bin, 0, 255, ThresholdTypes.BinaryInv | ThresholdTypes.Otsu);
+
+        if (closeK > 0)
+        {
+            using var seC = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(closeK, closeK));
+            Cv2.MorphologyEx(bin, bin, MorphTypes.Close, seC);
+        }
+        if (dilateK > 0)
+        {
+            using var seD = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(dilateK, dilateK));
+            Cv2.Dilate(bin, bin, seD);
+        }
+
+        // 外輪廓 → 填滿
+        Cv2.FindContours(bin, out Point[][] contours, out _, RetrievalModes.External,
+                         ContourApproximationModes.ApproxSimple);
+
+        // 用 Mat (不是 MatExpr) 建空白圖
+        var filled = new Mat(bin.Rows, bin.Cols, MatType.CV_8UC1, Scalar.Black);
+
+        if (contours.Length > 0)
+        {
+            for (int i = 0; i < contours.Length; i++)
+                Cv2.DrawContours(filled, contours, i, Scalar.White, thickness: -1);
+
+            var allPts = contours.SelectMany(c => c).ToArray();
+            var r = Cv2.BoundingRect(allPts);
+            int margin = Math.Max(2, (int)(Math.Max(r.Width, r.Height) * 0.04));
+            r.X = Math.Max(0, r.X - margin);
+            r.Y = Math.Max(0, r.Y - margin);
+            r.Width  = Math.Min(filled.Cols - r.X, r.Width  + 2 * margin);
+            r.Height = Math.Min(filled.Rows - r.Y, r.Height + 2 * margin);
+
+            using var crop = new Mat(filled, r);
+            var norm = new Mat();
+            Cv2.Resize(crop, norm, new Size(outSize, outSize), 0, 0, InterpolationFlags.Area);
+            return norm; // ← 注意：呼叫端不要 using 釋放這個
+        }
+
+        return new Mat(outSize, outSize, MatType.CV_8UC1, Scalar.Black);
+    }
+
+    public static double HuDistance(Mat aNorm, Mat bNorm)
+        => Cv2.MatchShapes(aNorm, bNorm, ShapeMatchModes.I1, 0);
+
+    public static int HuScore100(double huDistance, float gain = 8f)
+    {
+        double s01 = Math.Exp(-gain * Math.Max(0.0, huDistance)); // 0..1
+        return (int)Math.Round(100.0 * Math.Clamp(s01, 0.0, 1.0));
+    }
+}
