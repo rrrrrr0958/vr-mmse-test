@@ -1,16 +1,37 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 using System.Collections.Generic;
 using System.IO;
 
 public class GameManagerMenu : MonoBehaviour
 {
     public static GameManagerMenu instance;
+    
+    [Header("UI References")]
+    public GameObject confirmPanel;           // Panel2_1
+    public TextMeshProUGUI resultText;        // ResultText_1（TMP）
+
+    [Header("Confirm UI Buttons")]
+    public Button confirmButton;              // Panel2_1/確認
+    public Button retryButton;                // Panel2_1/重選
+
+    [Header("Animal Buttons (可留空)")]
+    public List<Button> animalButtons = new List<Button>(); // 用來重置顏色
+
     public List<string> clickedAnimalSequence = new List<string>();
+    
+    // 內部狀態
+    private readonly HashSet<string> selectedSet = new HashSet<string>(); // 判斷是否已選
+    private readonly Dictionary<Button, Color> originalColors = new Dictionary<Button, Color>();
     
     // 本地存儲相關變數
     private string saveFilePath;
     private const string SAVE_FILE_NAME = "gamedata.json";
     private const string CUSTOM_DATA_FOLDER = @"C:\Users\alanchang\Desktop\unity project_team\vr-mmse-test\vr mmse test\Assets\Data";
+
+    private float startTime;
+    private float endTime;
 
     void Awake()
     {
@@ -26,11 +47,41 @@ public class GameManagerMenu : MonoBehaviour
             
             // 每次遊戲都從新的空列表開始
             clickedAnimalSequence = new List<string>();
+            selectedSet.Clear();
             Debug.Log("開始新的遊戲會話，使用空的動物序列");
         }
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    void Start()
+    {
+        startTime = Time.time;
+
+        // 初始化UI狀態
+        if (confirmPanel) confirmPanel.SetActive(false);
+        if (resultText) resultText.gameObject.SetActive(false);
+
+        // 記錄動物按鈕的原始顏色
+        foreach (var btn in animalButtons)
+        {
+            if (!btn) continue;
+            if (btn.image && !originalColors.ContainsKey(btn))
+                originalColors[btn] = btn.image.color;
+        }
+
+        // 設置確認和重選按鈕的事件
+        if (confirmButton)
+        {
+            confirmButton.onClick.RemoveAllListeners();
+            confirmButton.onClick.AddListener(OnConfirm);
+        }
+        if (retryButton)
+        {
+            retryButton.onClick.RemoveAllListeners();
+            retryButton.onClick.AddListener(OnRetry);
         }
     }
 
@@ -57,13 +108,109 @@ public class GameManagerMenu : MonoBehaviour
         }
     }
 
-    public void OnAnimalButtonClick(string animalName)
+    // 動物按鈕點擊事件 - 更新版本
+    public void OnAnimalButtonClick(Button btn, string animalName)
     {
+        if (string.IsNullOrEmpty(animalName)) animalName = btn != null ? btn.name : "";
+
         Debug.Log("你點擊了：" + animalName);
-        clickedAnimalSequence.Add(animalName);
-        
+
+        if (selectedSet.Contains(animalName))
+        {
+            // 已選 → 取消
+            selectedSet.Remove(animalName);
+            clickedAnimalSequence.Remove(animalName);
+            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc)) 
+                btn.image.color = oc;
+            
+            Debug.Log($"取消選擇：{animalName}，剩餘選擇：{string.Join("、", clickedAnimalSequence)}");
+        }
+        else
+        {
+            if (selectedSet.Count >= 3) return;       // 已達上限，不再加入
+            selectedSet.Add(animalName);
+            clickedAnimalSequence.Add(animalName);
+
+            if (btn && btn.image)
+            {
+                var oc = originalColors.ContainsKey(btn) ? originalColors[btn] : Color.white;
+                oc.a = 0.5f;  // 設置透明度表示已選
+                btn.image.color = oc;
+            }
+            
+            Debug.Log($"選擇：{animalName}，目前選擇：{string.Join("、", clickedAnimalSequence)}");
+        }
+
+        // 只有選滿「三個不同」才顯示確認面板
+        if (confirmPanel) 
+        {
+            bool shouldShowPanel = selectedSet.Count == 3;
+            confirmPanel.SetActive(shouldShowPanel);
+            
+            if (shouldShowPanel)
+            {
+                Debug.Log("已選滿3個動物，顯示確認面板");
+            }
+        }
+
         // 每次點擊後自動保存到本地文件
         SaveToLocalFile();
+    }
+
+    // 舊版本的點擊方法保持兼容
+    public void OnAnimalButtonClick(string animalName)
+    {
+        OnAnimalButtonClick(null, animalName);
+    }
+
+    // 確認按鈕事件
+    public void OnConfirm()
+    {
+        endTime = Time.time;
+        float timeUsed = endTime - startTime;
+
+        if (resultText)
+        {
+            resultText.gameObject.SetActive(true);
+            resultText.text =
+                $"你選擇的動物順序：{string.Join("、", clickedAnimalSequence)}\n" +
+                $"選擇數量：{clickedAnimalSequence.Count}/3\n" +
+                $"用時：{timeUsed:F2}秒\n" +
+                $"選擇完成！🎉";
+        }
+
+        if (confirmPanel) confirmPanel.SetActive(false);
+
+        // 輸出詳細結果到 Console
+        Debug.Log($"🎯 選擇完成：");
+        Debug.Log($"   選擇順序：{string.Join("、", clickedAnimalSequence)}");
+        Debug.Log($"   用時：{timeUsed:F2}秒");
+
+        // 保存最終結果
+        SaveToLocalFile();
+        SaveWithTimestamp();
+    }
+
+    // 重選按鈕事件
+    public void OnRetry()
+    {
+        selectedSet.Clear();
+        clickedAnimalSequence.Clear();
+
+        // 恢復所有按鈕顏色
+        foreach (var btn in animalButtons)
+        {
+            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
+                btn.image.color = oc;
+        }
+        
+        if (confirmPanel) confirmPanel.SetActive(false);
+        if (resultText) resultText.gameObject.SetActive(false);
+        
+        // 重置計時
+        startTime = Time.time;
+        
+        Debug.Log("重新選擇，數據已清空");
     }
 
     public string ConvertGameDataToJson()
@@ -103,6 +250,14 @@ public class GameManagerMenu : MonoBehaviour
                 if (data != null && data.selections != null)
                 {
                     clickedAnimalSequence = new List<string>(data.selections);
+                    
+                    // 同步更新 selectedSet
+                    selectedSet.Clear();
+                    foreach (var animal in clickedAnimalSequence)
+                    {
+                        selectedSet.Add(animal);
+                    }
+                    
                     Debug.Log($"從本地文件載入數據成功！數量：{clickedAnimalSequence.Count} 項");
                     Debug.Log("載入的數據：" + string.Join(", ", clickedAnimalSequence));
                     Debug.Log("文件位置：" + saveFilePath);
@@ -111,6 +266,7 @@ public class GameManagerMenu : MonoBehaviour
                 {
                     Debug.Log("本地文件存在但數據為空，使用新的列表");
                     clickedAnimalSequence = new List<string>();
+                    selectedSet.Clear();
                 }
             }
             else
@@ -118,12 +274,14 @@ public class GameManagerMenu : MonoBehaviour
                 Debug.Log("本地文件不存在，使用新的列表");
                 Debug.Log("預期文件位置：" + saveFilePath);
                 clickedAnimalSequence = new List<string>();
+                selectedSet.Clear();
             }
         }
         catch (System.Exception e)
         {
             Debug.LogError("從本地文件載入失敗：" + e.Message);
             clickedAnimalSequence = new List<string>();
+            selectedSet.Clear();
         }
     }
 
@@ -131,6 +289,17 @@ public class GameManagerMenu : MonoBehaviour
     public void ClearAllData()
     {
         clickedAnimalSequence.Clear();
+        selectedSet.Clear();
+        
+        // 恢復所有按鈕顏色
+        foreach (var btn in animalButtons)
+        {
+            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
+                btn.image.color = oc;
+        }
+        
+        if (confirmPanel) confirmPanel.SetActive(false);
+        if (resultText) resultText.gameObject.SetActive(false);
         
         try
         {
@@ -179,8 +348,7 @@ public class GameManagerMenu : MonoBehaviour
     // 手動重置選擇（可用於重新開始）
     public void ResetSelection()
     {
-        clickedAnimalSequence.Clear();
-        Debug.Log("選擇已重置，可以重新選擇3個動物");
+        OnRetry(); // 使用統一的重置邏輯
     }
 
     // 檢查是否已選滿
