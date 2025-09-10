@@ -194,7 +194,7 @@ public class GameManager : MonoBehaviour
         Debug.Log($"   正確答案：{string.Join("、", correctAnswerSequence)}");
         Debug.Log($"   正確率：{accuracy * 100f:F1}%");
         Debug.Log($"   用時：{timeUsed:F2}秒");
-        Debug.Log($"   結果：{(allCorrect ? "完全正確" : "答錯了")}");
+        Debug.Log($"   結果：{(allCorrect ? "完全正確！" : "答錯了")}");
 
         // 若要輸出 JSON：
         ConvertGameDataToJson("Player001", accuracy, timeUsed);
