@@ -31,7 +31,7 @@ public class GameManager : MonoBehaviour
 
     // 資料載入相關
     private const string SAVE_FILE_NAME = "gamedata.json";
-    private const string CUSTOM_DATA_FOLDER = @"C:\Users\alanchang\Desktop\unity project_team\vr-mmse-test\vr mmse test\Assets\Data";
+    private const string CUSTOM_DATA_FOLDER = @"C:\Users\kook1\OneDrive\桌面\vr-mmse\vr-mmse-test\vr mmse test\Assets\Data";
     private string saveFilePath;
 
     private float startTime;
@@ -47,11 +47,17 @@ public class GameManager : MonoBehaviour
             
             // 設定檔案路徑
             saveFilePath = Path.Combine(CUSTOM_DATA_FOLDER, SAVE_FILE_NAME);
+            Debug.Log($"🔧 Awake執行，saveFilePath = {saveFilePath}");
             
             // 如果設定要從前場景載入，就載入資料
             if (loadFromPreviousScene)
             {
+                Debug.Log("📥 準備載入前場景資料...");
                 LoadCorrectAnswerFromFile();
+            }
+            else
+            {
+                Debug.Log("❌ loadFromPreviousScene = false，跳過載入");
             }
         }
     }
@@ -94,28 +100,34 @@ public class GameManager : MonoBehaviour
             if (File.Exists(saveFilePath))
             {
                 string json = File.ReadAllText(saveFilePath);
-                GameDataMenu data = JsonUtility.FromJson<GameDataMenu>(json);
+                Debug.Log($"📁 讀取到的JSON內容：{json}");
+                
+                // 解析JSON
+                var data = JsonUtility.FromJson<GameDataFromFile>(json);
                 
                 if (data != null && data.selections != null && data.selections.Count > 0)
                 {
                     // 使用前場景的選擇作為這場景的正確答案
                     correctAnswerSequence = new List<string>(data.selections);
-                    Debug.Log($"✅ 成功從前場景載入正確答案：{string.Join("、", correctAnswerSequence)}");
+                    Debug.Log($"✅ 成功從檔案載入正確答案：{string.Join("、", correctAnswerSequence)}");
                     Debug.Log($"正確答案數量：{correctAnswerSequence.Count}");
                 }
                 else
                 {
-                    Debug.LogWarning("前場景資料為空，使用預設正確答案");
+                    Debug.LogWarning("⚠️ 檔案中的selections為空，使用預設正確答案");
+                    Debug.Log($"使用預設答案：{string.Join("、", correctAnswerSequence)}");
                 }
             }
             else
             {
-                Debug.LogWarning($"找不到前場景資料檔案：{saveFilePath}，使用預設正確答案");
+                Debug.LogWarning($"⚠️ 找不到資料檔案：{saveFilePath}");
+                Debug.Log($"使用預設答案：{string.Join("、", correctAnswerSequence)}");
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"載入前場景資料失敗：{e.Message}，使用預設正確答案");
+            Debug.LogError($"❌ 載入資料失敗：{e.Message}");
+            Debug.Log($"使用預設答案：{string.Join("、", correctAnswerSequence)}");
         }
     }
 
@@ -229,4 +241,13 @@ public class GameManager : MonoBehaviour
         Debug.Log("📄 遊戲數據 JSON:\n" + json);
         return json;
     }
+}
+
+// 用於讀取檔案的資料結構
+[System.Serializable]
+public class GameDataFromFile
+{
+    public string playerId;
+    public string timestamp;
+    public List<string> selections;
 }

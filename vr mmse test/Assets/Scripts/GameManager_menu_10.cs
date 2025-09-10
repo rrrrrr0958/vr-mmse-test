@@ -26,7 +26,7 @@ public class GameManagerMenu : MonoBehaviour
 
     private string saveFilePath;
     private const string SAVE_FILE_NAME = "gamedata.json";
-    private const string CUSTOM_DATA_FOLDER = @"C:\Users\alanchang\Desktop\unity project_team\vr-mmse-test\vr mmse test\Assets\Data";
+    private const string CUSTOM_DATA_FOLDER = @"C:\Users\kook1\OneDrive\桌面\vr-mmse\vr-mmse-test\vr mmse test\Assets\Data";
 
     private float startTime;
     private float endTime;
