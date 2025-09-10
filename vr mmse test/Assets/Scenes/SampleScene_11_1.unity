@@ -684,7 +684,7 @@ GameObject:
   - component: {fileID: 43885821}
   - component: {fileID: 43885820}
   m_Layer: 0
-  m_Name: Panel_1
+  m_Name: Panel_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2081,7 +2081,7 @@ GameObject:
   - component: {fileID: 155920236}
   - component: {fileID: 155920235}
   m_Layer: 0
-  m_Name: AnimalTestRunner_1
+  m_Name: AnimalTestRunner_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2912,7 +2912,7 @@ GameObject:
   - component: {fileID: 236350784}
   - component: {fileID: 236350783}
   m_Layer: 0
-  m_Name: Text (TMP)_confirm_1
+  m_Name: Text (TMP)_confirm_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3200,7 +3200,7 @@ GameObject:
   - component: {fileID: 246740294}
   - component: {fileID: 246740293}
   m_Layer: 0
-  m_Name: Panel2_1
+  m_Name: Panel2_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3397,7 +3397,7 @@ GameObject:
   - component: {fileID: 251208444}
   - component: {fileID: 251208443}
   m_Layer: 0
-  m_Name: ButtonTester_1
+  m_Name: ButtonTester_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4216,7 +4216,7 @@ GameObject:
   - component: {fileID: 327106329}
   - component: {fileID: 327106328}
   m_Layer: 0
-  m_Name: Button (4)_1
+  m_Name: Deer_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4423,7 +4423,7 @@ GameObject:
   - component: {fileID: 345045078}
   - component: {fileID: 345045077}
   m_Layer: 0
-  m_Name: Button2_1
+  m_Name: Button2_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6300,7 +6300,7 @@ GameObject:
   - component: {fileID: 541137644}
   - component: {fileID: 541137643}
   m_Layer: 0
-  m_Name: Button (1)_1
+  m_Name: Tiger_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7541,7 +7541,7 @@ GameObject:
   - component: {fileID: 662157606}
   - component: {fileID: 662157605}
   m_Layer: 0
-  m_Name: Text (TMP)_repick_1
+  m_Name: Text (TMP)_repick_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8026,7 +8026,7 @@ GameObject:
   - component: {fileID: 687051157}
   - component: {fileID: 687051156}
   m_Layer: 0
-  m_Name: AudioManager_1
+  m_Name: AudioManager_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8419,7 +8419,7 @@ GameObject:
   - component: {fileID: 704325976}
   - component: {fileID: 704325975}
   m_Layer: 0
-  m_Name: Button (5)_1
+  m_Name: Panda_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10104,7 +10104,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6598815579406187037, guid: 18ddb545287c546e19cc77dc9fbb2189, type: 3}
       propertyPath: m_Name
-      value: XR Device Simulator_1
+      value: XR Device Simulator_12
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -11149,7 +11149,7 @@ GameObject:
   m_Component:
   - component: {fileID: 964955258}
   m_Layer: 0
-  m_Name: Low-Poly Medieval Market_1
+  m_Name: Low-Poly Medieval Market_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11726,7 +11726,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1023430874}
   m_Layer: 0
-  m_Name: --UI_1
+  m_Name: --UI_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11758,44 +11758,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1025793243}
-  - component: {fileID: 1025793242}
   - component: {fileID: 1025793244}
   m_Layer: 0
-  m_Name: GameManager_1
+  m_Name: GameManager_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1025793242
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1025793241}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0065b8c927775d47ba03a7f66586476, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  panel1: {fileID: 43885818}
-  confirmPanel: {fileID: 246740291}
-  resultText: {fileID: 1860949563}
-  confirmButton: {fileID: 345045077}
-  retryButton: {fileID: 1912437675}
-  animalButtons:
-  - {fileID: 541137644}
-  - {fileID: 1137635865}
-  - {fileID: 1503430683}
-  - {fileID: 327106329}
-  - {fileID: 704325976}
-  - {fileID: 1029999450}
-  loadFromPreviousScene: 1
-  correctAnswerSequence:
-  - "\u5154\u5B50"
-  - "\u718A\u8C93"
-  - "\u9E7F"
 --- !u!4 &1025793243
 Transform:
   m_ObjectHideFlags: 0
@@ -11823,12 +11793,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87bdc76e7f3e3e04f80f72c115f18ae2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  clickedAnimalSequence: []
+  panel1: {fileID: 43885818}
   confirmPanel: {fileID: 246740291}
   resultText: {fileID: 1860949563}
   confirmButton: {fileID: 345045077}
   retryButton: {fileID: 1912437675}
   animalButtons: []
-  clickedAnimalSequence: []
 --- !u!1001 &1027442125
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11979,7 +11950,7 @@ GameObject:
   - component: {fileID: 1029999450}
   - component: {fileID: 1029999449}
   m_Layer: 0
-  m_Name: Button_1
+  m_Name: Pig_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12062,7 +12033,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1025793242}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
         m_MethodName: OnAnimalButtonClick
         m_Mode: 5
@@ -12398,7 +12369,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1065103610}
   m_Layer: 0
-  m_Name: GameObject_1
+  m_Name: GameObject_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12790,6 +12761,81 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3417620924868647016, guid: 10348d885afc4924e9daa5d07655d02e, type: 3}
   m_PrefabInstance: {fileID: 1089208222}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1092560941
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1092560944}
+  - component: {fileID: 1092560943}
+  - component: {fileID: 1092560942}
+  m_Layer: 0
+  m_Name: black_12
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1092560942
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092560941}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1092560943
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092560941}
+  m_CullTransparentMesh: 1
+--- !u!224 &1092560944
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092560941}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2022433333}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -315.00003, y: -101.7}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1101768486
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13084,7 +13130,7 @@ GameObject:
   - component: {fileID: 1137635865}
   - component: {fileID: 1137635864}
   m_Layer: 0
-  m_Name: Button (2)_1
+  m_Name: Rabbit_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13850,7 +13896,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
-      value: XR Origin (XR Rig)_1
+      value: XR Origin (XR Rig)_12
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -16225,7 +16271,7 @@ GameObject:
   - component: {fileID: 1436918980}
   - component: {fileID: 1436918979}
   m_Layer: 0
-  m_Name: PostProcessing_1
+  m_Name: PostProcessing_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16837,7 +16883,7 @@ GameObject:
   - component: {fileID: 1503430683}
   - component: {fileID: 1503430682}
   m_Layer: 0
-  m_Name: Button (3)_1
+  m_Name: Wolf_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -18196,7 +18242,7 @@ GameObject:
   - component: {fileID: 1633781336}
   - component: {fileID: 1633781335}
   m_Layer: 0
-  m_Name: XR Interaction Manager_1
+  m_Name: XR Interaction Manager_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -18309,7 +18355,7 @@ GameObject:
   - component: {fileID: 1638719555}
   - component: {fileID: 1638719554}
   m_Layer: 0
-  m_Name: UIDebugger_1
+  m_Name: UIDebugger_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -19325,6 +19371,65 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b69c35c4f3d673e4f85004d0581f9105, type: 3}
+--- !u!1 &1713385223
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1713385225}
+  - component: {fileID: 1713385224}
+  - component: {fileID: 1713385226}
+  m_Layer: 0
+  m_Name: SceneFlow_12
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1713385224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713385223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59ad3324610b5bf4c8f5ad294c6d1273, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fadeImage: {fileID: 1092560942}
+  fadeDuration: 5
+--- !u!4 &1713385225
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713385223}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 31.168217, y: 23.422535, z: 26.852274}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1713385226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713385223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f89cbe5c11f11c48b62fcc5ac8ba014, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1719122230
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19415,7 +19520,7 @@ GameObject:
   - component: {fileID: 1720085489}
   - component: {fileID: 1720085488}
   m_Layer: 0
-  m_Name: EventSystem_1
+  m_Name: EventSystem_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20258,7 +20363,7 @@ GameObject:
   - component: {fileID: 1767264632}
   - component: {fileID: 1767264631}
   m_Layer: 0
-  m_Name: AnimalSelectionManager_1
+  m_Name: AnimalSelectionManager_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20276,12 +20381,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5c10f3c21da4fc4ea16607b37e4a378, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rabbitButton: {fileID: 0}
-  tigerButton: {fileID: 0}
-  buffaloButton: {fileID: 0}
-  pandaButton: {fileID: 0}
-  deerButton: {fileID: 0}
-  wolfButton: {fileID: 0}
+  rabbitButton: {fileID: 1137635865}
+  tigerButton: {fileID: 541137644}
+  buffaloButton: {fileID: 1029999450}
+  pandaButton: {fileID: 704325976}
+  deerButton: {fileID: 327106329}
+  wolfButton: {fileID: 1503430683}
 --- !u!4 &1767264632
 Transform:
   m_ObjectHideFlags: 0
@@ -21394,7 +21499,7 @@ GameObject:
   - component: {fileID: 1860949564}
   - component: {fileID: 1860949563}
   m_Layer: 0
-  m_Name: ResultText_1
+  m_Name: ResultText_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -22140,7 +22245,7 @@ GameObject:
   - component: {fileID: 1912437676}
   - component: {fileID: 1912437675}
   m_Layer: 0
-  m_Name: Button2(1)_1
+  m_Name: Button2(1)_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -22901,7 +23006,7 @@ GameObject:
   - component: {fileID: 2022433335}
   - component: {fileID: 2022433334}
   m_Layer: 0
-  m_Name: Canvas_1
+  m_Name: Canvas_12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -22921,6 +23026,7 @@ RectTransform:
   m_Children:
   - {fileID: 1065103610}
   - {fileID: 1860949562}
+  - {fileID: 1092560944}
   m_Father: {fileID: 1023430874}
   m_LocalEulerAnglesHint: {x: 3.18, y: -138.712, z: -0.722}
   m_AnchorMin: {x: 0, y: 0}
@@ -25601,3 +25707,4 @@ SceneRoots:
   - {fileID: 1633781336}
   - {fileID: 860742801}
   - {fileID: 1230618460}
+  - {fileID: 1713385225}

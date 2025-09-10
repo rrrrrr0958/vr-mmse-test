@@ -15780,6 +15780,7 @@ MonoBehaviour:
   statusText: {fileID: 1707024648}
   serverUrl: http://localhost:5000/transcribe
   targetSentence: "\u9B5A\u8089\u7279\u50F9\u5FEB\u4F86\u8CB7"
+  autoAdvanceDelay: 2
 --- !u!4 &1597536243
 Transform:
   m_ObjectHideFlags: 0
@@ -18480,6 +18481,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Camera Offset_2
       objectReference: {fileID: 0}
+    - target: {fileID: 1680501587, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1680501587, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0
+      objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
       value: XR Origin (XR Rig)_2
@@ -20590,7 +20599,7 @@ GameObject:
   - component: {fileID: 1969426124}
   - component: {fileID: 1969426123}
   m_Layer: 0
-  m_Name: EventSystem
+  m_Name: EventSystem_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

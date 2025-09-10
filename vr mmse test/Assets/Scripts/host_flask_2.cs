@@ -8,7 +8,10 @@ public class HostFlask2 : MonoBehaviour
 {
     public TextMeshProUGUI statusText;
     public string serverUrl = "http://localhost:5000/transcribe";
-    [HideInInspector] public string targetSentence;  // 改成由 BackgroundVoice2 設定
+    [HideInInspector] public string targetSentence;
+
+    [Header("自動換場設定")]
+    public float autoAdvanceDelay = 2f;  // 換場前延遲秒數
 
     public void SendFileToWhisper(string path)
     {
@@ -19,7 +22,7 @@ public class HostFlask2 : MonoBehaviour
     {
         if (!File.Exists(path))
         {
-            statusText.text = "錯誤：錄音檔不存在";
+            if (statusText) statusText.text = "錯誤：錄音檔不存在";
             yield break;
         }
 
@@ -30,12 +33,12 @@ public class HostFlask2 : MonoBehaviour
 
         using (UnityWebRequest www = UnityWebRequest.Post(serverUrl, form))
         {
-            statusText.text = "上傳中…";
+            if (statusText) statusText.text = "上傳中…";
             yield return www.SendWebRequest();
 
             if (www.result != UnityWebRequest.Result.Success)
             {
-                statusText.text = "辨識錯誤: " + www.error;
+                if (statusText) statusText.text = "辨識錯誤: " + www.error;
             }
             else
             {
@@ -44,16 +47,36 @@ public class HostFlask2 : MonoBehaviour
 
                 if (res == null)
                 {
-                    statusText.text = "回傳解析失敗: " + json;
+                    if (statusText) statusText.text = "回傳解析失敗: " + json;
                 }
                 else
                 {
-                    statusText.text = $"題目：{targetSentence}\n" +
-                                      $"辨識：{res.spoken_text}\n" +
-                                      $"正確率：{res.accuracy:0.00}%\n" +
-                                      $"通過：{(res.passed ? "是" : "否")}";
+                    if (statusText)
+                    {
+                        statusText.text = $"題目：{targetSentence}\n" +
+                                          $"辨識：{res.spoken_text}\n" +
+                                          $"正確率：{res.accuracy:0.00}%\n" +
+                                          $"通過：{(res.passed ? "是" : "否")}";
+                    }
                 }
             }
+
+            // ★★★ 無論成功或失敗，這裡都會進入換場 ★★★
+            StartCoroutine(AdvanceNextAfterDelay(autoAdvanceDelay));
+        }
+    }
+
+    private IEnumerator AdvanceNextAfterDelay(float delay)
+    {
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+
+        if (SceneFlowManager.instance != null)
+        {
+            SceneFlowManager.instance.LoadNextScene();
+        }
+        else
+        {
+            Debug.LogError("[HostFlask2] SceneFlowManager.instance 為 null，請確認第一個場景有放 SceneFlowManager 物件");
         }
     }
 }

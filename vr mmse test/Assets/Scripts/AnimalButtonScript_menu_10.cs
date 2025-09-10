@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+[RequireComponent(typeof(Button))]
 public class AnimalButtonScript_menu : MonoBehaviour
 {
     [Header("動物名稱設定")]
@@ -8,43 +9,41 @@ public class AnimalButtonScript_menu : MonoBehaviour
 
     private Button button;
 
-    void Start()
+    void Awake()
     {
         button = GetComponent<Button>();
+        if (string.IsNullOrEmpty(animalName))
+            animalName = gameObject.name; // 預設用物件名當動物名
+    }
+
+    void OnEnable()
+    {
         if (button != null)
-        {
             button.onClick.AddListener(OnButtonClick);
-            if (string.IsNullOrEmpty(animalName)) animalName = gameObject.name;
-            Debug.Log($"已為 {animalName} 按鈕設定點擊事件 (Menu版本)");
-        }
         else
-        {
-            Debug.LogError($"找不到 Button 組件在 {gameObject.name} 上");
-        }
+            Debug.LogError($"[AnimalButtonScript_menu] {name} 找不到 Button 元件");
     }
 
-    // 按鈕點擊時執行的方法
-    public void OnButtonClick()
+    void OnDisable()
     {
-        Debug.Log($"點擊了 {animalName} 按鈕！");
-        
-        // 只呼叫 GameManagerMenu
-        if (GameManagerMenu.instance != null)
-        {
-            // 只傳入動物名稱（符合 GameManagerMenu 的簽名）
-            GameManagerMenu.instance.OnAnimalButtonClick(animalName);
-            Debug.Log($"已將 {animalName} 記錄到 GameManagerMenu");
-        }
-        else
-        {
-            Debug.LogError("找不到 GameManagerMenu 實例");
-        }
+        if (button != null)
+            button.onClick.RemoveListener(OnButtonClick);
     }
 
+    // 按鈕點擊時
+    private void OnButtonClick()
+    {
+        if (GameManagerMenu.instance == null)
+        {
+            Debug.LogError("[AnimalButtonScript_menu] 找不到 GameManagerMenu.instance，確認場景中有掛 GameManagerMenu");
+            return;
+        }
+
+        // 依照你現在的 GameManagerMenu 實作，傳入 Button + 名稱
+        GameManagerMenu.instance.OnAnimalButtonClick(button, animalName);
+        Debug.Log($"[AnimalButtonScript_menu] 已將 {animalName} 傳給 GameManagerMenu（含 Button）");
+    }
+
+    // 供外部動態改名
     public void SetAnimalName(string name) => animalName = name;
-
-    void OnDestroy()
-    {
-        if (button != null) button.onClick.RemoveListener(OnButtonClick);
-    }
 }

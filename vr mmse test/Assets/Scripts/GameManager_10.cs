@@ -198,6 +198,8 @@ public class GameManager : MonoBehaviour
 
         // 若要輸出 JSON：
         ConvertGameDataToJson("Player001", accuracy, timeUsed);
+        //轉場
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     public void OnRetry()
