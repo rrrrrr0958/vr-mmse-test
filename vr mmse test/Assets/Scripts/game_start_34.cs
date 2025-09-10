@@ -10,6 +10,15 @@ using UnityEngine.Networking;
 using System.Text.RegularExpressions;
 using System.Text;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR;
+using UnityEngine.InputSystem.Utilities;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.InputSystem.Controls;
+#endif
+
+
 public class GameManager : MonoBehaviour
 {
     // =========================================================================
@@ -53,6 +62,26 @@ public class GameManager : MonoBehaviour
     public string serverUrl = "http://localhost:5000/recognize_speech";
     public float recordingDuration = 5.0f;
 
+    // ===== 新增：VR 控制器 & Ray 設定 =====
+    [Header("VR 控制器設定（方案A）")]
+    public Transform rightController;           // 指到右手控制器 Transform
+    public float vrRayLength = 50f;             // 射線長度
+    public bool useOVRInput = true;             // 有 Oculus Integration 時使用
+    public bool useNewInputSystem = false;      //（可選）新輸入系統
+
+    [Header("點擊圖層")]
+    public LayerMask stallLayerMask;            // 指到 StallLayer
+
+    #if ENABLE_INPUT_SYSTEM
+    [Header("XR Input Actions")]
+    public InputActionProperty rightSelectAction;   // 指到 Right Controller 的 Select Action
+    #endif
+    
+    [Header("Ray Origin（可選，沒設就用 Right Controller）")]
+    public Transform rayOriginOverride;
+
+
+
     // =========================================================================
     // 私有變數 (腳本內部使用)
     // =========================================================================
@@ -71,6 +100,10 @@ public class GameManager : MonoBehaviour
     private FirebaseApp app;
     private AudioClip recordingClip;
     private List<string> currentQuestionAnswers = new List<string>();
+
+    #if ENABLE_INPUT_SYSTEM
+    private bool lastTriggerPressed = false;
+    #endif
 
 
     // =========================================================================
@@ -116,7 +149,8 @@ public class GameManager : MonoBehaviour
 
         if (highlightCircleImage != null) highlightCircleImage.gameObject.SetActive(false);
 
-        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => {
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        {
             var dependencyStatus = task.Result;
             if (dependencyStatus == DependencyStatus.Available)
             {
@@ -142,34 +176,76 @@ public class GameManager : MonoBehaviour
         initialQuestionCoroutine = StartCoroutine(MainClickSequence());
     }
 
-    void Update()
+void Update()
+{
+    // 不是在等點選，或已完成流程，或沒有當前目標 → 不處理
+    if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
+        return;
+
+    // 取得要發射射線的 Transform（優先用你拖進來的紅線發射點）
+    var originT = rayOriginOverride != null ? rayOriginOverride : rightController;
+
+    // -------------------
+    // 1) 滑鼠點擊（同時支援舊/新輸入）
+#if ENABLE_INPUT_SYSTEM
+if (UnityEngine.InputSystem.Mouse.current != null &&
+    UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
+{
+    Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+    Ray ray = Camera.main.ScreenPointToRay(pos);
+    TryRaycastHit(ray.origin, ray.direction);
+}
+#else
+if (Input.GetMouseButtonDown(0))
+{
+    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+    TryRaycastHit(ray.origin, ray.direction);
+}
+#endif
+
+
+    // -------------------
+    // 2) VR 控制器（Input System 直接讀 XR 裝置：Trigger / A）
+    // -------------------
+#if ENABLE_INPUT_SYSTEM
+    if (originT != null)
     {
-        if (isWaitingForClickInput && !hasClickedStall && !string.IsNullOrEmpty(currentTargetStallName) && Input.GetMouseButtonDown(0))
+        var xrRight = UnityEngine.InputSystem.XR.XRController.rightHand;
+        if (xrRight != null)
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
+            var trigger = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
+            var aButton = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
 
-            int stallLayerMask = 1 << LayerMask.NameToLayer("StallLayer");
+            bool pressed = false;
 
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, stallLayerMask))
+            // Trigger：0~1 軸，自己做「剛按下」緣由判斷
+            if (trigger != null)
             {
-                if (hit.collider.CompareTag("StallNameText"))
-                {
-                    TMPro.TextMeshPro clickedTextMeshPro = hit.collider.GetComponentInChildren<TMPro.TextMeshPro>();
-                    if (clickedTextMeshPro != null && clickedTextMeshPro.text == currentTargetStallName)
-                    {
-                        Debug.Log($"正確偵測到點擊目標攤位: {currentTargetStallName}。此題正確！");
-                        correctAnswersCount++;
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"點擊了錯誤的攤位: {clickedTextMeshPro?.text ?? "未知攤位"}。正確答案是 {currentTargetStallName}。此題錯誤！");
-                    }
-                    currentTargetStallName = "";
-                }
+                float v = trigger.ReadValue();
+                bool nowPressed = v > 0.5f;
+                if (nowPressed && !lastTriggerPressed) pressed = true; // 本幀剛按下
+                lastTriggerPressed = nowPressed;
+            }
+
+            // A 鍵：ButtonControl 可直接用 wasPressedThisFrame
+            if (aButton != null && aButton.wasPressedThisFrame)
+                pressed = true;
+
+            if (pressed)
+            {
+                TryRaycastHit(originT.position, originT.forward);
+#if UNITY_EDITOR
+                Debug.DrawRay(originT.position, originT.forward * vrRayLength, Color.cyan, 0.2f);
+#endif
+                // Debug.Log("[XR] trigger/A fired");
             }
         }
     }
+#endif
+}
+
+
+
 
     // =========================================================================
     // 遊戲流程控制方法
@@ -249,7 +325,7 @@ public class GameManager : MonoBehaviour
         currentTargetStallName = "";
         isWaitingForClickInput = false;
 
-        Debug.Log($"點擊題目正確數: {correctAnswersCount}/3"); // 改變了 Log 訊息
+        Debug.Log($"點擊題目正確數: {correctAnswersCount}/3");
 
         if (dbReference != null)
         {
@@ -267,7 +343,7 @@ public class GameManager : MonoBehaviour
             {
                 if (task.IsCompleted)
                 {
-                    Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3"); // 更改了 Log 訊息
+                    Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3");
                 }
                 else if (task.IsFaulted)
                 {
@@ -308,7 +384,7 @@ public class GameManager : MonoBehaviour
         // 第一個語音問題
         Debug.Log("Console 問題: 這個攤位在賣什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤","一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤" }));
 
         // 第二個語音問題
         Debug.Log("Console 問題: 魚的顏色是什麼？");
@@ -378,7 +454,6 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("Firebase Database 未初始化，無法寫入分數。");
         }
     }
-
 
     void ShowHighlightCircle()
     {
@@ -621,5 +696,52 @@ public class GameManager : MonoBehaviour
         }
 
         return bytes;
+    }
+
+    // =========================================================================
+    // 方案A：共用 Raycast 判定（桌機/VR 都呼叫）
+    // =========================================================================
+void TryRaycastHit(Vector3 origin, Vector3 direction)
+{
+    RaycastHit hit;
+    // 只打到你指定的 StallLayer
+    if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
+    {
+        if (hit.collider != null && hit.collider.CompareTag("StallNameText"))
+        {
+            var tmp = hit.collider.GetComponentInChildren<TMPro.TextMeshPro>();
+            if (tmp != null)
+            {
+                // 這行會顯示你點擊了哪個攤位
+                Debug.Log($"你點擊了：{tmp.text}");
+                
+                // 檢查點擊的攤位是否為當前正確答案
+                if (tmp.text == currentTargetStallName)
+                {
+                    // 答案正確的日誌
+                    Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
+                    correctAnswersCount++;
+                }
+                else
+                {
+                    // 答案錯誤的日誌
+                    Debug.LogWarning($"❌ 錯誤！你點擊了 {tmp.text}，但正確答案是 {currentTargetStallName}。");
+                }
+                currentTargetStallName = "";
+            }
+        }
+    }
+    // 可選：Debug 可視化
+    Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.cyan, 0.25f);
+}
+
+    // =========================================================================
+    // 傳回伺服器 JSON 的資料結構
+    // =========================================================================
+    [System.Serializable]
+    public class RecognitionResponse
+    {
+        public string transcription;
+        public float confidence;
     }
 }
