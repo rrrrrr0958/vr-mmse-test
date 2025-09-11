@@ -59,8 +59,6 @@ public class WhiteboardChamferJudge : MonoBehaviour
         double sw   = ShapeMatcher.EstimateStrokeWidth(uEdges);
         int effTol  = Mathf.Max(jitterTolerancePx, Mathf.RoundToInt((float)(sw * 0.6f)));
 
-        // --- 新評分流程 ---
-
         // 1. 主結構 Hu-moments（填滿後正規化）
         using var uNorm = ShapeMatcher.NormalizeFilled(uSmall);
         using var tNorm = ShapeMatcher.NormalizeFilled(tSmall);
@@ -68,26 +66,32 @@ public class WhiteboardChamferJudge : MonoBehaviour
         int huScore = ShapeMatcher.HuScore100(huDist);         // 0~100, 越高越像
         double huScore01 = huScore / 100.0;
 
-        // 2. 覆蓋率 (max(user, templBand))
+        // 2. 角數相似度（用邊緣圖）
+        int userCorners = ShapeMatcher.CountPolyCorners(uEdges, 0.02);
+        int templCorners = ShapeMatcher.CountPolyCorners(tEdges, 0.02);
+        double cornerScore = ShapeMatcher.CornerSimilarity(userCorners, templCorners);
+
+        // 3. 覆蓋率 (max(user, templBand))
         double coverage = ShapeMatcher.CoverageScore_Strict(uEdges, tEdges, effTol);
         double coverage01 = Mathf.Clamp01((float)coverage);
 
-        // 3. Chamfer
+        // 4. Chamfer
         double chamferPx  = ShapeMatcher.TruncatedChamfer(uEdges, tEdges, effTol); // 0..tau
         double chamferScore = 1.0 - Mathf.Clamp01((float)(chamferPx / (double)effTol));
 
-        // 4. 筆劃長度過濾
+        // 5. 筆劃長度過濾
         double userEdgePx = Cv2.CountNonZero(uEdges);
         if (userEdgePx < minStrokePx)
         {
             huScore01 = 0.0;
             coverage01 = 0.0;
             chamferScore = 0.0;
+            cornerScore = 0.0;
         }
 
-        // 5. 綜合分數（主結構為主，細節為輔）
+        // 6. 綜合分數（主結構40%，角數40%，細節20%）
         double detail = (coverage01 + chamferScore) / 2.0;
-        double finalScore01 = 0.8 * huScore01 + 0.2 * detail;
+        double finalScore01 = 0.4 * huScore01 + 0.4 * cornerScore + 0.2 * detail;
         int finalScore100 = Mathf.RoundToInt((float)(finalScore01 * 100.0));
 
         // 視覺化
@@ -105,17 +109,27 @@ public class WhiteboardChamferJudge : MonoBehaviour
             Cv2.Threshold(uEdges, userMask, 127, 255, ThresholdTypes.Binary);
             vis.SetTo(new Scalar(0, 0, 255, 255), userMask);
 
+            // 額外畫出角點（黃色圓點）
+            Cv2.FindContours(uEdges, out Point[][] userContours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+            foreach (var c in userContours)
+            {
+                double peri = Cv2.ArcLength(c, true);
+                var approx = Cv2.ApproxPolyDP(c, 0.02 * peri, true);
+                foreach (var pt in approx)
+                    Cv2.Circle(vis, pt, 6, new Scalar(0, 255, 255, 255), -1);
+            }
+
             CvUnityBridge.SetRawImage(preview, vis);
         }
 
         if (scoreText != null)
         {
             scoreText.text = $"Score {finalScore100}/100\n" +
-                             $"Hu {huScore01:0.00}, Coverage {coverage01:0.00}, Chamfer {chamferPx:0.00}px\n" +
+                             $"Hu {huScore01:0.00}, Corners {cornerScore:0.00} ({userCorners}/{templCorners}), Coverage {coverage01:0.00}, Chamfer {chamferPx:0.00}px\n" +
                              $"(userEdgePx={userEdgePx:0}, tol={effTol}px)";
         }
 
-        Debug.Log($"[Judge] Score={finalScore100}/100, Hu={huScore01:0.000}, coverage={coverage01:0.000}, chamfer={chamferPx:0.000}px, userEdgePx={userEdgePx:0}, tol={effTol}px");
+        Debug.Log($"[Judge] Score={finalScore100}/100, Hu={huScore01:0.000}, Corners={cornerScore:0.000} ({userCorners}/{templCorners}), coverage={coverage01:0.000}, chamfer={chamferPx:0.000}px, userEdgePx={userEdgePx:0}, tol={effTol}px");
 
         uSmall.Dispose();
         tSmall.Dispose();

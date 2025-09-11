@@ -193,4 +193,29 @@ public static class ShapeMatcher
         double s01 = Math.Exp(-gain * Math.Max(0.0, huDistance)); // 0..1
         return (int)Math.Round(100.0 * Math.Clamp(s01, 0.0, 1.0));
     }
+
+    // ====== 多邊形角數判斷（用邊緣圖） ======
+    public static int CountPolyCorners(Mat edge, double approxEpsilonRatio = 0.02)
+    {
+        Cv2.FindContours(edge, out Point[][] contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
+
+        int maxCorners = 0;
+        foreach (var c in contours)
+        {
+            double peri = Cv2.ArcLength(c, true);
+            var approx = Cv2.ApproxPolyDP(c, approxEpsilonRatio * peri, true);
+            if (approx.Length > maxCorners) maxCorners = approx.Length;
+        }
+        return maxCorners;
+    }
+
+    // 嚴格版角數相似度
+    public static double CornerSimilarity(int userCorners, int templCorners)
+    {
+        if (userCorners <= 0 || templCorners <= 0) return 0.0;
+        int diff = Math.Abs(userCorners - templCorners);
+        if (diff >= 2) return 0.0; // 差兩個以上就直接0分
+        if (diff == 1) return 0.3; // 差一個給低分
+        return 1.0; // 完全吻合才滿分
+    }
 }
