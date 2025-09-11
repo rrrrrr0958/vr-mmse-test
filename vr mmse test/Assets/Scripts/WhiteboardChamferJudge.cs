@@ -63,27 +63,41 @@ public class WhiteboardChamferJudge : MonoBehaviour
             return;
         }
         
-        // Convert template to binary image
-        bool[,] templateBinary = ConvertTextureToBinary(templateImage);
-        
-        // Extract edge points
-        templateEdgePoints = ShapeMatcher.ExtractEdgePoints(templateBinary);
-        
-        // Calculate Hu-moments for template
-        templateHuMoments = ShapeMatcher.CalculateHuMoments(templateEdgePoints);
-        
-        // Create dilated template mask for coverage calculation
-        templateDilatedMask = CreateDilatedMask(templateBinary, dilationRadius);
-        
-        // Convert edge points to Vector2 for backwards compatibility
-        templateContour.Clear();
-        foreach (var point in templateEdgePoints)
+        try
         {
-            templateContour.Add(new Vector2(point.x, point.y));
+            // Convert template to binary image
+            bool[,] templateBinary = ConvertTextureToBinary(templateImage);
+            
+            // Extract edge points
+            templateEdgePoints = ShapeMatcher.ExtractEdgePoints(templateBinary);
+            
+            if (templateEdgePoints.Count == 0)
+            {
+                Debug.LogError("Template image contains no edge points! Check if template has visible content.");
+                return;
+            }
+            
+            // Calculate Hu-moments for template
+            templateHuMoments = ShapeMatcher.CalculateHuMoments(templateEdgePoints);
+            
+            // Create dilated template mask for coverage calculation
+            templateDilatedMask = CreateDilatedMask(templateBinary, dilationRadius);
+            
+            // Convert edge points to Vector2 for backwards compatibility
+            templateContour.Clear();
+            foreach (var point in templateEdgePoints)
+            {
+                templateContour.Add(new Vector2(point.x, point.y));
+            }
+            
+            isTemplateProcessed = true;
+            Debug.Log($"Template processed successfully: {templateEdgePoints.Count} edge points, Hu-moments calculated");
         }
-        
-        isTemplateProcessed = true;
-        Debug.Log($"Template processed: {templateEdgePoints.Count} edge points, Hu-moments calculated");
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error processing template: {e.Message}");
+            isTemplateProcessed = false;
+        }
     }
 
     /// <summary>
@@ -93,7 +107,13 @@ public class WhiteboardChamferJudge : MonoBehaviour
     {
         if (!isTemplateProcessed)
         {
-            Debug.LogError("Template not processed!");
+            Debug.LogError("Template not processed! Call ProcessTemplate() first or assign templateImage.");
+            return 0f;
+        }
+        
+        if (templateEdgePoints == null || templateEdgePoints.Count == 0)
+        {
+            Debug.LogError("Template has no edge points! Check template image.");
             return 0f;
         }
         
@@ -127,6 +147,17 @@ public class WhiteboardChamferJudge : MonoBehaviour
         
         // Extract player edge points
         var playerEdgePoints = ShapeMatcher.ExtractEdgePoints(playerBinaryImage);
+        
+        if (playerEdgePoints.Count == 0)
+        {
+            Debug.LogWarning("Player drawing has no edge points!");
+            lastTotalScore = 0f;
+            lastStructureScore = 0f;
+            lastCoverageScore = 0f;
+            lastChamferScore = 0f;
+            UpdateDebugUI();
+            return 0f;
+        }
         
         // Calculate structure score using Hu-moments (80% weight)
         var playerHuMoments = ShapeMatcher.CalculateHuMoments(playerEdgePoints);
