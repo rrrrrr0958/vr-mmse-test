@@ -68,8 +68,8 @@ public static class ShapeMatcher
         return edges;
     }
 
-    // ====== Coverage (0..1, 越大越好) ======
-    public static double CoverageScore(Mat userEdges, Mat templEdges, int tolPx = 4)
+    // ====== Coverage (0..1, 越大越好) 嚴格分母 ======
+    public static double CoverageScore_Strict(Mat userEdges, Mat templEdges, int tolPx = 4)
     {
         using var se = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(tolPx * 2 + 1, tolPx * 2 + 1));
         using var templBand = new Mat();
@@ -82,10 +82,12 @@ public static class ShapeMatcher
         Cv2.BitwiseAnd(userMask, templBand, hit);
 
         double userCount = Cv2.CountNonZero(userMask);
-        if (userCount <= 1e-6) return 0.0;
+        double templBandCount = Cv2.CountNonZero(templBand);
+        double denom = Math.Max(userCount, templBandCount);
+        if (denom <= 1e-6) return 0.0;
 
         double hitCount = Cv2.CountNonZero(hit);
-        return hitCount / userCount;
+        return hitCount / denom;
     }
 
     // ====== Truncated Chamfer (像素距離, 越小越好) ======
@@ -97,11 +99,9 @@ public static class ShapeMatcher
         using var dist = new Mat();
         Cv2.DistanceTransform(inv, dist, DistanceTypes.L2, DistanceTransformMasks.Mask3);
 
-        // 將距離「截斷」到 tauPx 內（用 TRUNC 等價於 min(dist, tauPx)）
         using var distClamped = new Mat();
         Cv2.Threshold(dist, distClamped, tauPx, tauPx, ThresholdTypes.Trunc);
 
-        // 僅在玩家邊的位置取樣距離
         using var mask = new Mat();
         Cv2.Threshold(userEdges, mask, 127, 255, ThresholdTypes.Binary);
 
@@ -131,7 +131,6 @@ public static class ShapeMatcher
     // ====== Hu-moments 規範化 & 距離 ======
     public static Mat NormalizeFilled(Mat src, int outSize = 300, int closeK = 3, int dilateK = 2)
     {
-        // 灰階 + Otsu 二值（線→白）
         using var gray = new Mat();
         if (src.Channels() == 4)
         {
@@ -159,11 +158,9 @@ public static class ShapeMatcher
             Cv2.Dilate(bin, bin, seD);
         }
 
-        // 外輪廓 → 填滿
         Cv2.FindContours(bin, out Point[][] contours, out _, RetrievalModes.External,
                          ContourApproximationModes.ApproxSimple);
 
-        // 用 Mat (不是 MatExpr) 建空白圖
         var filled = new Mat(bin.Rows, bin.Cols, MatType.CV_8UC1, Scalar.Black);
 
         if (contours.Length > 0)
@@ -182,7 +179,7 @@ public static class ShapeMatcher
             using var crop = new Mat(filled, r);
             var norm = new Mat();
             Cv2.Resize(crop, norm, new Size(outSize, outSize), 0, 0, InterpolationFlags.Area);
-            return norm; // ← 注意：呼叫端不要 using 釋放這個
+            return norm;
         }
 
         return new Mat(outSize, outSize, MatType.CV_8UC1, Scalar.Black);
