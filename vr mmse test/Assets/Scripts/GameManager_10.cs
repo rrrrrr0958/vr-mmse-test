@@ -72,13 +72,8 @@ public class GameManager : MonoBehaviour
         // 顯示當前使用的正確答案
         Debug.Log($"當前正確答案序列：{string.Join("、", correctAnswerSequence)}");
 
-        // 只用來記錄原色（不在這裡綁 onClick；交給 AnimalButtonScript）
-        foreach (var btn in animalButtons)
-        {
-            if (!btn) continue;
-            if (btn.image && !originalColors.ContainsKey(btn))
-                originalColors[btn] = btn.image.color;
-        }
+        // ☆ 修正：在Start中明確快取按鈕的當前顏色作為原始顏色
+        CacheOriginalColors();
 
         if (confirmButton)
         {
@@ -89,6 +84,22 @@ public class GameManager : MonoBehaviour
         {
             retryButton.onClick.RemoveAllListeners();
             retryButton.onClick.AddListener(OnRetry);
+        }
+    }
+
+    // ☆ 新增：在Start時明確快取所有按鈕的原始顏色
+    private void CacheOriginalColors()
+    {
+        originalColors.Clear(); // 清除可能存在的舊快取
+        
+        foreach (var btn in animalButtons)
+        {
+            if (btn && btn.image)
+            {
+                // 直接快取當前在場景中的顏色作為原始顏色
+                originalColors[btn] = btn.image.color;
+                Debug.Log($"快取按鈕 {btn.name} 的原始顏色: {btn.image.color}");
+            }
         }
     }
 
@@ -143,24 +154,51 @@ public class GameManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(animalName)) animalName = btn != null ? btn.name : "";
 
-        if (selectedSet.Contains(animalName))
+        // ☆ 確保按鈕有快取原始顏色，如果沒有就即時快取
+        if (btn && btn.image && !originalColors.ContainsKey(btn))
         {
-            // 已選 → 取消
-            selectedSet.Remove(animalName);
-            clickedOrder.Remove(animalName);
-            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc)) btn.image.color = oc;
+            originalColors[btn] = btn.image.color;
+            Debug.Log($"即時快取按鈕 {btn.name} 的原始顏色: {btn.image.color}");
+        }
+
+        // ☆ 修正：檢查按鈕視覺狀態而非邏輯狀態來決定是否還原
+        bool isButtonVisuallySelected = false;
+        if (btn && btn.image && originalColors.TryGetValue(btn, out var originalColor))
+        {
+            // 比較當前顏色與原始顏色，如果透明度不同就認為是被選中狀態
+            isButtonVisuallySelected = Mathf.Abs(btn.image.color.a - originalColor.a) > 0.1f;
+        }
+
+        if (isButtonVisuallySelected)
+        {
+            // 按鈕目前是選中狀態 → 還原顏色並從邏輯中移除
+            if (selectedSet.Contains(animalName))
+            {
+                selectedSet.Remove(animalName);
+                clickedOrder.Remove(animalName);
+            }
+            
+            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc)) 
+            {
+                btn.image.color = oc;
+                Debug.Log($"還原按鈕：{btn.name} 到原始顏色 {oc}");
+            }
         }
         else
         {
+            // 按鈕目前是未選中狀態 → 選中它
             if (selectedSet.Count >= 3) return;       // 已達上限，不再加入
+            
             selectedSet.Add(animalName);
             clickedOrder.Add(animalName);
 
-            if (btn && btn.image)
+            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
             {
-                var oc = originalColors.ContainsKey(btn) ? originalColors[btn] : Color.white;
-                oc.a = 0.5f;
-                btn.image.color = oc;
+                // 以原始顏色為基礎，只修改透明度
+                var selectedColor = oc;
+                selectedColor.a = 0.5f;
+                btn.image.color = selectedColor;
+                Debug.Log($"選中按鈕：{btn.name} 從原始顏色 {oc} 變為選中顏色 {selectedColor}");
             }
         }
 
@@ -219,11 +257,16 @@ public class GameManager : MonoBehaviour
         selectedSet.Clear();
         clickedOrder.Clear();
 
-        foreach (var btn in animalButtons)
+        // ☆ 修正：確保還原到正確的原始顏色
+        foreach (var kv in originalColors)
         {
-            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
-                btn.image.color = oc;
+            if (kv.Key && kv.Key.image)
+            {
+                kv.Key.image.color = kv.Value;
+                Debug.Log($"重選：還原按鈕 {kv.Key.name} 到原始顏色: {kv.Value}");
+            }
         }
+        
         if (confirmPanel) confirmPanel.SetActive(false);
     }
 
