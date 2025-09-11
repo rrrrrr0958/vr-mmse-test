@@ -10106,6 +10106,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: XR Device Simulator_1
       objectReference: {fileID: 0}
+    - target: {fileID: 6598815579406187037, guid: 18ddb545287c546e19cc77dc9fbb2189, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19008,7 +19012,7 @@ GameObject:
   - component: {fileID: 1677067603}
   - component: {fileID: 1677067602}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Random_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
