@@ -4287,16 +4287,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   whiteboardRT: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
-  templatePNG: {fileID: 2800000, guid: b4e354c1f095349e38cbde79ee0421e4, type: 3}
+  templatePNG: {fileID: 2800000, guid: c2d7c82a0e649464dbf17c2190f48fea, type: 3}
   analysisMaxSide: 512
-  useCanny: 1
-  alphaThreshold: 0.05
-  dilateKernel: 5
-  blurSigmaUser: 2.3
-  blurSigmaTemplate: 2
-  closeKernel: 7
-  jitterTolerancePx: 4
-  minStrokePx: 100
   preview: {fileID: 0}
   scoreText: {fileID: 0}
 --- !u!1001 &1431736758
