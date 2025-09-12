@@ -18,19 +18,24 @@ public class QuestionManager : MonoBehaviour
     public AudioSource questionAudioSource; // 用於播放題目語音的 AudioSource
 
     private string initialMoneyQuestion = "現在你有100元";
-    private List<string> answerOptions = new List<string>
-  {
-    "花費25元買了魚之後剩多少?",
-    "花費7元買了麵包之後剩多少?",
-    "花費35元買了水果之後剩多少?",
-    "花費15元買了武器之後剩多少?",
-    "花費30元買了肉之後剩多少?"
-  };
-
     public AudioClip initialMoneyAudio;
-    public List<AudioClip> answerOptionAudios;
 
-    private List<int> currentQuestionSequenceIndices = new List<int>();
+    // 新增：用於儲存所有題目相關資訊的結構
+    [System.Serializable]
+    public class QuestionData
+    {
+        public string questionText;
+        public AudioClip audioClip;
+        public GameObject cameraTarget;
+        public GameObject numberObject;
+        public GameObject bgObject;
+    }
+
+    [Header("所有題目資料")]
+    public List<QuestionData> allQuestions;
+
+    // 儲存隨機選擇的三個題目序列
+    private List<QuestionData> currentQuestionSequence = new List<QuestionData>();
 
     // 追蹤目前金額
     private int currentMoney = 100;
@@ -44,55 +49,34 @@ public class QuestionManager : MonoBehaviour
 
     private AudioClip recordingClip;
 
-    // 將 RecognitionResponse 定義在類別層級，方便所有方法使用
-    [System.Serializable]
+    [System.Serializable]
     public class RecognitionResponse
     {
         public string transcription;
     }
 
-    // 新增：用於控制 money_number_5 和 moneybg_5 的物件變數
-    [Header("遊戲物件")]
+    // 新增：主攝影機和初始攝影機位置
+    [Header("攝影機設定")]
+    public Camera mainCamera;
+    public Transform initialCameraPosition;
     public GameObject moneyNumber5;
     public GameObject moneyBg5;
 
+    // 攝影機轉向參數
+    public float cameraMoveSpeed = 2.0f;
 
     void Start()
     {
-        if (questionText == null)
+        // 檢查所有必要的物件是否已設定
+        if (questionText == null || panelBackground == null || questionAudioSource == null ||
+      initialMoneyAudio == null || mainCamera == null || initialCameraPosition == null ||
+      moneyNumber5 == null || moneyBg5 == null || allQuestions.Count < 3)
         {
-            Debug.LogError("請將 TextMeshPro (3D) 組件拖曳到 Question Text 欄位！");
-            return;
-        }
-        if (panelBackground == null)
-        {
-            Debug.LogError("請將 Panel 背景的 GameObject 拖曳到 Panel Background 欄位！");
-            return;
-        }
-        if (questionAudioSource == null)
-        {
-            Debug.LogError("請將 AudioSource 組件拖曳到 Question Audio Source 欄位！");
-            return;
-        }
-        if (initialMoneyAudio == null)
-        {
-            Debug.LogError("請為 '現在你有100元' 提供音頻文件 (Initial Money Audio)！");
-            return;
-        }
-        if (answerOptionAudios == null || answerOptionAudios.Count != answerOptions.Count)
-        {
-            Debug.LogError("請確保 Answer Option Audios 列表中有 " + answerOptions.Count + " 個音頻文件，且與題目順序一致！");
-            return;
-        }
-        // 新增：檢查 money_number_5 和 moneybg_5 是否已設定
-        if (moneyNumber5 == null || moneyBg5 == null)
-        {
-            Debug.LogError("請將 'money_number_5' 和 'moneybg_5' 物件拖曳到對應欄位！");
+            Debug.LogError("請確保所有公開變數都已在 Unity Inspector 中設定！");
             return;
         }
 
-
-        // 新增：Firebase 初始化
+        // Firebase 初始化 (保持不變)
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => {
             Firebase.DependencyStatus dependencyStatus = task.Result;
             if (dependencyStatus == Firebase.DependencyStatus.Available)
@@ -106,12 +90,23 @@ public class QuestionManager : MonoBehaviour
             }
         });
 
-        // 一開始先隱藏物件
+        // 初始隱藏所有相關物件
         panelBackground.SetActive(false);
         moneyNumber5.SetActive(false);
         moneyBg5.SetActive(false);
+        HideAllQuestionObjects();
 
         StartCoroutine(StartGameSequence());
+    }
+
+    // 隱藏所有題目相關的數字和背景物件
+    void HideAllQuestionObjects()
+    {
+        foreach (var q in allQuestions)
+        {
+            q.numberObject.SetActive(false);
+            q.bgObject.SetActive(false);
+        }
     }
 
     IEnumerator StartGameSequence()
@@ -121,7 +116,7 @@ public class QuestionManager : MonoBehaviour
         correctAnswerCount = 0; // 重設答對題數
         panelBackground.SetActive(true);
 
-        // 1. 處理固定題目
+        // 1. 處理固定題目（100元）
         questionText.text = initialMoneyQuestion;
         Debug.Log("顯示題目: " + initialMoneyQuestion);
 
@@ -129,42 +124,53 @@ public class QuestionManager : MonoBehaviour
         {
             questionAudioSource.clip = initialMoneyAudio;
             questionAudioSource.Play();
-            // 新增：在播放音頻時，讓 money_number_5 和 moneybg_5 顯示
-            moneyNumber5.SetActive(true);
+
+            moneyNumber5.SetActive(true);
             moneyBg5.SetActive(true);
-            // 等待音頻播放完成
-            yield return new WaitForSeconds(initialMoneyAudio.length);
-            // 新增：音頻播放完畢後，立即隱藏物件
-            moneyNumber5.SetActive(false);
+
+            yield return new WaitForSeconds(initialMoneyAudio.length);
+
+            moneyNumber5.SetActive(false);
             moneyBg5.SetActive(false);
-            // 等待額外的延遲時間
-            yield return new WaitForSeconds(delayBetweenQuestions);
+            yield return new WaitForSeconds(delayBetweenQuestions);
         }
         else
         {
             yield return new WaitForSeconds(delayBetweenQuestions);
         }
 
-        // 後面的程式碼暫時不更動
-        for (int i = 0; i < currentQuestionSequenceIndices.Count; i++)
+        // 2. 依序處理每個隨機題目
+        for (int i = 0; i < currentQuestionSequence.Count; i++)
         {
-            int questionListIndex = currentQuestionSequenceIndices[i];
-            string currentQuestionText = answerOptions[questionListIndex];
-            AudioClip currentQuestionAudio = answerOptionAudios[questionListIndex];
+            QuestionData currentQuestionData = currentQuestionSequence[i];
+            string currentQuestionText = currentQuestionData.questionText;
 
             if (i > 0)
             {
                 currentQuestionText = "再" + currentQuestionText;
             }
 
-            questionText.text = currentQuestionText;
+            // 攝影機轉向目標攤位
+            if (currentQuestionData.cameraTarget != null)
+            {
+                yield return StartCoroutine(MoveCameraToTarget(currentQuestionData.cameraTarget.transform));
+            }
+
+            // 播放題目語音和顯示物件
+            questionText.text = currentQuestionText;
             Debug.Log("顯示題目: " + currentQuestionText);
 
-            if (currentQuestionAudio != null)
+            if (currentQuestionData.audioClip != null)
             {
-                questionAudioSource.clip = currentQuestionAudio;
+                questionAudioSource.clip = currentQuestionData.audioClip;
                 questionAudioSource.Play();
-                yield return new WaitForSeconds(Mathf.Max(currentQuestionAudio.length, delayBetweenQuestions));
+                currentQuestionData.numberObject.SetActive(true);
+                currentQuestionData.bgObject.SetActive(true);
+
+                yield return new WaitForSeconds(currentQuestionData.audioClip.length);
+                currentQuestionData.numberObject.SetActive(false);
+                currentQuestionData.bgObject.SetActive(false);
+                yield return new WaitForSeconds(delayBetweenQuestions);
             }
             else
             {
@@ -176,21 +182,43 @@ public class QuestionManager : MonoBehaviour
 
         Debug.Log("所有題目已顯示完畢！");
         questionText.text = "商品購買完畢！";
+        yield return StartCoroutine(MoveCameraToTarget(initialCameraPosition));
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
     }
 
+    // 新增：平滑移動攝影機的協程
+    IEnumerator MoveCameraToTarget(Transform target)
+    {
+        float startTime = Time.time;
+        Vector3 startPosition = mainCamera.transform.position;
+        Quaternion startRotation = mainCamera.transform.rotation;
+        float journeyLength = Vector3.Distance(startPosition, target.position);
+
+        while (mainCamera.transform.position != target.position || mainCamera.transform.rotation != target.rotation)
+        {
+            float distCovered = (Time.time - startTime) * cameraMoveSpeed;
+            float fractionOfJourney = journeyLength > 0 ? distCovered / journeyLength : 1f;
+
+            mainCamera.transform.position = Vector3.Lerp(startPosition, target.position, fractionOfJourney);
+            mainCamera.transform.rotation = Quaternion.Lerp(startRotation, target.rotation, fractionOfJourney);
+
+            if (fractionOfJourney >= 1.0f) break;
+
+            yield return null;
+        }
+    }
+
     void GenerateRandomQuestions()
     {
-        currentQuestionSequenceIndices = Enumerable.Range(0, answerOptions.Count)
-                        .OrderBy(x => System.Guid.NewGuid())
-                        .Take(3)
-                        .ToList();
+        // 隨機選取三個題目
+        currentQuestionSequence = allQuestions.OrderBy(x => System.Guid.NewGuid()).Take(3).ToList();
     }
 
     IEnumerator WaitForAnswer(int questionSequenceIndex)
     {
-        Debug.Log("請說出你的答案...");
+        // 後續程式碼保持不變...
+        Debug.Log("請說出你的答案...");
         questionText.text = "請說出你的答案...";
 
         if (Microphone.devices.Length > 0)
@@ -248,9 +276,7 @@ public class QuestionManager : MonoBehaviour
 
     void UpdateMoneyAndCheckAnswer(string userResponse, int questionSequenceIndex)
     {
-        int questionListIndex = currentQuestionSequenceIndices[questionSequenceIndex];
-        string question = answerOptions[questionListIndex];
-
+        string question = currentQuestionSequence[questionSequenceIndex].questionText;
         Match match = Regex.Match(question, @"花費(\d+)元");
         int spentMoney = 0;
         if (match.Success)
