@@ -1,100 +1,116 @@
-using UnityEngine;
-using TMPro; // ¤Ş¤JTextMeshPro©R¦WªÅ¶¡
-using System.Collections; // ¤Ş¤J¥Î©ó¨óµ{ªº©R¦WªÅ¶¡
-using System.Collections.Generic; // ¤Ş¤J¥Î©óListªº©R¦WªÅ¶¡
-using System.Linq; // ¤Ş¤J¥Î©óLINQ¡A¤è«KÀH¾÷¿ï¾Ü
-using UnityEngine.Networking; // ·s¼W³o¦æ
-using System.Text.RegularExpressions; // ¥Î©ó¥¿³Wªí¹F¦¡¡A´£¨ú¼Æ¦r
-using Firebase; // ·s¼W Firebase ©R¦WªÅ¶¡
-using Firebase.Database; // ·s¼W Firebase Realtime Database ©R¦WªÅ¶¡
-using System.Threading.Tasks; // ¥Î©ó«D¦P¨B¾Ş§@
+ï»¿using UnityEngine;
+using TMPro; // å¼•å…¥TextMeshProå‘½åç©ºé–“
+using System.Collections; // å¼•å…¥ç”¨æ–¼å”ç¨‹çš„å‘½åç©ºé–“
+using System.Collections.Generic; // å¼•å…¥ç”¨æ–¼Listçš„å‘½åç©ºé–“
+using System.Linq; // å¼•å…¥ç”¨æ–¼LINQï¼Œæ–¹ä¾¿éš¨æ©Ÿé¸æ“‡
+using UnityEngine.Networking; // æ–°å¢é€™è¡Œ
+using System.Text.RegularExpressions; // ç”¨æ–¼æ­£è¦è¡¨é”å¼ï¼Œæå–æ•¸å­—
+using Firebase; // æ–°å¢ Firebase å‘½åç©ºé–“
+using Firebase.Database; // æ–°å¢ Firebase Realtime Database å‘½åç©ºé–“
+using System.Threading.Tasks; // ç”¨æ–¼éåŒæ­¥æ“ä½œ
 
 public class QuestionManager : MonoBehaviour
 {
-    public TextMeshPro questionText; // ¥Î©óÅã¥Ü¤å¦rªº TextMeshPro (3D)
-    public GameObject panelBackground; // °İÃD­I´º­±ªOªº GameObject (3D Quad ©Î Plane)
-    public float delayBetweenQuestions = 3.0f; // ¨CÃD¤§¶¡ªº©µ¿ğ®É¶¡
+    public TextMeshPro questionText; // ç”¨æ–¼é¡¯ç¤ºæ–‡å­—çš„ TextMeshPro (3D)
+Â  Â  public GameObject panelBackground; // å•é¡ŒèƒŒæ™¯é¢æ¿çš„ GameObject (3D Quad æˆ– Plane)
+Â  Â  public float delayBetweenQuestions = 3.0f; // æ¯é¡Œä¹‹é–“çš„å»¶é²æ™‚é–“
 
-    public AudioSource questionAudioSource; // ¥Î©ó¼½©ñÃD¥Ø»y­µªº AudioSource
+Â  Â  public AudioSource questionAudioSource; // ç”¨æ–¼æ’­æ”¾é¡Œç›®èªéŸ³çš„ AudioSource
 
-    private string initialMoneyQuestion = "²{¦b§A¦³100¤¸";
+Â  Â  private string initialMoneyQuestion = "ç¾åœ¨ä½ æœ‰100å…ƒ";
     private List<string> answerOptions = new List<string>
-    {
-        "ªá¶O25¤¸¶R¤F³½¤§«á³Ñ¦h¤Ö?",
-        "ªá¶O7¤¸¶R¤FÄÑ¥]¤§«á³Ñ¦h¤Ö?",
-        "ªá¶O35¤¸¶R¤F¤ôªG¤§«á³Ñ¦h¤Ö?",
-        "ªá¶O15¤¸¶R¤FªZ¾¹¤§«á³Ñ¦h¤Ö?",
-        "ªá¶O30¤¸¶R¤F¦×¤§«á³Ñ¦h¤Ö?"
-    };
+  {
+    "èŠ±è²»25å…ƒè²·äº†é­šä¹‹å¾Œå‰©å¤šå°‘?",
+    "èŠ±è²»7å…ƒè²·äº†éºµåŒ…ä¹‹å¾Œå‰©å¤šå°‘?",
+    "èŠ±è²»35å…ƒè²·äº†æ°´æœä¹‹å¾Œå‰©å¤šå°‘?",
+    "èŠ±è²»15å…ƒè²·äº†æ­¦å™¨ä¹‹å¾Œå‰©å¤šå°‘?",
+    "èŠ±è²»30å…ƒè²·äº†è‚‰ä¹‹å¾Œå‰©å¤šå°‘?"
+  };
 
     public AudioClip initialMoneyAudio;
     public List<AudioClip> answerOptionAudios;
 
     private List<int> currentQuestionSequenceIndices = new List<int>();
 
-    // °lÂÜ¥Ø«eª÷ÃB
-    private int currentMoney = 100;
+Â  Â  // è¿½è¹¤ç›®å‰é‡‘é¡
+Â  Â  private int currentMoney = 100;
 
-    // ·s¼W¡G°lÂÜµª¹ïÃD¼ÆªºÅÜ¼Æ
-    private int correctAnswerCount = 0;
+Â  Â  // æ–°å¢ï¼šè¿½è¹¤ç­”å°é¡Œæ•¸çš„è®Šæ•¸
+Â  Â  private int correctAnswerCount = 0;
 
-    [Header("¦øªA¾¹³]©w")]
+    [Header("ä¼ºæœå™¨è¨­å®š")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
     public float recordingDuration = 3.0f;
 
     private AudioClip recordingClip;
 
-    // ±N RecognitionResponse ©w¸q¦bÃş§O¼h¯Å¡A¤è«K©Ò¦³¤èªk¨Ï¥Î
-    [System.Serializable]
+Â  Â  // å°‡ RecognitionResponse å®šç¾©åœ¨é¡åˆ¥å±¤ç´šï¼Œæ–¹ä¾¿æ‰€æœ‰æ–¹æ³•ä½¿ç”¨
+Â  Â  [System.Serializable]
     public class RecognitionResponse
     {
         public string transcription;
     }
+
+Â  Â  // æ–°å¢ï¼šç”¨æ–¼æ§åˆ¶ money_number_5 å’Œ moneybg_5 çš„ç‰©ä»¶è®Šæ•¸
+Â  Â  [Header("éŠæˆ²ç‰©ä»¶")]
+    public GameObject moneyNumber5;
+    public GameObject moneyBg5;
 
 
     void Start()
     {
         if (questionText == null)
         {
-            Debug.LogError("½Ğ±N TextMeshPro (3D) ²Õ¥ó©ì¦²¨ì Question Text Äæ¦ì¡I");
+            Debug.LogError("è«‹å°‡ TextMeshPro (3D) çµ„ä»¶æ‹–æ›³åˆ° Question Text æ¬„ä½ï¼");
             return;
         }
         if (panelBackground == null)
         {
-            Debug.LogError("½Ğ±N Panel ­I´ºªº GameObject ©ì¦²¨ì Panel Background Äæ¦ì¡I");
+            Debug.LogError("è«‹å°‡ Panel èƒŒæ™¯çš„ GameObject æ‹–æ›³åˆ° Panel Background æ¬„ä½ï¼");
             return;
         }
         if (questionAudioSource == null)
         {
-            Debug.LogError("½Ğ±N AudioSource ²Õ¥ó©ì¦²¨ì Question Audio Source Äæ¦ì¡I");
+            Debug.LogError("è«‹å°‡ AudioSource çµ„ä»¶æ‹–æ›³åˆ° Question Audio Source æ¬„ä½ï¼");
             return;
         }
         if (initialMoneyAudio == null)
         {
-            Debug.LogError("½Ğ¬° '²{¦b§A¦³100¤¸' ´£¨Ñ­µÀW¤å¥ó (Initial Money Audio)¡I");
+            Debug.LogError("è«‹ç‚º 'ç¾åœ¨ä½ æœ‰100å…ƒ' æä¾›éŸ³é »æ–‡ä»¶ (Initial Money Audio)ï¼");
             return;
         }
         if (answerOptionAudios == null || answerOptionAudios.Count != answerOptions.Count)
         {
-            Debug.LogError("½Ğ½T«O Answer Option Audios ¦Cªí¤¤¦³ " + answerOptions.Count + " ­Ó­µÀW¤å¥ó¡A¥B»PÃD¥Ø¶¶§Ç¤@­P¡I");
+            Debug.LogError("è«‹ç¢ºä¿ Answer Option Audios åˆ—è¡¨ä¸­æœ‰ " + answerOptions.Count + " å€‹éŸ³é »æ–‡ä»¶ï¼Œä¸”èˆ‡é¡Œç›®é †åºä¸€è‡´ï¼");
+            return;
+        }
+Â  Â  Â  Â  // æ–°å¢ï¼šæª¢æŸ¥ money_number_5 å’Œ moneybg_5 æ˜¯å¦å·²è¨­å®š
+Â  Â  Â  Â  if (moneyNumber5 == null || moneyBg5 == null)
+        {
+            Debug.LogError("è«‹å°‡ 'money_number_5' å’Œ 'moneybg_5' ç‰©ä»¶æ‹–æ›³åˆ°å°æ‡‰æ¬„ä½ï¼");
             return;
         }
 
-        // ·s¼W¡GFirebase ªì©l¤Æ
-        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => {
+
+Â  Â  Â  Â  // æ–°å¢ï¼šFirebase åˆå§‹åŒ–
+Â  Â  Â  Â  FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => {
             Firebase.DependencyStatus dependencyStatus = task.Result;
             if (dependencyStatus == Firebase.DependencyStatus.Available)
             {
-                Debug.Log("Firebase ¨Ì¿àÃö«YÀË¬d¦¨¥\¡C");
+                Debug.Log("Firebase ä¾è³´é—œä¿‚æª¢æŸ¥æˆåŠŸã€‚");
             }
             else
             {
                 Debug.LogError(string.Format(
-                  "µLªk¸Ñ¨M Firebase ¨Ì¿àÃö«Y: {0}", dependencyStatus));
+                 "ç„¡æ³•è§£æ±º Firebase ä¾è³´é—œä¿‚: {0}", dependencyStatus));
             }
         });
 
-        panelBackground.SetActive(false);
+Â  Â  Â  Â  // ä¸€é–‹å§‹å…ˆéš±è—ç‰©ä»¶
+Â  Â  Â  Â  panelBackground.SetActive(false);
+        moneyNumber5.SetActive(false);
+        moneyBg5.SetActive(false);
+
         StartCoroutine(StartGameSequence());
     }
 
@@ -102,39 +118,47 @@ public class QuestionManager : MonoBehaviour
     {
         GenerateRandomQuestions();
         currentMoney = 100;
-        correctAnswerCount = 0; // ­«³]µª¹ïÃD¼Æ
-        panelBackground.SetActive(true);
+        correctAnswerCount = 0; // é‡è¨­ç­”å°é¡Œæ•¸
+Â  Â  Â  Â  panelBackground.SetActive(true);
 
-        // 1. ³B²z©T©wÃD¥Ø
-        questionText.text = initialMoneyQuestion;
-        Debug.Log("Åã¥ÜÃD¥Ø: " + initialMoneyQuestion);
+Â  Â  Â  Â  // 1. è™•ç†å›ºå®šé¡Œç›®
+Â  Â  Â  Â  questionText.text = initialMoneyQuestion;
+        Debug.Log("é¡¯ç¤ºé¡Œç›®: " + initialMoneyQuestion);
 
         if (initialMoneyAudio != null)
         {
             questionAudioSource.clip = initialMoneyAudio;
             questionAudioSource.Play();
-            yield return new WaitForSeconds(Mathf.Max(initialMoneyAudio.length, delayBetweenQuestions));
+Â  Â  Â  Â  Â  Â  // æ–°å¢ï¼šåœ¨æ’­æ”¾éŸ³é »æ™‚ï¼Œè®“ money_number_5 å’Œ moneybg_5 é¡¯ç¤º
+Â  Â  Â  Â  Â  Â  moneyNumber5.SetActive(true);
+            moneyBg5.SetActive(true);
+Â  Â  Â  Â  Â  Â  // ç­‰å¾…éŸ³é »æ’­æ”¾å®Œæˆ
+Â  Â  Â  Â  Â  Â  yield return new WaitForSeconds(initialMoneyAudio.length);
+Â  Â  Â  Â  Â  Â  // æ–°å¢ï¼šéŸ³é »æ’­æ”¾å®Œç•¢å¾Œï¼Œç«‹å³éš±è—ç‰©ä»¶
+Â  Â  Â  Â  Â  Â  moneyNumber5.SetActive(false);
+            moneyBg5.SetActive(false);
+Â  Â  Â  Â  Â  Â  // ç­‰å¾…é¡å¤–çš„å»¶é²æ™‚é–“
+Â  Â  Â  Â  Â  Â  yield return new WaitForSeconds(delayBetweenQuestions);
         }
         else
         {
             yield return new WaitForSeconds(delayBetweenQuestions);
         }
 
-        // 2. ¨Ì§Ç³B²z¨C­ÓÀH¾÷ÃD¥Ø
-        for (int i = 0; i < currentQuestionSequenceIndices.Count; i++)
+Â  Â  Â  Â  // å¾Œé¢çš„ç¨‹å¼ç¢¼æš«æ™‚ä¸æ›´å‹•
+Â  Â  Â  Â  for (int i = 0; i < currentQuestionSequenceIndices.Count; i++)
         {
             int questionListIndex = currentQuestionSequenceIndices[i];
             string currentQuestionText = answerOptions[questionListIndex];
             AudioClip currentQuestionAudio = answerOptionAudios[questionListIndex];
 
-            // ÅŞ¿è¡GÀË¬d¬O§_¬O²Ä¤GÃD©Î¤§«áªºÃD¥Ø (i > 0)
             if (i > 0)
             {
-                currentQuestionText = "¦A" + currentQuestionText;
+                currentQuestionText = "å†" + currentQuestionText;
             }
 
             questionText.text = currentQuestionText;
-            Debug.Log("Åã¥ÜÃD¥Ø: " + currentQuestionText);
+            Debug.Log("é¡¯ç¤ºé¡Œç›®: " + currentQuestionText);
 
             if (currentQuestionAudio != null)
             {
@@ -150,8 +174,8 @@ public class QuestionManager : MonoBehaviour
             yield return StartCoroutine(WaitForAnswer(i));
         }
 
-        Debug.Log("©Ò¦³ÃD¥Ø¤wÅã¥Ü§¹²¦¡I");
-        questionText.text = "°Ó«~ÁÊ¶R§¹²¦¡I";
+        Debug.Log("æ‰€æœ‰é¡Œç›®å·²é¡¯ç¤ºå®Œç•¢ï¼");
+        questionText.text = "å•†å“è³¼è²·å®Œç•¢ï¼";
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
     }
@@ -159,35 +183,31 @@ public class QuestionManager : MonoBehaviour
     void GenerateRandomQuestions()
     {
         currentQuestionSequenceIndices = Enumerable.Range(0, answerOptions.Count)
-                                         .OrderBy(x => System.Guid.NewGuid())
-                                         .Take(3)
-                                         .ToList();
+                        .OrderBy(x => System.Guid.NewGuid())
+                        .Take(3)
+                        .ToList();
     }
 
     IEnumerator WaitForAnswer(int questionSequenceIndex)
     {
-        Debug.Log("½Ğ»¡¥X§Aªºµª®×...");
-        questionText.text = "½Ğ»¡¥X§Aªºµª®×...";
+        Debug.Log("è«‹èªªå‡ºä½ çš„ç­”æ¡ˆ...");
+        questionText.text = "è«‹èªªå‡ºä½ çš„ç­”æ¡ˆ...";
 
         if (Microphone.devices.Length > 0)
         {
-            Debug.Log("¶}©l¿ı­µ...");
+            Debug.Log("é–‹å§‹éŒ„éŸ³...");
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
             yield return new WaitForSeconds(recordingDuration);
             Microphone.End(null);
-            Debug.Log("¿ı­µµ²§ô¡C");
+            Debug.Log("éŒ„éŸ³çµæŸã€‚");
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
             yield return StartCoroutine(SendAudioToServer(wavData, questionSequenceIndex));
         }
         else
         {
-            Debug.LogError("¨S¦³§ä¨ì³Á§J­·³]³Æ¡I");
-            questionText.text = "¨S¦³§ä¨ì³Á§J­·³]³Æ¡I";
-            // ÃöÁä­×§ï¡G¦b¨S¦³³Á§J­·®É¡A¤]À³¸Ó°õ¦æª÷ÃB¦©°£ÅŞ¿è
-            // ¦ı¦]¬° SendAudioToServer ¤£·|³Q©I¥s¡A©Ò¥H§Ú­Ì¥²¶·¦b³o¸Ì³B²z
-            // §Ú­Ì±Nª÷ÃB³B²zÅŞ¿è±q CheckAnswer ²¾¨ì WaitForAnswer ªºµ²§ôÂI
-            // ³o¼Ë¥i¥H½T«O¤£½×¦óºØ±¡ªp¡Aª÷ÃB³£·|³Q¦©°£
+            Debug.LogError("æ²’æœ‰æ‰¾åˆ°éº¥å…‹é¢¨è¨­å‚™ï¼");
+            questionText.text = "æ²’æœ‰æ‰¾åˆ°éº¥å…‹é¢¨è¨­å‚™ï¼";
             UpdateMoneyAndCheckAnswer(string.Empty, questionSequenceIndex);
             yield return new WaitForSeconds(2.0f);
         }
@@ -206,7 +226,7 @@ public class QuestionManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             string jsonResponse = request.downloadHandler.text;
-            Debug.Log("¦øªA¾¹¦^À³: " + jsonResponse);
+            Debug.Log("ä¼ºæœå™¨å›æ‡‰: " + jsonResponse);
 
             try
             {
@@ -215,25 +235,23 @@ public class QuestionManager : MonoBehaviour
             }
             catch (System.Exception ex)
             {
-                Debug.LogError("¸ÑªR JSON ¥¢±Ñ: " + ex.Message);
+                Debug.LogError("è§£æ JSON å¤±æ•—: " + ex.Message);
             }
         }
         else
         {
-            Debug.LogError("»y­µ¿ëÃÑ½Ğ¨D¥¢±Ñ: " + request.error);
+            Debug.LogError("èªéŸ³è¾¨è­˜è«‹æ±‚å¤±æ•—: " + request.error);
         }
 
-        // ®Ö¤ß­×§ï¡G¦b¨óµ{µ²§ô®É©I¥s³B²z¤èªk¡A«OÃÒµL½×¦¨¥\»P§_³£°õ¦æ
         UpdateMoneyAndCheckAnswer(userResponse, questionSequenceIndex);
     }
 
-    // ·s¼W¡G±Nª÷ÃB§ó·s©Mµª®×ÀË¬dªºÅŞ¿è¦X¨Ö¦¨¤@­Ó¤èªk
     void UpdateMoneyAndCheckAnswer(string userResponse, int questionSequenceIndex)
     {
         int questionListIndex = currentQuestionSequenceIndices[questionSequenceIndex];
         string question = answerOptions[questionListIndex];
 
-        Match match = Regex.Match(question, @"ªá¶O(\d+)¤¸");
+        Match match = Regex.Match(question, @"èŠ±è²»(\d+)å…ƒ");
         int spentMoney = 0;
         if (match.Success)
         {
@@ -243,32 +261,31 @@ public class QuestionManager : MonoBehaviour
         int remainingMoney = currentMoney - spentMoney;
         currentMoney = remainingMoney;
 
-        // ÀË¬d¦^µª¬O§_¬°ªÅ¡A¦pªG¬O¡A«h¥u°O¿ıª÷ÃB¤w¦©°£
         if (string.IsNullOrEmpty(userResponse))
         {
-            Debug.Log("¨S¦³Å¥¨ì©Î¿ëÃÑ¨ì¦^µª¡A¦ıª÷ÃB¤w¦©°£¡C");
+            Debug.Log("æ²’æœ‰è½åˆ°æˆ–è¾¨è­˜åˆ°å›ç­”ï¼Œä½†é‡‘é¡å·²æ‰£é™¤ã€‚");
             return;
         }
 
         string remainingMoneyStr = remainingMoney.ToString();
-        string normalizedResponse = userResponse.Replace("¡C", "").Replace("¤¸", "").Trim();
+        string normalizedResponse = userResponse.Replace("ã€‚", "").Replace("å…ƒ", "").Trim();
 
-        Debug.Log($"§A»¡¤F: \"{normalizedResponse}\"¡A¥¿½Tµª®×À³¸Ó¬O: \"{remainingMoneyStr}\"");
+        Debug.Log($"ä½ èªªäº†: \"{normalizedResponse}\"ï¼Œæ­£ç¢ºç­”æ¡ˆæ‡‰è©²æ˜¯: \"{remainingMoneyStr}\"");
 
         if (normalizedResponse == remainingMoneyStr)
         {
-            Debug.Log("µª®×¥¿½T¡I");
+            Debug.Log("ç­”æ¡ˆæ­£ç¢ºï¼");
             correctAnswerCount++;
         }
         else
         {
-            Debug.Log("µª®×¿ù»~¡I");
+            Debug.Log("ç­”æ¡ˆéŒ¯èª¤ï¼");
         }
     }
 
     private IEnumerator SaveCorrectAnswersToFirebaseCoroutine()
     {
-        Debug.Log("¶}©lÀx¦sµª¹ïÃD¼Æ¨ì Firebase...");
+        Debug.Log("é–‹å§‹å„²å­˜ç­”å°é¡Œæ•¸åˆ° Firebase...");
         DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
         string json = JsonUtility.ToJson(new CorrectAnswerData(correctAnswerCount));
 
@@ -281,11 +298,11 @@ public class QuestionManager : MonoBehaviour
 
         if (task.IsCompleted)
         {
-            Debug.Log("µª¹ïÃD¼Æ¤w¦¨¥\Àx¦s¨ì Firebase¡C");
+            Debug.Log("ç­”å°é¡Œæ•¸å·²æˆåŠŸå„²å­˜åˆ° Firebaseã€‚");
         }
         else if (task.IsFaulted)
         {
-            Debug.LogError("Àx¦s¸ê®Æ¨ì Firebase ®Éµo¥Í¿ù»~: " + task.Exception);
+            Debug.LogError("å„²å­˜è³‡æ–™åˆ° Firebase æ™‚ç™¼ç”ŸéŒ¯èª¤: " + task.Exception);
         }
     }
 
