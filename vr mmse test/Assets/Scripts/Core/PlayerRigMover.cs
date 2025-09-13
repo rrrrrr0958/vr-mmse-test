@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
+// ✅ XROrigin 在 CoreUtils 命名空間
+using Unity.XR.CoreUtils;
 
 public class PlayerRigMover : MonoBehaviour
 {
@@ -14,12 +16,18 @@ public class PlayerRigMover : MonoBehaviour
     [Tooltip("全螢幕黑幕（Alpha 0~1），可選。")]
     public CanvasGroup fadeOverlay;     // 可無
 
-    [Header("Fade")]
-    public float fadeDuration = 0.25f;
+    [Header("Fade")] public float fadeDuration = 0.25f;
 
     [Header("Control")]
     [Tooltip("外部可鎖移動（答題/轉場時設為 false）。")]
     public bool allowMove = true;
+
+    public enum VPAnchor { Feet, EyeLevel } // VP 代表腳底或頭部
+    [Header("Viewpoint Interpretation")]
+    [Tooltip("Feet = 將 VP 視為地面落點；EyeLevel = 將 VP 視為頭部高度。")]
+    public VPAnchor vpAnchor = VPAnchor.Feet;
+    [Tooltip("額外的垂直位移（正值=往上），用來微調落地高度")]
+    public float vpExtraYOffset = 0f;
 
     [System.Serializable] public class TeleportEvent : UnityEvent { }
     public TeleportEvent OnTeleported;  // 瞬移完成事件（給 SessionController）
@@ -27,14 +35,13 @@ public class PlayerRigMover : MonoBehaviour
     CharacterController _cc;
     Rigidbody _rb;
     bool _isMoving;
+    XROrigin _xr; // ✅ 來自 Unity.XR.CoreUtils
 
     void Awake()
     {
         if (!rigRoot) rigRoot = transform;
 
-        _cc = rigRoot.GetComponent<CharacterController>();
-        if (!_cc) _cc = rigRoot.GetComponentInParent<CharacterController>();
-
+        _cc = rigRoot.GetComponent<CharacterController>() ?? rigRoot.GetComponentInParent<CharacterController>();
         _rb = rigRoot.GetComponent<Rigidbody>();
 
         if (!cameraTransform)
@@ -47,18 +54,16 @@ public class PlayerRigMover : MonoBehaviour
             var fo = GameObject.Find("FadeOverlay");
             if (fo) fadeOverlay = fo.GetComponent<CanvasGroup>();
         }
+
+        // ✅ 從父層抓 XROrigin（XR Origin (Action-based) 預置就有）
+        _xr = GetComponentInParent<XROrigin>();
     }
 
-    /// <summary>瞬移到指定 Viewpoint（含淡入淡出與頭高補償）。</summary>
     public void GoTo(Transform targetVP)
     {
         if (!allowMove) return;
-        if (!targetVP)
-        {
-            Debug.LogWarning("[Mover] GoTo 失敗：targetVP 為空");
-            return;
-        }
-        if (_isMoving) return; // 防重入
+        if (!targetVP) { Debug.LogWarning("[Mover] GoTo 失敗：targetVP 為空"); return; }
+        if (_isMoving) return;
 
         PrintChain(targetVP);
         Debug.Log($"[Mover] GoTo '{targetVP.name}'");
@@ -71,10 +76,8 @@ public class PlayerRigMover : MonoBehaviour
     {
         _isMoving = true;
 
-        // 淡出
         if (fadeOverlay) yield return FadeTo(1f, fadeDuration);
 
-        // 暫停會干擾瞬移的元件
         bool ccWasEnabled = false;
         if (_cc) { ccWasEnabled = _cc.enabled; _cc.enabled = false; }
 
@@ -88,31 +91,51 @@ public class PlayerRigMover : MonoBehaviour
             _rb.constraints = RigidbodyConstraints.FreezeAll;
         }
 
-        // === 位置 & 朝向（VR 友善：頭高補償 + 僅改 Y 軸朝向） ===
         var beforePos = rigRoot.position;
 
-        // 取得目前相機相對地面高度（若沒有相機，使用 1.6m 預設）
         float headHeight = 1.6f;
         if (cameraTransform)
             headHeight = Mathf.Max(0.2f, cameraTransform.position.y - rigRoot.position.y);
 
-        // 目的地的「腳底座標」= 目標點 - 頭高
-        Vector3 destFeet = new Vector3(
-            targetVP.position.x,
-            targetVP.position.y - headHeight,
-            targetVP.position.z
-        );
-        rigRoot.position = destFeet;
+        Vector3 desiredFwd = targetVP.forward; desiredFwd.y = 0f;
+        if (desiredFwd.sqrMagnitude < 1e-6f) desiredFwd = rigRoot.forward;
+        desiredFwd.Normalize();
 
-        // 朝向：依目標 forward 的 Y 平面方向
-        Vector3 fwd = targetVP.forward;
-        fwd.y = 0f;
-        if (fwd.sqrMagnitude > 1e-6f)
-            rigRoot.rotation = Quaternion.LookRotation(fwd.normalized, Vector3.up);
+        // 計算「相機目標世界座標」
+        Vector3 desiredCamPos = targetVP.position;
+        switch (vpAnchor)
+        {
+            case VPAnchor.Feet:     desiredCamPos.y += headHeight + vpExtraYOffset; break;
+            case VPAnchor.EyeLevel: desiredCamPos.y += vpExtraYOffset;              break;
+        }
+
+        if (_xr != null && cameraTransform != null)
+        {
+            // ✅ 用 XROrigin API 正確定位相機（避免 Camera Offset 造成 x/z/y 漂移）
+            _xr.MoveCameraToWorldLocation(desiredCamPos);
+
+            Vector3 camFwd = cameraTransform.forward; camFwd.y = 0f;
+            if (camFwd.sqrMagnitude < 1e-6f) camFwd = Vector3.forward;
+            camFwd.Normalize();
+
+            float deltaYaw = Vector3.SignedAngle(camFwd, desiredFwd, Vector3.up);
+            _xr.RotateAroundCameraUsingOriginUp(deltaYaw);
+        }
+        else
+        {
+            // 後備：無 XROrigin（純 PC 測試）
+            Vector3 rigPos = targetVP.position;
+            switch (vpAnchor)
+            {
+                case VPAnchor.Feet:     rigPos.y += vpExtraYOffset; break;
+                case VPAnchor.EyeLevel: rigPos.y -= headHeight; rigPos.y += vpExtraYOffset; break;
+            }
+            rigRoot.position = rigPos;
+            rigRoot.rotation = Quaternion.LookRotation(desiredFwd, Vector3.up);
+        }
 
         Debug.Log($"[Mover] Teleported: {beforePos:F3} -> {rigRoot.position:F3}  Δ={Vector3.Distance(beforePos, rigRoot.position):F2}m");
 
-        // 還原元件
         if (_rb)
         {
             _rb.constraints = rbOldConstraints;
@@ -120,7 +143,6 @@ public class PlayerRigMover : MonoBehaviour
         }
         if (_cc) _cc.enabled = ccWasEnabled;
 
-        // 淡入
         if (fadeOverlay) yield return FadeTo(0f, fadeDuration);
 
         OnTeleported?.Invoke();
@@ -163,6 +185,8 @@ public class PlayerRigMover : MonoBehaviour
         }
         if (!cameraTransform)
             Debug.LogWarning("[Mover] cameraTransform 未指派：將使用預設頭高 1.6m 進行補償。");
+        if (_xr == null)
+            Debug.Log("[Mover] 場景中未找到 XROrigin，將使用後備路徑定位（僅 PC 測試用）。");
     }
 
     void Reset()
@@ -178,5 +202,6 @@ public class PlayerRigMover : MonoBehaviour
             var fo = GameObject.Find("FadeOverlay");
             if (fo) fadeOverlay = fo.GetComponent<CanvasGroup>();
         }
+        _xr = GetComponentInParent<XROrigin>();
     }
 }
