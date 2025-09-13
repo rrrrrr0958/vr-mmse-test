@@ -1,5 +1,6 @@
 #pip install faster-whisper
 #pip install ffmpeg-python
+#pip install flask pypinyin faster-whisper opencc-python-reimplemented
 from flask import Flask, request, jsonify
 from pypinyin import lazy_pinyin
 from difflib import SequenceMatcher
@@ -7,6 +8,34 @@ import os
 from datetime import datetime
 import json
 from faster_whisper import WhisperModel
+from opencc import OpenCC
+import re
+
+cc = OpenCC("s2twp")  # 統一轉繁體（台灣用詞）
+
+def _normalize(s: str) -> str:
+    if not s:
+        return ""
+    s = re.sub(r"\s+", "", s)                          # 去空白
+    s = re.sub(r"[^\w\u4e00-\u9fff]", "", s)           # 去標點
+    return s.lower()
+
+def calc_similarity(target_text: str, spoken_text: str) -> float:
+    """
+    將 target 與辨識結果都做繁體轉換與正規化後，用 SequenceMatcher 計算相似度
+    """
+    target_conv = cc.convert(target_text or "")
+    spoken_conv = cc.convert(spoken_text or "")
+
+    a = _normalize(target_conv)
+    b = _normalize(spoken_conv)
+
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+
+    return SequenceMatcher(None, a, b).ratio()
 
 app = Flask(__name__)
 
@@ -21,13 +50,6 @@ TARGET_PASS_THRESHOLD = 0.7  # 70%
 # 可選 "tiny", "base", "small", "medium", "large-v3"
 model_size = "small"
 model = WhisperModel(model_size, device="cpu", compute_type="int8")
-
-def calc_similarity(target, spoken):
-    """將文字轉成拼音後比較相似度"""
-    target_pinyin = lazy_pinyin(target)
-    spoken_pinyin = lazy_pinyin(spoken)
-    ratio = SequenceMatcher(None, target_pinyin, spoken_pinyin).ratio()
-    return ratio
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
@@ -70,4 +92,3 @@ def transcribe():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-#cd Assets/Scripts

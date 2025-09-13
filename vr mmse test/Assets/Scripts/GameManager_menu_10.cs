@@ -31,6 +31,9 @@ public class GameManagerMenu : MonoBehaviour
     private float startTime;
     private float endTime;
 
+    private bool finalizedSave = false;
+
+
     void Awake()
     {
         SetupCustomSavePath();
@@ -168,10 +171,11 @@ public class GameManagerMenu : MonoBehaviour
         if (confirmPanel) confirmPanel.SetActive(false);
         if (panel1) panel1.SetActive(false);
 
+        // ★ 轉場前一定要把「最終選擇」寫到 gamedata.json
+        SaveToLocalFile();
         SaveWithTimestamp();
-        ConvertGameDataToJson();
 
-        //轉場
+        finalizedSave = true; // ★ 設為已完成最終存檔
         SceneFlowManager.instance.LoadNextScene();
     }
 
@@ -199,13 +203,20 @@ public class GameManagerMenu : MonoBehaviour
     {
         try
         {
+            if (clickedAnimalSequence == null || clickedAnimalSequence.Count == 0)
+            {
+                Debug.Log("[Menu] 略過寫檔：目前 selections 為空，避免覆寫舊答案");
+                return;
+            }
             File.WriteAllText(saveFilePath, ConvertGameDataToJson());
+            Debug.Log($"[Menu] 寫入 {saveFilePath}：{ConvertGameDataToJson()}");
         }
         catch (System.Exception e)
         {
             Debug.LogError("保存到本地文件失敗：" + e.Message);
         }
     }
+
 
     public void LoadFromLocalFile()
     {
@@ -294,11 +305,19 @@ public class GameManagerMenu : MonoBehaviour
 
     void OnApplicationPause(bool pauseStatus)
     {
-        if (pauseStatus) SaveToLocalFile();
+        if (pauseStatus)
+        {
+            if (!finalizedSave && clickedAnimalSequence.Count > 0)
+                SaveToLocalFile();
+        }
     }
 
     void OnApplicationFocus(bool hasFocus)
     {
-        if (!hasFocus) SaveToLocalFile();
+        if (!hasFocus)
+        {
+            if (!finalizedSave && clickedAnimalSequence.Count > 0)
+                SaveToLocalFile();
+        }
     }
 }
