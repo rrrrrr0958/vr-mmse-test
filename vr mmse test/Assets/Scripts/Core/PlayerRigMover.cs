@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
+using System;
 using System.Collections;
-// ✅ XROrigin 在 CoreUtils 命名空間
 using Unity.XR.CoreUtils;
 
 public class PlayerRigMover : MonoBehaviour
@@ -13,10 +13,11 @@ public class PlayerRigMover : MonoBehaviour
     [Header("Refs")]
     [Tooltip("指向玩家的主攝影機（XR 或非 XR 都可）。")]
     public Transform cameraTransform;   // XR: XR Origin 底下的 Camera
-    [Tooltip("全螢幕黑幕（Alpha 0~1），可選。")]
+    [Tooltip("全螢幕黑幕（CanvasGroup）。alpha=1 黑，0 透明。")]
     public CanvasGroup fadeOverlay;     // 可無
 
-    [Header("Fade")] public float fadeDuration = 0.25f;
+    [Header("Fade")]
+    public float fadeDuration = 0.25f;
 
     [Header("Control")]
     [Tooltip("外部可鎖移動（答題/轉場時設為 false）。")]
@@ -29,13 +30,15 @@ public class PlayerRigMover : MonoBehaviour
     [Tooltip("額外的垂直位移（正值=往上），用來微調落地高度")]
     public float vpExtraYOffset = 0f;
 
-    [System.Serializable] public class TeleportEvent : UnityEvent { }
-    public TeleportEvent OnTeleported;  // 瞬移完成事件（給 SessionController）
+    // ====== 事件：Inspector 相容的 UnityEvent + 程式用 C# 事件（含目標 VP）======
+    [Serializable] public class TeleportEvent : UnityEvent { }
+    public TeleportEvent OnTeleported;            // 無參數（如需，請在 Inspector 乾淨綁定無破壞的 listener）
+    public event Action<Transform> OnTeleportedTarget; // 帶 Transform 的事件（推薦由程式訂閱）
 
     CharacterController _cc;
     Rigidbody _rb;
     bool _isMoving;
-    XROrigin _xr; // ✅ 來自 Unity.XR.CoreUtils
+    XROrigin _xr;
 
     void Awake()
     {
@@ -55,18 +58,23 @@ public class PlayerRigMover : MonoBehaviour
             if (fo) fadeOverlay = fo.GetComponent<CanvasGroup>();
         }
 
-        // ✅ 從父層抓 XROrigin（XR Origin (Action-based) 預置就有）
         _xr = GetComponentInParent<XROrigin>();
+        // 確保黑幕起始不擋互動
+        if (fadeOverlay)
+        {
+            fadeOverlay.alpha = 0f;
+            fadeOverlay.blocksRaycasts = false;
+            fadeOverlay.interactable   = false;
+        }
     }
+
+    public void SetAllowMove(bool canMove) => allowMove = canMove;
 
     public void GoTo(Transform targetVP)
     {
         if (!allowMove) return;
         if (!targetVP) { Debug.LogWarning("[Mover] GoTo 失敗：targetVP 為空"); return; }
         if (_isMoving) return;
-
-        PrintChain(targetVP);
-        Debug.Log($"[Mover] GoTo '{targetVP.name}'");
 
         StopAllCoroutines();
         StartCoroutine(MoveRoutine(targetVP));
@@ -93,6 +101,7 @@ public class PlayerRigMover : MonoBehaviour
 
         var beforePos = rigRoot.position;
 
+        // 以實際相機高度補償（讓瞬移後玩家頭高一致）
         float headHeight = 1.6f;
         if (cameraTransform)
             headHeight = Mathf.Max(0.2f, cameraTransform.position.y - rigRoot.position.y);
@@ -111,7 +120,6 @@ public class PlayerRigMover : MonoBehaviour
 
         if (_xr != null && cameraTransform != null)
         {
-            // ✅ 用 XROrigin API 正確定位相機（避免 Camera Offset 造成 x/z/y 漂移）
             _xr.MoveCameraToWorldLocation(desiredCamPos);
 
             Vector3 camFwd = cameraTransform.forward; camFwd.y = 0f;
@@ -136,6 +144,29 @@ public class PlayerRigMover : MonoBehaviour
 
         Debug.Log($"[Mover] Teleported: {beforePos:F3} -> {rigRoot.position:F3}  Δ={Vector3.Distance(beforePos, rigRoot.position):F2}m");
 
+        // 等待一幀讓 Transform/UI 穩定
+        yield return null;
+
+        // 事件（先 C#，後 UnityEvent）
+        try
+        {
+            OnTeleportedTarget?.Invoke(targetVP);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[Mover] OnTeleportedTarget threw: {ex}");
+        }
+
+        try
+        {
+            OnTeleported?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[Mover] OnTeleported (UnityEvent) threw: {ex}");
+        }
+
+        // 還原剛才暫停的元件
         if (_rb)
         {
             _rb.constraints = rbOldConstraints;
@@ -145,7 +176,6 @@ public class PlayerRigMover : MonoBehaviour
 
         if (fadeOverlay) yield return FadeTo(0f, fadeDuration);
 
-        OnTeleported?.Invoke();
         _isMoving = false;
     }
 
@@ -154,6 +184,13 @@ public class PlayerRigMover : MonoBehaviour
         if (!fadeOverlay) yield break;
         float s = fadeOverlay.alpha;
         float t = 0f;
+
+        bool targetBlock = alpha > 0.001f;
+        if (targetBlock) {
+            fadeOverlay.blocksRaycasts = true;
+            fadeOverlay.interactable   = true;
+        }
+
         while (t < dur)
         {
             t += Time.deltaTime;
@@ -161,32 +198,11 @@ public class PlayerRigMover : MonoBehaviour
             yield return null;
         }
         fadeOverlay.alpha = alpha;
-    }
 
-    // ======= 除錯輔助 =======
-    string GetPath(Transform t)
-    {
-        System.Collections.Generic.List<string> names = new();
-        var p = t;
-        while (p != null) { names.Add(p.name); p = p.parent; }
-        names.Reverse();
-        return string.Join("/", names);
-    }
-
-    void PrintChain(Transform t)
-    {
-        if (!t) return;
-        Debug.Log($"[VP DEBUG] Target='{t.name}' path={GetPath(t)} localPos={t.localPosition} worldPos={t.position}");
-        var p = t;
-        while (p != null)
-        {
-            Debug.Log($"[VP DEBUG]  - {p.name}  localScale={p.localScale}  localRotY={p.localEulerAngles.y:0.###}");
-            p = p.parent;
+        if (!targetBlock) {
+            fadeOverlay.blocksRaycasts = false;
+            fadeOverlay.interactable   = false;
         }
-        if (!cameraTransform)
-            Debug.LogWarning("[Mover] cameraTransform 未指派：將使用預設頭高 1.6m 進行補償。");
-        if (_xr == null)
-            Debug.Log("[Mover] 場景中未找到 XROrigin，將使用後備路徑定位（僅 PC 測試用）。");
     }
 
     void Reset()

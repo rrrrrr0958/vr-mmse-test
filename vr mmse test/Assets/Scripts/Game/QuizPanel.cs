@@ -4,8 +4,8 @@ using UnityEngine.UI;
 using System;
 
 /// <summary>
-/// 世界空間三選（或多選）題面板。VR 友善：僅由 XR UI Input Module 處理點擊。
-/// 與 SessionController 配合：提供 MaxOptions，並在 Show/Hide 時安全綁/解事件。
+/// 世界空間三選/多選題面板（HUD）。建議掛在 XR Origin 子物件，並用 PlaceHudInFront 放到相機前方。
+/// 支援 CanvasGroup（建議）或退回 SetActive。
 /// </summary>
 public class QuizPanel : MonoBehaviour
 {
@@ -20,20 +20,17 @@ public class QuizPanel : MonoBehaviour
     [Tooltip("可選：關閉面板用")]
     public Button closeButton;           // 可選
 
-    /// <summary>面板可提供的最大選項數（由按鈕數量決定）。</summary>
+    [Header("Display")]
+    [Tooltip("若存在則用 CanvasGroup 控制顯示/互動；否則使用 SetActive 切換。")]
+    public CanvasGroup canvasGroup;
+
     public int MaxOptions => optionButtons != null ? optionButtons.Length : 0;
 
     Action<int> _onPick;
 
     void Awake()
     {
-        // 基本檢查
-        if (optionButtons == null || optionButtons.Length == 0)
-            Debug.LogWarning("[QuizPanel] 請指派 optionButtons（至少 1 顆）。");
-
-        if (optionTexts != null && optionButtons != null && optionButtons.Length != optionTexts.Length)
-            Debug.LogWarning($"[QuizPanel] optionButtons 與 optionTexts 長度不一致：{optionButtons.Length} vs {optionTexts?.Length ?? 0}");
-
+        if (!canvasGroup) canvasGroup = GetComponent<CanvasGroup>();
         if (feedbackText) feedbackText.text = "";
 
         if (closeButton)
@@ -42,10 +39,10 @@ public class QuizPanel : MonoBehaviour
             closeButton.onClick.AddListener(Hide);
         }
 
-        gameObject.SetActive(false); // 預設不顯示
+        // 起始隱藏
+        SetVisible(false);
     }
 
-    /// <summary>顯示題目與選項。options 長度會被裁切到 MaxOptions。</summary>
     public void Show(string title, string[] options, Action<int> onPick)
     {
         _onPick = onPick;
@@ -55,18 +52,16 @@ public class QuizPanel : MonoBehaviour
 
         int cap = Mathf.Min(MaxOptions, options != null ? options.Length : 0);
 
-        // 綁定按鈕
+        // 綁定按鈕 / 文字
         for (int i = 0; i < MaxOptions; i++)
         {
             bool active = i < cap;
 
-            // Button 可見/可點
             if (optionButtons != null && i < optionButtons.Length && optionButtons[i] != null)
             {
                 optionButtons[i].gameObject.SetActive(active);
                 optionButtons[i].interactable = active;
 
-                // 清理舊事件再綁新事件
                 optionButtons[i].onClick.RemoveAllListeners();
                 if (active)
                 {
@@ -75,7 +70,6 @@ public class QuizPanel : MonoBehaviour
                 }
             }
 
-            // 對應文字
             if (optionTexts != null && i < optionTexts.Length && optionTexts[i] != null)
             {
                 optionTexts[i].gameObject.SetActive(active);
@@ -83,19 +77,16 @@ public class QuizPanel : MonoBehaviour
             }
         }
 
-        gameObject.SetActive(true);
+        SetVisible(true);
     }
 
-    /// <summary>顯示正確/錯誤回饋（可選）。</summary>
     public void ShowFeedback(bool correct)
     {
         if (feedbackText) feedbackText.text = correct ? "✅ 正確" : "❌ 錯誤";
     }
 
-    /// <summary>隱藏面板並解除所有按鈕事件。</summary>
     public void Hide()
     {
-        // 解除事件 & 禁用互動，避免在淡出/轉場期間誤觸
         if (optionButtons != null)
         {
             foreach (var btn in optionButtons)
@@ -106,12 +97,41 @@ public class QuizPanel : MonoBehaviour
             }
         }
 
-        if (closeButton) closeButton.onClick.RemoveListener(Hide);
+        if (closeButton)
+        {
+            closeButton.onClick.RemoveAllListeners();
+            closeButton.onClick.AddListener(Hide); // 保持下次可用
+        }
 
-        gameObject.SetActive(false);
         _onPick = null;
+        SetVisible(false);
+    }
 
-        // 重新掛回 close 事件（若有）
-        if (closeButton) closeButton.onClick.AddListener(Hide);
+    public void PlaceHudInFront(Transform cam, float distance = 1.4f, float yOffset = 0f)
+    {
+        if (!cam) return;
+        var fwd = cam.forward;
+        fwd.y = 0f;
+        if (fwd.sqrMagnitude < 1e-6f) fwd = cam.forward;
+        fwd.Normalize();
+
+        transform.position = cam.position + fwd * distance + Vector3.up * yOffset;
+        transform.rotation = Quaternion.LookRotation(fwd, Vector3.up);
+    }
+
+    // ===== 顯示控制（優先用 CanvasGroup） =====
+    void SetVisible(bool visible)
+    {
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = visible ? 1f : 0f;
+            canvasGroup.blocksRaycasts = visible;
+            canvasGroup.interactable = visible;
+        }
+        else
+        {
+            gameObject.SetActive(visible);
+        }
     }
 }
+    
