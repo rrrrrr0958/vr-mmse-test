@@ -135,7 +135,6 @@ public class ShapeScorer : MonoBehaviour
             {
                 int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
                 string name = data.results[bi].name;
-                Debug.Log($"[Score] 最佳：{data.best_score:F1} 分（index={bi}, name={name}）");
             }
         }
     }
@@ -184,7 +183,6 @@ public class ShapeScorer : MonoBehaviour
             {
                 int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
                 string name = data.results[bi].name;
-                Debug.Log($"[Score] 最佳：{data.best_score:F1} 分（index={bi}, name={name}）");
             }
         }
     }
@@ -295,7 +293,6 @@ public class ShapeScorer : MonoBehaviour
     {
         Debug.Log("[Score JSON]\n" + PrettyJson(rawJson));
         if (data == null || data.results == null) return;
-        Debug.Log($"[Score] 共 {data.results.Length} 個目標，最佳索引 {data.best_index}，最佳分數 {data.best_score:F1}");
         for (int i = 0; i < data.results.Length; i++)
         {
             var r = data.results[i];
@@ -310,7 +307,7 @@ public class ShapeScorer : MonoBehaviour
                 if (d.nz_user > 0 || d.nz_target > 0) extra += $" | nz U/T = {d.nz_user}/{d.nz_target}";
                 if (d.angle_user != 0 || d.angle_target != 0) extra += $" | angle U/T = {d.angle_user:F1}/{d.angle_target:F1}";
             }
-            Debug.Log($"[Score][{i}] {r.name}  總分 {r.score:F1}{extra}");
+            Debug.Log($"[Score][{i}] {r.name}  總分 {r.score:F1}");
         }
     }
 
