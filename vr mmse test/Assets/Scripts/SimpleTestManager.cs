@@ -407,6 +407,12 @@ public class SimpleTestManager : MonoBehaviour
                 string optionValue = options[i];
                 buttons[i].onClick.AddListener(() => RecordSelection(optionValue));
                 
+                // ★ 新增：如果是季節按鈕，添加懸停效果（可選）
+                if (questionType == "Season")
+                {
+                    buttons[i].onClick.AddListener(() => OnSeasonButtonHover(optionValue));
+                }
+                
                 buttons[i].gameObject.SetActive(true);
             }
         }
@@ -441,12 +447,12 @@ public class SimpleTestManager : MonoBehaviour
         string currentQuestionKey = questions[currentQuestionIndex];
         Debug.Log($"❓ 詢問問題: {currentQuestionKey}");
        
-        // ★ 強化版季節場景切換
+        // ★ 修改：季節問題不再自動切換，等待用戶選擇
         if (currentQuestionKey == "Season")
         {
-            string currentSeason = GetCurrentSeason();
-            Debug.Log($"🌟 季節問題觸發！當前季節：{currentSeason}");
-            SetSceneryBySeason(currentSeason, true);
+            Debug.Log($"🌟 季節問題開始，等待用戶選擇...");
+            // 可選：重置為春天或保持當前季節
+            // SetSceneryBySeason("春天", false); // 重置為春天
         }
        
         List<string> options = null;
@@ -458,7 +464,7 @@ public class SimpleTestManager : MonoBehaviour
                 break;
             case "Season":
                 options = GenerateSeasonOptions();
-                if (titleText != null) titleText.text = "請看看左邊，現在是什麼季節？";
+                if (titleText != null) titleText.text = "請選擇一個季節，看看窗外的變化！";
                 break;
             case "Month":
                 options = GenerateMonthOptions();
@@ -490,11 +496,28 @@ public class SimpleTestManager : MonoBehaviour
     public void RecordSelection(string selection)
     {
         selectedAnswer = selection;
+        
+        // ★ 新增：如果當前是季節問題，立即切換場景
+        string currentQuestionKey = questions[currentQuestionIndex];
+        if (currentQuestionKey == "Season")
+        {
+            Debug.Log($"🌟 選擇季節：{selection}，立即切換場景");
+            SetSceneryBySeason(selection, true);
+        }
+        
         if (confirmButton != null)
         {
             confirmButton.interactable = true;
         }
         Debug.Log("選擇: " + selection);
+    }
+
+    // ★ 新增：季節按鈕懸停預覽功能（可選）
+    public void OnSeasonButtonHover(string season)
+    {
+        // 可以在這裡添加懸停預覽效果
+        Debug.Log($"🔍 懸停預覽季節：{season}");
+        // SetSceneryBySeason(season, false); // 無動畫預覽
     }
 
     public void ConfirmAnswer()
