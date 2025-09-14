@@ -458,7 +458,7 @@ public class SimpleTestManager : MonoBehaviour
                 break;
             case "Season":
                 options = GenerateSeasonOptions();
-                if (titleText != null) titleText.text = "請看看窗外，現在是什麼季節？";
+                if (titleText != null) titleText.text = "請看看左邊，現在是什麼季節？";
                 break;
             case "Month":
                 options = GenerateMonthOptions();
