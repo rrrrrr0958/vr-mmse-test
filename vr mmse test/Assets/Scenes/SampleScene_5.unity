@@ -780,7 +780,7 @@ MonoBehaviour:
   initialCameraPosition: {fileID: 144824568}
   moneyNumber5: {fileID: 477336781}
   moneyBg5: {fileID: 1842861528}
-  cameraMoveSpeed: 30
+  cameraMoveSpeed: 20
 --- !u!4 &44527674
 Transform:
   m_ObjectHideFlags: 0

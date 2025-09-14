@@ -5,9 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - Sofa
-  serializedVersion: 3
-  tags:
   - StallNameText
+  - ClickableStall
   layers:
   - Default
   - TransparentFX
@@ -16,13 +15,11 @@ TagManager:
   - Water
   - UI
   - 
-  - SofaLayer
+  - stallLayerMask
   - FadeUI
   - 
   - 
   - StallLayer
-  - 
-  - 
   - 
   - 
   - 

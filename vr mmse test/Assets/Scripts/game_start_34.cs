@@ -30,7 +30,7 @@ public class GameManager : MonoBehaviour
     public float questionBroadcastDelay = 2f;
     public float timeBetweenQuestions = 2f;
     [Tooltip("語音問題結束後，到開始錄音前的緩衝時間。調低這個值可以更快開始錄音。")]
-    public float voiceQuestionBufferTime = 0; // 可以直接在 Unity Inspector 中調整為更小的值，例如 0
+    public float voiceQuestionBufferTime = 0;
 
     [Header("點擊題設定")]
     public float clickResponseDuration = 3.0f;
@@ -64,36 +64,36 @@ public class GameManager : MonoBehaviour
 
     // ===== 新增：VR 控制器 & Ray 設定 =====
     [Header("VR 控制器設定（方案A）")]
-    public Transform rightController;           // 指到右手控制器 Transform
-    public float vrRayLength = 50f;             // 射線長度
-    public bool useOVRInput = true;             // 有 Oculus Integration 時使用
-    public bool useNewInputSystem = false;      //（可選）新輸入系統
+    public Transform rightController;
+    public float vrRayLength = 50f;
+    public bool useOVRInput = true;
+    public bool useNewInputSystem = false;
 
     [Header("點擊圖層")]
-    public LayerMask stallLayerMask;            // 指到 StallLayer
+    public LayerMask stallLayerMask;
 
-    #if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM
     [Header("XR Input Actions")]
-    public InputActionProperty rightSelectAction;   // 指到 Right Controller 的 Select Action
-    #endif
-    
+    public InputActionProperty rightSelectAction;
+#endif
+
     [Header("Ray Origin（可選，沒設就用 Right Controller）")]
     public Transform rayOriginOverride;
-
 
 
     // =========================================================================
     // 私有變數 (腳本內部使用)
     // =========================================================================
 
-    private GameObject[] stallRootObjects;
+    // 修改：現在用來存放可點擊的物件
+    private GameObject[] clickableStallObjects;
     private List<string> stallNames = new List<string>();
     private List<string> nonFishStallNames = new List<string>();
     private bool hasClickedStall = false;
     private Coroutine initialQuestionCoroutine;
     private string currentTargetStallName = "";
     private int correctAnswersCount = 0;
-    private int voiceCorrectAnswersCount = 0; // 新增：語音題目的答對題數
+    private int voiceCorrectAnswersCount = 0;
     private bool isWaitingForClickInput = false;
 
     private DatabaseReference dbReference;
@@ -101,9 +101,9 @@ public class GameManager : MonoBehaviour
     private AudioClip recordingClip;
     private List<string> currentQuestionAnswers = new List<string>();
 
-    #if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM
     private bool lastTriggerPressed = false;
-    #endif
+#endif
 
 
     // =========================================================================
@@ -112,16 +112,30 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        stallRootObjects = GameObject.FindGameObjectsWithTag("StallNameText");
-        Debug.Log($"Awake: Found {stallRootObjects.Length} stall clickable root objects by tag.");
+        // === 修改：從 "StallNameText" 改為你新的 Tag "ClickableStall" ===
+        clickableStallObjects = GameObject.FindGameObjectsWithTag("ClickableStall");
+        Debug.Log($"Awake: Found {clickableStallObjects.Length} stall clickable objects by tag.");
 
-        foreach (GameObject stallRoot in stallRootObjects)
+        // === 新增：建立物件名稱與攤位名稱的對應關係 ===
+        // 這些對應關係是硬編碼的，你需要確保物件名稱正確。
+        Dictionary<string, string> nameMapping = new Dictionary<string, string>
         {
-            stallRoot.SetActive(false);
-            TMPro.TextMeshPro textMeshPro = stallRoot.GetComponentInChildren<TMPro.TextMeshPro>();
-            if (textMeshPro != null)
+            { "Breadbg_34", "麵包" },
+            { "Meatonbg_34", "肉攤" },
+            { "fishbg_34", "魚攤" },
+            // 你需要在這裡加入所有可點擊物件的名稱對應
+            { "fruitbg_34", "蔬果" },
+            { "Weaponbg_34", "武器" }
+            // 確保所有物件名稱和攤位名稱都正確
+        };
+
+        foreach (GameObject stallObject in clickableStallObjects)
+        {
+            stallObject.SetActive(true); // 物件一開始都顯示
+
+            // === 修改：從物件名稱中獲取攤位名稱 ===
+            if (nameMapping.TryGetValue(stallObject.name, out string stallName))
             {
-                string stallName = textMeshPro.text;
                 stallNames.Add(stallName);
                 if (stallName != "魚攤")
                 {
@@ -130,7 +144,7 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"Awake: Stall root '{stallRoot.name}' has 'StallNameText' tag but no TextMeshPro component found in children. This stall name will not be used for initial question.");
+                Debug.LogWarning($"Awake: Object '{stallObject.name}' has 'ClickableStall' tag but no name mapping found. This stall name will not be used for initial question.");
             }
         }
         Debug.Log($"Awake: Total stall names collected for initial question: {stallNames.Count}");
@@ -172,41 +186,41 @@ public class GameManager : MonoBehaviour
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
         }
+        // 這個協程現在沒有作用，因為物件一開始就是啟用的
+        // 但我們保留它以防未來有需要
         StartCoroutine(ShowTextsAfterDelay());
         initialQuestionCoroutine = StartCoroutine(MainClickSequence());
     }
 
-void Update()
-{
-    // 不是在等點選，或已完成流程，或沒有當前目標 → 不處理
-    if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
-        return;
-
-    // 取得要發射射線的 Transform（優先用你拖進來的紅線發射點）
-    var originT = rayOriginOverride != null ? rayOriginOverride : rightController;
-
-    // -------------------
-    // 1) 滑鼠點擊（同時支援舊/新輸入）
+    void Update()
+    {
+        // === 獨立的滑鼠點擊偵測 ===
+        // 這樣在任何時候點擊滑鼠都能被偵測到，但只有在「等待點擊」的狀態下才會執行後續邏輯。
+        // 這段程式碼獨立出來，不受 `isWaitingForClickInput` 的影響。
 #if ENABLE_INPUT_SYSTEM
-if (UnityEngine.InputSystem.Mouse.current != null &&
-    UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
-{
-    Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-    Ray ray = Camera.main.ScreenPointToRay(pos);
-    TryRaycastHit(ray.origin, ray.direction);
-}
+    if (UnityEngine.InputSystem.Mouse.current != null &&
+        UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
+    {
+        Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+        Ray ray = Camera.main.ScreenPointToRay(pos);
+        // 呼叫新的函式來處理點擊
+        HandleClickRaycast(ray.origin, ray.direction);
+    }
 #else
-if (Input.GetMouseButtonDown(0))
-{
-    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-    TryRaycastHit(ray.origin, ray.direction);
-}
+        if (Input.GetMouseButtonDown(0))
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            // 呼叫新的函式來處理點擊
+            HandleClickRaycast(ray.origin, ray.direction);
+        }
 #endif
 
+        // === VR 控制器或遊戲流程邏輯（不受影響）===
+        if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
+            return;
 
-    // -------------------
-    // 2) VR 控制器（Input System 直接讀 XR 裝置：Trigger / A）
-    // -------------------
+        var originT = rayOriginOverride != null ? rayOriginOverride : rightController;
+
 #if ENABLE_INPUT_SYSTEM
     if (originT != null)
     {
@@ -218,33 +232,74 @@ if (Input.GetMouseButtonDown(0))
 
             bool pressed = false;
 
-            // Trigger：0~1 軸，自己做「剛按下」緣由判斷
             if (trigger != null)
             {
                 float v = trigger.ReadValue();
                 bool nowPressed = v > 0.5f;
-                if (nowPressed && !lastTriggerPressed) pressed = true; // 本幀剛按下
+                if (nowPressed && !lastTriggerPressed) pressed = true;
                 lastTriggerPressed = nowPressed;
             }
 
-            // A 鍵：ButtonControl 可直接用 wasPressedThisFrame
             if (aButton != null && aButton.wasPressedThisFrame)
                 pressed = true;
 
             if (pressed)
             {
                 TryRaycastHit(originT.position, originT.forward);
-#if UNITY_EDITOR
-                Debug.DrawRay(originT.position, originT.forward * vrRayLength, Color.cyan, 0.2f);
-#endif
-                // Debug.Log("[XR] trigger/A fired");
             }
         }
     }
 #endif
-}
+    }
 
+    // === 新增一個共用的處理點擊函式 ===
+    void HandleClickRaycast(Vector3 origin, Vector3 direction)
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
+        {
+            if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
+            {
+                string clickedObjectName = hit.collider.gameObject.name;
+                string clickedStallName = "";
 
+                // 這裡根據你的物件名稱來設定對應
+                if (clickedObjectName.Contains("Breadbg_34")) clickedStallName = "麵包";
+                else if (clickedObjectName.Contains("Meatonbg_34")) clickedStallName = "肉攤";
+                else if (clickedObjectName.Contains("fishbg_34")) clickedStallName = "魚攤";
+                else if (clickedObjectName.Contains("fruitbg_34")) clickedStallName = "蔬果";
+                else if (clickedObjectName.Contains("Weaponbg_34")) clickedStallName = "武器";
+                else
+                {
+                    Debug.LogWarning($"點擊了未知物件：{clickedObjectName}，無法判斷攤位名稱。");
+                    return;
+                }
+
+                Debug.Log($"你點擊了：{clickedStallName}");
+
+                // 只有在等待點擊輸入時，才進行答案判斷
+                if (isWaitingForClickInput && !string.IsNullOrEmpty(currentTargetStallName))
+                {
+                    if (clickedStallName == currentTargetStallName)
+                    {
+                        Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
+                        correctAnswersCount++;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
+                    }
+                    currentTargetStallName = "";
+                }
+                else
+                {
+                    Debug.Log("目前不在等待點擊的狀態，點擊無效。");
+                }
+            }
+        }
+        // Debug.DrawRay 放在這裡，可以隨時看到滑鼠射線
+        Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.magenta, 0.25f);
+    }
 
 
     // =========================================================================
@@ -253,7 +308,7 @@ if (Input.GetMouseButtonDown(0))
 
     void HideAllStallNamesAndQuestion()
     {
-        foreach (GameObject stallRoot in stallRootObjects)
+        foreach (GameObject stallRoot in clickableStallObjects)
         {
             stallRoot.SetActive(false);
         }
@@ -266,11 +321,11 @@ if (Input.GetMouseButtonDown(0))
     IEnumerator ShowTextsAfterDelay()
     {
         yield return new WaitForSeconds(initialTextDelay);
-        foreach (GameObject stallRoot in stallRootObjects)
+        foreach (GameObject stallRoot in clickableStallObjects)
         {
             stallRoot.SetActive(true);
         }
-        Debug.Log("所有攤位名稱已顯示。");
+        Debug.Log("所有攤位物件已顯示。");
     }
 
     IEnumerator MainClickSequence()
@@ -334,7 +389,7 @@ if (Input.GetMouseButtonDown(0))
             string recordKey = $"{userId}_{timestamp}";
 
             Dictionary<string, object> scoreData = new Dictionary<string, object>();
-            scoreData["Command_score"] = correctAnswersCount; // 更改類別名稱
+            scoreData["Command_score"] = correctAnswersCount;
             scoreData["totalQuestions"] = 3;
             scoreData["timestamp"] = ServerValue.Timestamp;
             scoreData["userName"] = "PlayerName";
@@ -379,19 +434,16 @@ if (Input.GetMouseButtonDown(0))
     {
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        voiceCorrectAnswersCount = 0; // 新增：在語音題開始前重置分數
+        voiceCorrectAnswersCount = 0;
 
-        // 第一個語音問題
         Debug.Log("Console 問題: 這個攤位在賣什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤" }));
 
-        // 第二個語音問題
         Debug.Log("Console 問題: 魚的顏色是什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(fishColorAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "藍色", "藍", "藍白", "藍白色", "白藍", "白藍色", "淺藍", "淺藍色" }));
 
-        // 第三個語音問題 (帶圈圈)
         Debug.Log("Console 問題: 那個是什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
         ShowHighlightCircle();
@@ -399,9 +451,8 @@ if (Input.GetMouseButtonDown(0))
         HideHighlightCircle();
 
         Debug.Log("Console: 所有魚攤問題已完成！");
-        Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/3"); // 新增：顯示語音題分數
+        Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/3");
 
-        // 新增：上傳語音題目分數到 Firebase
         UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
     }
 
@@ -417,11 +468,9 @@ if (Input.GetMouseButtonDown(0))
         voiceAudioSource.Play();
         Debug.Log($"正在播放語音，長度: {clip.length} 秒");
 
-        // 等待語音播放完畢
         yield return new WaitForSeconds(clip.length + voiceQuestionBufferTime);
     }
 
-    // 新增：上傳語音分數到 Firebase 的方法
     void UploadVoiceScoreToFirebase(int score)
     {
         if (dbReference != null)
@@ -431,12 +480,11 @@ if (Input.GetMouseButtonDown(0))
             string recordKey = $"{userId}_{timestamp}";
 
             Dictionary<string, object> scoreData = new Dictionary<string, object>();
-            scoreData["AnswerName_score"] = score; // 新增：使用 AnswerName_score 作為類別名稱
+            scoreData["AnswerName_score"] = score;
             scoreData["totalQuestions"] = 3;
             scoreData["timestamp"] = ServerValue.Timestamp;
             scoreData["userName"] = "PlayerName";
 
-            // 新增：使用不同的路徑來區分語音分數和點擊分數
             dbReference.Child("voiceScores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
             {
                 if (task.IsCompleted)
@@ -543,13 +591,11 @@ if (Input.GetMouseButtonDown(0))
 
     IEnumerator WaitForAnswer(List<string> correctAnswers)
     {
-        // 確保 TextMeshPro 物件是啟用的
         if (questionBroadcastTextMeshPro != null)
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(true);
         }
 
-        // 不再等待額外的緩衝時間，直接開始錄音
         if (Microphone.devices.Length > 0)
         {
             Debug.Log("開始錄音...");
@@ -614,7 +660,7 @@ if (Input.GetMouseButtonDown(0))
         if (string.IsNullOrEmpty(userResponse))
         {
             Debug.Log("沒有聽到回答。");
-            StartCoroutine(ShowResultAndContinue(false)); // 沒有回答也算答錯
+            StartCoroutine(ShowResultAndContinue(false));
             return;
         }
 
@@ -645,7 +691,6 @@ if (Input.GetMouseButtonDown(0))
 
     IEnumerator ShowResultAndContinue(bool isCorrect)
     {
-        // 新增：根據是否正確來增加語音分數
         if (isCorrect)
         {
             voiceCorrectAnswersCount++;
@@ -701,39 +746,47 @@ if (Input.GetMouseButtonDown(0))
     // =========================================================================
     // 方案A：共用 Raycast 判定（桌機/VR 都呼叫）
     // =========================================================================
-void TryRaycastHit(Vector3 origin, Vector3 direction)
-{
-    RaycastHit hit;
-    // 只打到你指定的 StallLayer
-    if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
+    void TryRaycastHit(Vector3 origin, Vector3 direction)
     {
-        if (hit.collider != null && hit.collider.CompareTag("StallNameText"))
+        RaycastHit hit;
+        if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
         {
-            var tmp = hit.collider.GetComponentInChildren<TMPro.TextMeshPro>();
-            if (tmp != null)
+            // === 修改：從 hit.collider.CompareTag("StallNameText") 改為新的 Tag ===
+            if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
             {
-                // 這行會顯示你點擊了哪個攤位
-                Debug.Log($"你點擊了：{tmp.text}");
-                
-                // 檢查點擊的攤位是否為當前正確答案
-                if (tmp.text == currentTargetStallName)
+                // === 修改：直接使用被點擊物件的名稱，並從中提取攤位名稱 ===
+                string clickedObjectName = hit.collider.gameObject.name;
+                string clickedStallName = "";
+
+                if (clickedObjectName.Contains("Breadbg_34")) clickedStallName = "麵包";
+                else if (clickedObjectName.Contains("Meatonbg_34")) clickedStallName = "肉攤";
+                else if (clickedObjectName.Contains("fishbg_34")) clickedStallName = "魚攤";
+                // 這裡你需要根據你的物件名稱來新增所有對應
+                else if (clickedObjectName.Contains("fruitbg_34")) clickedStallName = "蔬果";
+                else if (clickedObjectName.Contains("Weaponbg_34")) clickedStallName = "武器";
+                // 如果物件名稱格式不符合，則不處理
+                else
                 {
-                    // 答案正確的日誌
+                    Debug.LogWarning($"點擊了未知物件：{clickedObjectName}，無法判斷攤位名稱。");
+                    return;
+                }
+
+                Debug.Log($"你點擊了：{clickedStallName}");
+
+                if (clickedStallName == currentTargetStallName)
+                {
                     Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
                     correctAnswersCount++;
                 }
                 else
                 {
-                    // 答案錯誤的日誌
-                    Debug.LogWarning($"❌ 錯誤！你點擊了 {tmp.text}，但正確答案是 {currentTargetStallName}。");
+                    Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
                 }
                 currentTargetStallName = "";
             }
         }
+        Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.cyan, 0.25f);
     }
-    // 可選：Debug 可視化
-    Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.cyan, 0.25f);
-}
 
     // =========================================================================
     // 傳回伺服器 JSON 的資料結構
