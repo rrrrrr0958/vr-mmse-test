@@ -58,7 +58,14 @@ public class GameManagerMenu : MonoBehaviour
 
         // 若清單沒填，保守起見自動收集（包含 Inactive）
         if (animalButtons == null || animalButtons.Count == 0)
-            animalButtons = new List<Button>(FindObjectsOfType<Button>(true));
+        {
+            animalButtons = new List<Button>(
+                FindObjectsByType<Button>(
+                    FindObjectsInactive.Include,   // 也找 Inactive
+                    FindObjectsSortMode.None       // 不排序（最快）
+                )
+            );
+        }
 
         // 先把已知按鈕的原色快取起來
         foreach (var btn in animalButtons)

@@ -1,18 +1,29 @@
 using UnityEngine;
 using System.Collections;
+using TMPro;
 
 public class BackgroundVoice2 : MonoBehaviour
 {
-    public AudioSource broadcastSource;
-    public RecordingState2 recorder;
-    public HostFlask2 hostFlask; // 要在 Inspector 綁定 Flask_manager 上的 HostFlask2
+    [Header("元件參考")]
+    public AudioSource broadcastSource;     // 拖有 AudioSource 的物件
+    public RecordingState2 recorder;        // 你的錄音腳本
+    public HostFlask2 hostFlask;            // Flask 上傳腳本（Flask_manager）
+    public TextMeshProUGUI statusText;      // 顯示提示文字
 
+    [Header("前導音檔 (一開始播放)")]
+    public AudioClip introClip;
+
+    [Header("題目音檔")]
     public AudioClip clip1;  // 魚肉特價快來買
     public AudioClip clip2;  // 雞豬牛羊都有賣
     public AudioClip clip3;  // 早起買菜精神好
 
-    private string[] sentences = new string[]
-    {
+    [Header("流程參數")]
+    public float waitAfterIntro = 2f;      // 前導播完後再等
+    public float waitAfterQuestion = 2f;   // 題目播完後再等
+    public float recordDuration = 7f;      // 錄音秒數
+
+    private readonly string[] sentences = {
         "魚肉特價快來買",
         "雞豬牛羊都有賣",
         "早起買菜精神好"
@@ -25,57 +36,40 @@ public class BackgroundVoice2 : MonoBehaviour
 
     IEnumerator StartGameSequence()
     {
-        Debug.Log("[BackgroundVoice2] 遊戲開始，準備延遲 3 秒播放音檔");
+        // 防呆
+        if (broadcastSource == null) { Debug.LogError("[BackgroundVoice2] broadcastSource 未綁定"); yield break; }
+        if (recorder == null)        { Debug.LogError("[BackgroundVoice2] recorder 未綁定");        yield break; }
+        if (hostFlask == null)       { Debug.LogError("[BackgroundVoice2] hostFlask 未綁定");       yield break; }
+        if (statusText == null)      { Debug.LogError("[BackgroundVoice2] statusText 未綁定");      yield break; }
 
-        yield return new WaitForSeconds(3f);
-
-        // 防呆：確認 hostFlask 有綁定
-        if (hostFlask == null)
+        // Step 0: 前導音檔
+        if (introClip != null)
         {
-            Debug.LogError("[BackgroundVoice2] hostFlask 未綁定，請確認 Inspector 是否正確設定！");
-            yield break;
+            statusText.text = "請仔細聆聽";
+            broadcastSource.clip = introClip;
+            broadcastSource.Play();
+            Debug.Log("[BackgroundVoice2] ▶ 前導音檔播放");
+            yield return new WaitForSeconds(broadcastSource.clip.length + waitAfterIntro);
         }
 
-        // 🎲 隨機抽一題
+        // Step 1: 隨機抽題
         int index = Random.Range(0, sentences.Length);
         hostFlask.targetSentence = sentences[index];
+        AudioClip qClip = (index == 0) ? clip1 : (index == 1) ? clip2 : clip3;
 
-        switch (index)
-        {
-            case 0: broadcastSource.clip = clip1; break;
-            case 1: broadcastSource.clip = clip2; break;
-            case 2: broadcastSource.clip = clip3; break;
-        }
-
-        // 防呆：確認 broadcastSource 有綁定
-        if (broadcastSource == null)
-        {
-            Debug.LogError("[BackgroundVoice2] broadcastSource 未綁定，請確認 Inspector 是否正確設定！");
-            yield break;
-        }
-
-        // 🔥 保險程式碼：自動啟用物件與元件
-        if (!broadcastSource.gameObject.activeInHierarchy)
-        {
-            Debug.LogWarning("[BackgroundVoice2] Broadcast_2 目前是 Inactive，自動啟用");
-            broadcastSource.gameObject.SetActive(true);
-        }
-        if (!broadcastSource.enabled)
-        {
-            Debug.LogWarning("[BackgroundVoice2] AudioSource 元件被關閉，自動啟用");
-            broadcastSource.enabled = true;
-        }
-
-        // 播放音檔
+        statusText.text = "請仔細聆聽";
+        broadcastSource.clip = qClip;
         broadcastSource.Play();
-        Debug.Log("[BackgroundVoice2] 播放題目：" + hostFlask.targetSentence);
+        Debug.Log("[BackgroundVoice2] ▶ 題目播放：「" + hostFlask.targetSentence + "」");
+        yield return new WaitForSeconds(broadcastSource.clip.length + waitAfterQuestion);
 
-        yield return new WaitForSeconds(broadcastSource.clip.length);
+        // Step 2: 錄音
+        statusText.text = "錄音中...";
+        recorder.StartRecording(recordDuration);
 
-        // 等待 3 秒
-        yield return new WaitForSeconds(3f);
-
-        // 錄音
-        recorder.StartRecording(7f);
+        // Step 3: 錄音結束後 → 提示正在辨識
+        yield return new WaitForSeconds(recordDuration);
+        statusText.text = "錄音完成，正在辨識...";
     }
 }
+

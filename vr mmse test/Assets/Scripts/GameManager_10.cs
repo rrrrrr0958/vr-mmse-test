@@ -6,6 +6,7 @@ using TMPro;
 using System.IO;
 using System.Linq;
 
+[DefaultExecutionOrder(-100)]
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
@@ -29,6 +30,8 @@ public class GameManager : MonoBehaviour
     // 狀態
     private readonly List<string> clickedOrder = new List<string>();
     private readonly HashSet<string> selectedSet = new HashSet<string>();
+
+    // ★ 原色快取（必用它來還原／變色）
     private readonly Dictionary<Button, Color> originalColors = new Dictionary<Button, Color>();
 
     // 檔案（照你指定的絕對路徑）
@@ -37,12 +40,39 @@ public class GameManager : MonoBehaviour
     private float startTime;
     private float endTime;
 
-    // ★ 提供給其它腳本使用
+    // 提供給其它腳本使用
     public IReadOnlyList<string> ClickedAnimalSequence => clickedOrder;
 
     void Awake()
     {
-        if (instance == null) instance = this;
+        // 單例
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        instance = this;
+
+        // 1) 若清單沒填，先在 Awake 早期就自動收集（包含 Inactive）
+        if (animalButtons == null || animalButtons.Count == 0)
+        {
+#if UNITY_2023_1_OR_NEWER
+            animalButtons = new List<Button>(
+                FindObjectsByType<Button>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+            );
+#else
+            animalButtons = new List<Button>(FindObjectsOfType<Button>(true));
+#endif
+        }
+
+        // 2) 在任何可能變色之前，把原色快取起來（只快取一次）
+        foreach (var btn in animalButtons)
+        {
+            EnsureOriginalColorCached(btn);
+        }
     }
 
     void Start()
@@ -54,9 +84,6 @@ public class GameManager : MonoBehaviour
 
         if (loadFromPreviousScene)
             StartCoroutine(LoadAnswersNextFrame());
-
-        foreach (var btn in animalButtons)
-            EnsureOriginalColorCached(btn);
 
         if (confirmButton)
         {
@@ -79,8 +106,37 @@ public class GameManager : MonoBehaviour
 
     private void EnsureOriginalColorCached(Button btn)
     {
-        if (btn && btn.image && !originalColors.ContainsKey(btn))
-            originalColors[btn] = btn.image.color;
+        if (!btn) return;
+
+        // Button.targetGraphic 通常等於 btn.image（UGUI Button）
+        var img = btn.image;
+        if (img && !originalColors.ContainsKey(btn))
+        {
+            originalColors[btn] = img.color;   // ← 僅在第一次快取
+        }
+    }
+
+    private void RestoreButtonColor(Button btn)
+    {
+        if (!btn) return;
+        var img = btn.image;
+        if (img && originalColors.TryGetValue(btn, out var oc))
+        {
+            img.color = oc; // ← 完整還原到當初快取的顏色
+        }
+    }
+
+    private void TintButtonDarker(Button btn, float factor = 0.7f)
+    {
+        if (!btn) return;
+        var img = btn.image;
+        if (img && originalColors.TryGetValue(btn, out var oc))
+        {
+            // 一律以「原色」為基底變深，避免累積變暗/還原不全
+            var darker = oc * factor;
+            darker.a = oc.a; // 保留原本 alpha
+            img.color = darker;
+        }
     }
 
     // 讀取最新備份檔（gamedata_*.json）
@@ -126,19 +182,19 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // 由 AnimalButtonScript 呼叫
+    // 由 AnimalButtonScript / AnimalSelectionManager 呼叫
     public void OnAnimalButtonClick(Button btn, string animalName)
     {
-        if (string.IsNullOrEmpty(animalName)) animalName = btn != null ? btn.name : "";
-        EnsureOriginalColorCached(btn);
+        if (string.IsNullOrEmpty(animalName)) animalName = btn ? btn.name : "";
+        EnsureOriginalColorCached(btn); // 不會覆蓋既有快取
 
         if (selectedSet.Contains(animalName))
         {
             selectedSet.Remove(animalName);
             clickedOrder.Remove(animalName);
 
-            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
-                btn.image.color = oc; // 還原
+            // ★ 完整還原
+            RestoreButtonColor(btn);
         }
         else
         {
@@ -146,12 +202,8 @@ public class GameManager : MonoBehaviour
             selectedSet.Add(animalName);
             clickedOrder.Add(animalName);
 
-            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
-            {
-                var darker = oc * 0.7f; // 變深
-                darker.a = 1f;
-                btn.image.color = darker;
-            }
+            // ★ 依原色變深（不會累積）
+            TintButtonDarker(btn, 0.7f);
         }
 
         if (confirmPanel) confirmPanel.SetActive(selectedSet.Count == 3);
@@ -186,7 +238,11 @@ public class GameManager : MonoBehaviour
         // 保留：其他腳本要用的 JSON 字串
         ConvertGameDataToJson("Player001", accuracy, timeUsed);
 
-        SceneFlowManager.instance.LoadNextScene();
+        // 若 SceneFlowManager 沒掛，避免 NRE
+        if (SceneFlowManager.instance != null)
+            SceneFlowManager.instance.LoadNextScene();
+        else
+            Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
     }
 
     public void OnRetry()
@@ -194,11 +250,13 @@ public class GameManager : MonoBehaviour
         selectedSet.Clear();
         clickedOrder.Clear();
 
+        // ★ 保證全部按鈕回到原色
         foreach (var kv in originalColors)
-            if (kv.Key && kv.Key.image)
-                kv.Key.image.color = kv.Value; // 還原正確顏色
+            RestoreButtonColor(kv.Key);
 
         if (confirmPanel) confirmPanel.SetActive(false);
+        if (resultText) resultText.gameObject.SetActive(false);
+        if (panel1) panel1.SetActive(true);
     }
 
     // 其它腳本（ResultManager_10 等）仍然可以呼叫
