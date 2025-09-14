@@ -2619,12 +2619,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65c62caf67a344b588e99bbd11cf4e15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: http://127.0.0.1:5000/score
+  scoreUrl: http://127.0.0.1:5000/score
+  triCheckUrl: http://127.0.0.1:5000/check_tri2
+  requireTriCheckBeforeScore: 1
+  scoreMethod: combo
+  wChamfer: 0.5
+  wF1: 0.3
+  wSSIM: 0.2
+  wTM: 0
+  ssimMode: 0
+  ssimScales: 3
   drawingRT: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
   drawingTex2D: {fileID: 0}
   targetTextures:
   - {fileID: 2800000, guid: f6dda0249022c42de9e76ccbdde84beb, type: 3}
   targetFilePaths: []
+  verboseLogs: 1
+  autoTriCheckOnPlay: 0
+  autoScoreWithPrecheckOnPlay: 0
 --- !u!4 &862861125 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 863274816247114712, guid: e37536240892e1f49a7ccddc63ac1a4b, type: 3}
@@ -5446,59 +5458,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1723458187}
   m_CullTransparentMesh: 1
---- !u!1 &1745450046
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1745450048}
-  - component: {fileID: 1745450047}
-  m_Layer: 0
-  m_Name: WhiteBoardMaterialBinder
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1745450047
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1745450046}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b55cdeb7c747f4dae9fafad63274df3f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  scorer: {fileID: 853096192}
-  whiteboardRenderer: {fileID: 167928062}
-  whiteboardRawImage: {fileID: 0}
-  whiteboardTexProperty: _MainTex
-  targetMaterials:
-  - {fileID: 2100000, guid: 7fc9e4c37b9de488b9f66c0bcd79aa11, type: 2}
-  targetTexProperty: _MainTex
-  forceWhiteBackgroundForRT: 0
-  clearColor: {r: 1, g: 1, b: 1, a: 1}
---- !u!4 &1745450048
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1745450046}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.303103, y: 1.4489135, z: -5.5606704}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1778713147
 GameObject:
   m_ObjectHideFlags: 0
@@ -7710,4 +7669,3 @@ SceneRoots:
   - {fileID: 887910251}
   - {fileID: 736072684}
   - {fileID: 853096191}
-  - {fileID: 1745450048}
