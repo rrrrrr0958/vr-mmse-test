@@ -164,7 +164,6 @@ public class SessionController : MonoBehaviour
             if (correct == null) { Debug.LogWarning("[Session] DB 空，無法出題。"); return; }
             Debug.LogWarning($"[Session] 找不到 VP '{vpName}'，回退：{correct.displayText}");
         }
-
         int panelCapacity = quizPanel ? quizPanel.MaxOptions : optionsPerQuestion;
         int want = Mathf.Clamp(optionsPerQuestion, 2, Mathf.Max(2, panelCapacity));
         _currentOptions = BuildOptions(correct, want);
@@ -173,7 +172,7 @@ public class SessionController : MonoBehaviour
         var labels = _currentOptions.Select(e =>
             string.IsNullOrEmpty(e.displayText) ? $"{e.floorLabel} {e.stallLabel}".Trim() : e.displayText
         ).ToArray();
-
+        Debug.Log("[Session] labels count = " + labels.Length);
         _quizActive = true;
         if (_mover) _mover.allowMove = false;
 
