@@ -1,4 +1,3 @@
-// PuzzleUIManager.cs
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,23 +6,22 @@ using UnityEngine.SceneManagement;
 public class PuzzleUIManager : MonoBehaviour
 {
     [Header("UI 元件")]
-    public GameObject rewardPanel;    // RewardPanel (整個 Panel)
-    public Image baseImageGray;       // 灰階底圖 (可以選填)
-    public Image baseImageColor;      // 彩色底圖（alpha 0 -> 完成時漸顯）
-    public Image[] pieceImages;       // 11 個拼圖 Image（在 Inspector 指派）
+    public GameObject rewardPanel;    // 指向 RewardPanel root (預設 inactive)
+    public Image baseImageGray;       // 灰階底圖 (optional)
+    public Image baseImageColor;      // 彩色底圖 (alpha 0 -> 完成時漸顯)
+    public Image[] pieceImages;       // 指派 11 個 Piece Image (Inspector)
     public Button nextButton;
 
-    [Header("動畫/位置設定")]
-    public float appearDuration = 0.4f;
+    [Header("動畫與位置")]
+    public float appearDuration = 0.35f;
     public float distanceFromCamera = 2.0f;
-    public string nextSceneName = ""; // 若空字串 -> 只關閉 Panel
+    public string nextSceneName = "";
 
     private void Awake()
     {
-        if (rewardPanel == null) Debug.LogError("PuzzleUIManager: rewardPanel 未指定");
+        if (rewardPanel == null) Debug.LogError("PuzzleUIManager: rewardPanel 未指定!");
         rewardPanel.SetActive(false);
 
-        // 一開始把所有片隱藏（或以 collected 狀態為準）
         if (pieceImages != null)
         {
             foreach (var img in pieceImages)
@@ -31,6 +29,7 @@ public class PuzzleUIManager : MonoBehaviour
                 if (img != null) img.gameObject.SetActive(false);
             }
         }
+
         if (baseImageColor != null)
         {
             var c = baseImageColor.color;
@@ -59,37 +58,47 @@ public class PuzzleUIManager : MonoBehaviour
 
     private void OnPieceCollected(int index)
     {
-        // 當 PuzzleManager 收到新片時，顯示 Panel 並顯示該片
+        Debug.Log($"[PuzzleUIManager] OnPieceCollected {index}");
         ShowReward(index);
     }
 
-    // 對外呼叫也可直接傳 index
     public void ShowReward(int index)
     {
-        // 更新所有已收集片的顯示（保險）
+        // 1) 先更新所有已收集片的顯示 (保險)
         if (pieceImages != null)
         {
             for (int i = 0; i < pieceImages.Length; i++)
             {
-                if (pieceImages[i] == null) continue;
+                var img = pieceImages[i];
+                if (img == null) continue;
                 bool has = PuzzleManager.Instance != null && PuzzleManager.Instance.IsPieceCollected(i);
-                pieceImages[i].gameObject.SetActive(has);
+                img.gameObject.SetActive(has);
+                // 確保顯示的時候 alpha = 1 並 scale = 1（防止殘留）
+                if (has)
+                {
+                    Color col = img.color;
+                    col.a = 1f;
+                    img.color = col;
+                    img.transform.localScale = Vector3.one;
+                }
             }
         }
 
-        // 若 index 有效，做該片的入場動畫
+        // 2) 單片動畫 (如果 index 有效)
         if (index >= 0 && index < pieceImages.Length && pieceImages[index] != null)
         {
-            // 若尚未 active (剛被收集) -> 做動畫
+            // 若尚未 active -> 做動畫
             pieceImages[index].gameObject.SetActive(true);
             StartCoroutine(AnimatePieceIn(pieceImages[index]));
+            // 確保該片在所有子物件最上層(避免被底圖蓋住)
+            pieceImages[index].transform.SetAsLastSibling();
         }
 
-        // 顯示 Panel（並把 Panel 移到玩家視線前）
+        // 3) 顯示 Panel 並把它放到玩家前面
         rewardPanel.SetActive(true);
         PositionPanelInFrontOfCamera();
 
-        // 若已收集完畢 -> 觸發完成流程
+        // 4) 若已收集完 -> 完成流程
         if (PuzzleManager.Instance != null && PuzzleManager.Instance.IsComplete())
         {
             StartCoroutine(CompleteSequence());
@@ -98,18 +107,15 @@ public class PuzzleUIManager : MonoBehaviour
 
     IEnumerator AnimatePieceIn(Image img)
     {
-        // 預設：從小 + 透明 -> 放大 + 不透明
         float t = 0f;
         float dur = Mathf.Max(0.01f, appearDuration);
 
         Color targetColor = img.color;
-        Color startColor = targetColor;
-        startColor.a = 0f;
+        Color startColor = targetColor; startColor.a = 0f;
         img.color = startColor;
 
         Vector3 startScale = Vector3.one * 0.6f;
         Vector3 endScale = Vector3.one;
-
         img.transform.localScale = startScale;
 
         while (t < dur)
@@ -127,10 +133,10 @@ public class PuzzleUIManager : MonoBehaviour
 
     IEnumerator CompleteSequence()
     {
-        // 例如：把 baseImageColor 漸顯 (彩色圖)，再播放粒子或音效
+        // 漸顯彩色底圖
         if (baseImageColor != null)
         {
-            float dur = 0.8f;
+            float dur = 0.9f;
             float t = 0f;
             Color c = baseImageColor.color;
             while (t < dur)
@@ -142,8 +148,7 @@ public class PuzzleUIManager : MonoBehaviour
             }
             baseImageColor.color = new Color(c.r, c.g, c.b, 1f);
         }
-
-        // （可在此處加音效或粒子系統）
+        // 這裡可以加音效或粒子系統
         yield return null;
     }
 
@@ -153,18 +158,27 @@ public class PuzzleUIManager : MonoBehaviour
         if (cam == null) return;
         Transform camT = cam.transform;
         rewardPanel.transform.position = camT.position + camT.forward * distanceFromCamera;
-        rewardPanel.transform.LookAt(camT.position);
-        rewardPanel.transform.Rotate(0f, 180f, 0f); // 面向玩家
+        rewardPanel.transform.rotation = Quaternion.LookRotation(rewardPanel.transform.position - camT.position); // 面對玩家
+    }
+
+    // --- debug helper (在 Inspector 呼叫)
+    public void DebugLogPieces()
+    {
+        if (pieceImages == null) { Debug.Log("pieceImages null"); return; }
+        for (int i = 0; i < pieceImages.Length; i++)
+        {
+            var p = pieceImages[i];
+            if (p == null) Debug.Log($"piece {i} = null");
+            else Debug.Log($"piece {i} active={p.gameObject.activeSelf} sprite={(p.sprite==null? "null": p.sprite.name)} colorAlpha={p.color.a} scale={p.transform.localScale}");
+        }
     }
 
     private void OnNextClicked()
     {
         rewardPanel.SetActive(false);
-
         if (!string.IsNullOrEmpty(nextSceneName))
         {
             SceneManager.LoadScene(nextSceneName);
         }
-        // 否則僅關閉 Panel（在單場景測試常用）
     }
 }

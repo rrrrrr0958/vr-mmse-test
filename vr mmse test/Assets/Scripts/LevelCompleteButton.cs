@@ -1,61 +1,67 @@
-// LevelCompleteButton.cs
 using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Button))]
 public class LevelCompleteButton : MonoBehaviour
 {
-    public int pieceIndex = 0; // 該按鈕對應第幾片 (0-based)
-    public bool useNextMode = false; // 若 true -> 按一次收集下一片（單場景測試用）
-    private Button btn;
+    [Tooltip("這個按鈕對應的拼圖索引 (0-based)。")]
+    public int pieceIndex = 0;
 
-    private void Start()
+    [Tooltip("測試用：按一次收下一片（單場景測試）。")]
+    public bool useNextMode = false;
+
+    [Tooltip("可選：直接指定 UI Manager (非必要，如果沒有指定則由 PuzzleManager event 驅動 UI)。")]
+    public PuzzleUIManager uiManager = null;
+
+    Button _btn;
+
+    private void Awake()
     {
-        btn = GetComponent<Button>();
-        btn.onClick.AddListener(OnClicked);
+        _btn = GetComponent<Button>();
+    }
+
+    private void OnEnable()
+    {
+        _btn.onClick.AddListener(OnClicked);
+    }
+
+    private void OnDisable()
+    {
+        _btn.onClick.RemoveListener(OnClicked);
     }
 
     private void OnClicked()
     {
         if (PuzzleManager.Instance == null)
         {
-            Debug.LogWarning("No PuzzleManager instance in scene.");
+            Debug.LogError("[LevelCompleteButton] PuzzleManager 不存在，請先放置 PuzzleManager 到場景中。");
             return;
         }
 
         bool got = false;
+        int indexGot = -1;
         if (useNextMode)
         {
             got = PuzzleManager.Instance.TryCollectNext();
-            if (!got)
-            {
-                Debug.Log("All pieces already collected.");
-            }
+            if (got) indexGot = Mathf.Max(0, PuzzleManager.Instance.CollectedCount - 1);
         }
         else
         {
             got = PuzzleManager.Instance.TryCollectPiece(pieceIndex);
-            if (!got)
-            {
-                Debug.Log($"Piece {pieceIndex} already collected or invalid.");
-            }
+            if (got) indexGot = pieceIndex;
         }
 
-        // 嘗試立即讓 UI 顯示（PuzzleManager 會觸發事件，UI 會自動顯示）。
-        // 但為了保險，如果 UI 尚未存在，我們也可嘗試直接尋找並呼叫 ShowReward
-        var ui = FindObjectOfType<PuzzleUIManager>();
-        if (ui != null)
+        if (!got)
         {
-            if (useNextMode)
-            {
-                // 找到剛收集到的 index (用 CollectedCount-1)
-                int lastIndex = Mathf.Max(0, PuzzleManager.Instance.CollectedCount - 1);
-                ui.ShowReward(lastIndex);
-            }
-            else
-            {
-                ui.ShowReward(pieceIndex);
-            }
+            Debug.Log($"[LevelCompleteButton] 沒有新增拼圖 (index={pieceIndex})。可能已收集過。");
+            return;
         }
+
+        // 選用：若你在 Inspector 指定了 uiManager，直接呼叫它顯示（方便測試）
+        if (uiManager != null && indexGot >= 0)
+        {
+            uiManager.ShowReward(indexGot);
+        }
+        // 正常情況下：PuzzleManager 會觸發 OnPieceCollected，PuzzleUIManager 會自動顯示
     }
 }

@@ -1,4 +1,3 @@
-// PuzzleManager.cs
 using System;
 using UnityEngine;
 
@@ -9,7 +8,6 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private int totalPieces = 11;
     private bool[] piecesCollected;
 
-    // 當某片被收集時發事件 (index)
     public event Action<int> OnPieceCollected;
 
     private void Awake()
@@ -26,22 +24,16 @@ public class PuzzleManager : MonoBehaviour
         }
     }
 
-    // 嘗試收集指定 index，回傳是否為「新收集」
     public bool TryCollectPiece(int index)
     {
-        if (index < 0 || index >= piecesCollected.Length)
-        {
-            Debug.LogWarning($"PuzzleManager: TryCollectPiece index {index} out of range.");
-            return false;
-        }
-        if (piecesCollected[index]) return false; // 已收過
-
+        if (index < 0 || index >= piecesCollected.Length) return false;
+        if (piecesCollected[index]) return false;
         piecesCollected[index] = true;
+        Debug.Log($"[PuzzleManager] Collected piece {index}");
         OnPieceCollected?.Invoke(index);
         return true;
     }
 
-    // 嘗試收集下一個尚未收集的片（在單場景重複測試時很方便）
     public bool TryCollectNext()
     {
         for (int i = 0; i < piecesCollected.Length; i++)
@@ -49,6 +41,7 @@ public class PuzzleManager : MonoBehaviour
             if (!piecesCollected[i])
             {
                 piecesCollected[i] = true;
+                Debug.Log($"[PuzzleManager] Collected next piece {i}");
                 OnPieceCollected?.Invoke(i);
                 return true;
             }
@@ -74,7 +67,6 @@ public class PuzzleManager : MonoBehaviour
 
     public bool IsComplete() => CollectedCount >= piecesCollected.Length;
 
-    // 若需要：重置（測試用）
     public void ResetAll()
     {
         for (int i = 0; i < piecesCollected.Length; i++) piecesCollected[i] = false;
