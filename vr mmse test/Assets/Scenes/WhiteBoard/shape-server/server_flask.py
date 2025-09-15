@@ -2,44 +2,83 @@
 from flask import Flask, request, jsonify
 import numpy as np
 from PIL import Image
-import io
-
-from shapesig import extract_shapes_from_array, hybrid_score
+import io, time
+import shapesig as S
 
 app = Flask(__name__)
 
-@app.route('/score', methods=['POST'])
+def _f(name, default=None, cast=str):
+    v = request.form.get(name, None)
+    if v is None or v == "": return default
+    try:
+        return cast(v)
+    except Exception:
+        return default
+
+@app.route("/score", methods=["POST"])
 def score_drawing():
+    # ---- 讀圖 ----
     if 'user' not in request.files:
-        return jsonify({'error': "missing file field 'user'"}), 400
-    if 'targets' not in request.files:
-        return jsonify({'error': "no 'targets' uploaded"}), 400
+        return jsonify({"error": "missing file 'user'"}), 400
+    user_b = request.files['user'].read()
+    user_rgb = np.array(Image.open(io.BytesIO(user_b)).convert("RGB"))
 
-    # 讀使用者圖（保留 RGBA → 交給 shapesig 去處理）
-    user_img = Image.open(io.BytesIO(request.files['user'].read()))
-    user_np = np.array(user_img)
+    target_files = request.files.getlist("targets")
+    if not target_files:
+        return jsonify({"error": "no 'targets' uploaded"}), 400
 
-    # 先抽一次使用者幾何，避免每個 target 重算
-    user_shapes = extract_shapes_from_array(user_np)
+    # ---- 參數（你的預設：mode=binary, tau=8, side=128, scan 0.85~1.25×11）----
+    cfg = {
+        "mode":       _f("mode", "binary", str).lower(),
+        "tau":        _f("tau", 8.0, float),
+        "side":       _f("side", 128, int),
+        "scan_from":  _f("scan_from", 0.85, float),
+        "scan_to":    _f("scan_to", 1.25, float),
+        "scan_n":     _f("scan_n", 11, int),
+
+        # 菱形檢測（可保留預設）
+        "area_min_ratio": _f("area_min_ratio", 0.05, float),
+        "hu_tau":         _f("hu_tau", 0.35, float),
+        "quad_bonus":     _f("quad_bonus", 0.15, float),
+        "close":          _f("close", 7, int),
+        "dilate":         _f("dilate", 7, int),
+        "margin":         _f("margin", 4, int),
+
+        # 融合開關/比重（預設用懲罰，不啟動融合）
+        "mode_blend":  _f("mode_blend", "false", str) == "true",
+        "w_diamond":   _f("w_diamond", 0.35, float),
+
+        # ★ 你指定的規則參數
+        "dia_min":        _f("dia_min", 30.0, float),
+        "dia_low_factor": _f("dia_low_factor", 0.6, float),
+    }
 
     results = []
-    for idx, tf in enumerate(request.files.getlist('targets')):
-        tgt_img = Image.open(io.BytesIO(tf.read()))
-        tgt_np = np.array(tgt_img)
+    best_idx = 0
+    best_score = -1.0
 
-        target_shapes = extract_shapes_from_array(tgt_np)
-        res = hybrid_score(user_np, tgt_np, user_shapes, target_shapes)
-
+    for idx, tf in enumerate(target_files):
+        t_rgb = np.array(Image.open(io.BytesIO(tf.read())).convert("RGB"))
+        res   = S.score_one(user_rgb, t_rgb, cfg)
         results.append({
-            'target_index': idx,
-            'target_name': tf.filename,
-            'score': res['score'],
-            'details': res['details'],
+            "index": idx,
+            "name": tf.filename,
+            "score": res["score"],
+            "details": res["details"]
         })
+        if res["score"] > best_score:
+            best_score = res["score"]; best_idx = idx
 
-    overall = int(round(sum(r['score'] for r in results) / len(results))) if results else 0
-    return jsonify({'overall_score': overall, 'results': results})
+    return jsonify({
+        "best_index": best_idx,
+        "best_score": float(best_score),
+        "results": results
+    })
 
-if __name__ == '__main__':
-    # 需要套件：pip install pillow opencv-python numpy
-    app.run(host='127.0.0.1', port=5000, debug=True)
+@app.route("/health")
+def health():
+    return jsonify({"ok": True, "t": time.time()})
+
+if __name__ == "__main__":
+    # python3 server_flask.py
+    app.run(host="127.0.0.1", port=5000, debug=True)
