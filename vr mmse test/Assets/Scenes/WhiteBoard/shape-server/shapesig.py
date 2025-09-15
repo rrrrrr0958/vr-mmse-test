@@ -1,13 +1,18 @@
-# shapesig.py
+# shapesig.py  —  A版：洞(hole)檢測，用於區分「相交」vs「純沙漏」
 import io, math, numpy as np, cv2
 from PIL import Image
 
-# ---------- I/O ----------
+# =========================
+# I/O
+# =========================
 def read_rgb_from_bytes(b):
     return np.array(Image.open(io.BytesIO(b)).convert("RGB"))
 
-# ---------- 基礎 ----------
+# =========================
+# 基礎
+# =========================
 def to_edges(img_rgb, mode="edges"):
+    """回傳二值邊緣影像（白底、邊為>0）。"""
     g = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     if mode == "binary":
         inv = 255 - g
@@ -15,18 +20,22 @@ def to_edges(img_rgb, mode="edges"):
         k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         return cv2.morphologyEx(b, cv2.MORPH_CLOSE, k, 1)
     v = np.median(g); lo = int(max(0, 0.66 * v)); hi = int(min(255, 1.33 * v))
-    return cv2.Canny(g, lo, hi)
+    e = cv2.Canny(g, lo, hi)
+    return e
 
 def norm_by_bbox_to_canvas(img_rgb, side=512, mode="edges", ref_long=360, margin=6):
+    """把目標區域裁切縮放到方形畫布中央，避免空白干擾。"""
     edges = to_edges(img_rgb, mode=mode)
     ys, xs = np.nonzero(edges)
     canvas = np.ones((side, side, 3), np.uint8) * 255
-    if len(xs) == 0: return canvas
+    if len(xs) == 0: 
+        return canvas
     x1, x2 = xs.min(), xs.max(); y1, y2 = ys.min(), ys.max()
     y1 = max(0, y1 - margin); y2 = min(edges.shape[0] - 1, y2 + margin)
     x1 = max(0, x1 - margin); x2 = min(edges.shape[1] - 1, x2 + margin)
     crop = img_rgb[y1:y2 + 1, x1:x2 + 1]
-    h, w = crop.shape[:2]; r = min(ref_long / max(1, max(h, w)), side / max(1, max(h, w)))
+    h, w = crop.shape[:2]
+    r = min(ref_long / max(1, max(h, w)), side / max(1, max(h, w)))
     nh, nw = max(1, int(round(h * r))), max(1, int(round(w * r)))
     small = cv2.resize(crop, (nw, nh), interpolation=cv2.INTER_AREA)
     y0 = (side - nh) // 2; x0 = (side - nw) // 2
@@ -34,6 +43,7 @@ def norm_by_bbox_to_canvas(img_rgb, side=512, mode="edges", ref_long=360, margin
     return canvas
 
 def place_on_canvas(img_rgb, side, scale):
+    """把圖以 scale 縮放後置中到 side×side 畫布。"""
     h, w = img_rgb.shape[:2]
     nh, nw = max(1, int(round(h * scale))), max(1, int(round(w * scale)))
     resized = cv2.resize(img_rgb, (nw, nh), interpolation=cv2.INTER_AREA)
@@ -43,12 +53,15 @@ def place_on_canvas(img_rgb, side, scale):
     canvas[max(0, y0):y1, max(0, x0):x1] = resized[:(y1 - max(0, y0)), :(x1 - max(0, x0))]
     return canvas
 
-# ---------- Chamfer ----------
+# =========================
+# Chamfer
+# =========================
 def chamfer_mean(A_edges, B_edges, tau_px=8):
     src = (B_edges == 0).astype(np.uint8)  # 邊=0
     dt = cv2.distanceTransform(src, cv2.DIST_L2, 5)
     ys, xs = np.nonzero(A_edges)
-    if len(xs) == 0: return float(tau_px)
+    if len(xs) == 0: 
+        return float(tau_px)
     d = dt[ys, xs]; d = np.minimum(d, tau_px)
     return float(np.mean(d))
 
@@ -61,7 +74,8 @@ def bi_chamfer_score(imgA_rgb, imgB_rgb, tau_px=8, mode="edges"):
 
 def best_scale_bichamfer(imgA_rgb, imgB_rgb, tau_px=8, mode="edges",
                          side=512, scales=None):
-    if scales is None: scales = np.linspace(0.85, 1.20, 8)
+    if scales is None: 
+        scales = np.linspace(0.85, 1.20, 8)
     A0 = norm_by_bbox_to_canvas(imgA_rgb, side=side, mode=mode)
     B0 = norm_by_bbox_to_canvas(imgB_rgb, side=side, mode=mode)
     best = {"score": -1.0, "avg_d": 1e9, "scale": 1.0,
@@ -74,8 +88,11 @@ def best_scale_bichamfer(imgA_rgb, imgB_rgb, tau_px=8, mode="edges",
                          "d_ab": det["d_ab"], "d_ba": det["d_ba"], "A_best": A_can})
     return best
 
-# ---------- 產生「填滿的筆畫」並切半、取交集 ----------
+# =========================
+# 取腰部位置（由 target 決定）
+# =========================
 def filled_strokes(img_rgb, close_ks=7, dilate_ks=7):
+    """把線稿轉成實心粗筆畫（用於偵測腰部位置）。"""
     g = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     inv = 255 - g
     _, b = cv2.threshold(inv, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -91,171 +108,261 @@ def filled_strokes(img_rgb, close_ks=7, dilate_ks=7):
         b = np.where(lab == i, 255, 0).astype(np.uint8)
     return b
 
-def waist_split_and_intersection(mask, margin=4):
-    H, W = mask.shape
-    rows = (mask > 0).sum(axis=1).astype(np.float32)
+def estimate_waist_band_from_target(target_rgb, band_frac=0.20,
+                                    close_ks=7, dilate_ks=7):
+    """
+    由 target 圖估計「腰部水平位置」：
+    - 在 30%~70% 高度間找最窄列(y_star)
+    - 回傳 (y0, y1) 作為腰部視窗
+    """
+    T = filled_strokes(target_rgb, close_ks=close_ks, dilate_ks=dilate_ks)
+    H, W = T.shape
+    rows = (T > 0).sum(axis=1).astype(np.float32)
     rows = cv2.GaussianBlur(rows.reshape(-1, 1), (1, 9), 0).ravel()
-    ylo, yhi = int(0.3 * H), int(0.7 * H)
-    if yhi <= ylo or np.all(rows[ylo:yhi] == 0): return None, None, None, 0
-    y_star = ylo + int(np.argmin(rows[ylo:yhi]))
-    top = mask.copy(); top[min(H, y_star + margin):, :] = 0
-    bot = mask.copy(); bot[:max(0, y_star - margin), :] = 0
-    inter = ((top > 0) & (bot > 0)).astype(np.uint8) * 255
-    a1 = np.count_nonzero(top); a2 = np.count_nonzero(bot)
-    return top, bot, inter, max(1, min(a1, a2))
+    ylo, yhi = int(0.30 * H), int(0.70 * H)
+    if yhi <= ylo or np.all(rows[ylo:yhi] == 0):
+        # fallback：中段居中
+        y_star = H // 2
+    else:
+        y_star = ylo + int(np.argmin(rows[ylo:yhi]))
+    band_h = max(8, int(round(band_frac * H)))
+    y0 = max(0, y_star - band_h // 2)
+    y1 = min(H, y_star + (band_h - band_h // 2))
+    return y0, y1, int(y_star)
 
-def biggest_contour(bin_mask):
-    cnts, _ = cv2.findContours(bin_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not cnts: return None
-    return max(cnts, key=cv2.contourArea)
+# =========================
+# 洞（hole）檢測：是否有「相交」形成封閉環
+# =========================
+def _poly_angles_deg(pts):
+    def ang(a,b,c):
+        ba = a - b; bc = c - b
+        cosang = float(np.dot(ba, bc)) / (np.linalg.norm(ba)*np.linalg.norm(bc) + 1e-6)
+        return float(np.degrees(np.arccos(np.clip(cosang, -1.0, 1.0))))
+    n = len(pts)
+    return [ang(pts[(i-1)%n], pts[i], pts[(i+1)%n]) for i in range(n)]
 
-import numpy as np, cv2
+def diamond_exists_score(user_rgb, target_rgb, side=512, mode="edges",
+                         # --- 預處理 ---
+                         dilate_ks=3, close_ks=3,
+                         # --- 腰帶設定 ---
+                         band_frac=0.20,                 # 腰部視窗高度比例（相對 H）
+                         # --- 洞的面積篩選（相對整張影像）---
+                         hole_area_min_frac=0.0015,
+                         hole_area_max_frac=0.06,
+                         # --- 形狀與位置約束 ---
+                         flat_min=0.16,                  # 最小外接矩形短/長比；太扁則捨去
+                         angle_tol=25.0,                 # 對角互補的容忍度
+                         center_weight=0.40,             # 洞中心靠近腰線的權重
+                         shape_weight=0.60,              # 幾何形狀（角度/扁平）的權重
+                         prefer_quad_bonus=0.10):        # 近似四邊形加分
+    """
+    回傳:
+      s_exist: 0~100 相交存在性的分數（存在且像樣越高）
+      meta: 診斷資訊（是否找到洞、最佳洞資訊等）
+    方法：
+      1) 以 target 推定腰部視窗
+      2) 對 user 做輕微膨脹/封孔，確保線帶閉合
+      3) 用 RETR_CCOMP/TREE 找到「洞」(child contours)
+      4) 在腰部視窗內尋洞，綜合中心距離、扁平度、角度互補給分
+    """
+    # 0) 正規化
+    tgt = norm_by_bbox_to_canvas(target_rgb, side=side, mode=mode)
+    usr = norm_by_bbox_to_canvas(user_rgb,    side=side, mode=mode)
+    H, W = side, side
 
-def mask_to_cnt(mask):
-    cnt = biggest_contour(mask)
-    return cnt
+    # 1) 估腰帶
+    y0, y1, y_star = estimate_waist_band_from_target(tgt, band_frac=band_frac)
 
-def pca_deskew_mask(mask):
-    ys, xs = np.nonzero(mask > 0)
-    if len(xs) < 10:
-        return mask
-    pts = np.stack([xs, ys], axis=1).astype(np.float32)
-    mean, eigvec = cv2.PCACompute(pts, mean=np.array([]))
-    # 讓第一主成分朝「垂直」方向
-    v = eigvec[0]  # 主要方向
-    ang = np.degrees(np.arctan2(v[1], v[0]))  # 相對 x 軸
-    # 我們希望長軸接近垂直 => 旋轉到 90° 或 -90° 附近
-    rot_needed = 90 - ang
-    H, W = mask.shape
-    M = cv2.getRotationMatrix2D((W/2, H/2), rot_needed, 1.0)
-    rotated = cv2.warpAffine(mask, M, (W, H), flags=cv2.INTER_NEAREST, borderValue=0)
-    return rotated
+    # 2) 邊緣→線帶
+    E = to_edges(usr, mode=mode)                     # 0/255
+    kD = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_ks, dilate_ks))
+    kC = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_ks, close_ks))
+    B = cv2.dilate(E, kD, 1)
+    B = cv2.morphologyEx(B, cv2.MORPH_CLOSE, kC, 1)
+    # 二值化（確保 findContours 可用）
+    _, B = cv2.threshold(B, 0, 255, cv2.THRESH_BINARY)
 
-def crop_and_fit(mask, box_side=196, pad=8):
-    ys, xs = np.nonzero(mask > 0)
-    if len(xs) == 0: 
-        return np.zeros((box_side, box_side), np.uint8)
-    x1,x2 = xs.min(), xs.max(); y1,y2 = ys.min(), ys.max()
-    crop = mask[y1:y2+1, x1:x2+1]
-    h, w = crop.shape
-    # 留點白邊
-    box = np.zeros((box_side, box_side), np.uint8)
-    scale = (box_side - 2*pad) / max(h, w)
-    nh, nw = max(1,int(round(h*scale))), max(1,int(round(w*scale)))
-    resized = cv2.resize(crop, (nw, nh), interpolation=cv2.INTER_NEAREST)
-    y0 = (box_side - nh)//2; x0 = (box_side - nw)//2
-    box[y0:y0+nh, x0:x0+nw] = resized
-    return box
+    # 3) 找輪廓 + 階層
+    #   RETR_CCOMP：同一層級的外輪廓，其子輪廓為洞
+    cnts, hier = cv2.findContours(B, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    if hier is None or len(cnts) == 0:
+        return 0.0, {
+            "found": False, "reason": "no_contours",
+            "waist_band": [int(y0), int(y1)], "best": None
+        }
 
-def minrect_flatness(cnt):
-    # 扁平程度（短邊/長邊），數值 0~1；越小越扁
-    if cnt is None or len(cnt) < 3:
-        return 0.0
-    rect = cv2.minAreaRect(cnt)
-    (w, h) = rect[1]
-    if w < 1 or h < 1:
-        return 0.0
-    sh = min(w, h); lg = max(w, h)
-    return float(sh / lg)
+    total_area = float(H * W)
+    cx_mid = W // 2
 
+    best = {
+        "score": 0.0,
+        "found": False,
+        "waist_band": [int(y0), int(y1)],
+        "hole_bbox": None,
+        "hole_area_frac": 0.0,
+        "flat": 0.0,
+        "angles": None,
+        "quad": 0,
+        "center_dist_px": None
+    }
 
-# ---------- 菱形分 ----------
-def diamond_score(user_rgb, target_rgb, side=512,
-                  close_ks=7, dilate_ks=9, margin=4,
-                  area_min_ratio=0.05, hu_tau=0.7, quad_bonus=0.15,
-                  flat_floor=0.35,      # 扁平最低加權
-                  flat_k=0.50,          # 扁平提升強度
-                  norm_box=196):        # Hu 比對的標準化盒子大小
-    U = filled_strokes(user_rgb, close_ks, dilate_ks)
-    T = filled_strokes(target_rgb, close_ks, dilate_ks)
+    # 4) 掃描所有「洞」
+    for i, h in enumerate(hier[0]):  # h: [next, prev, first_child, parent]
+        parent = i
+        child = h[2]
+        while child != -1:
+            cnt = cnts[child]
+            area = cv2.contourArea(cnt)
+            area_frac = area / total_area
+            if area_frac < hole_area_min_frac or area_frac > hole_area_max_frac:
+                child = hier[0][child][0]
+                continue
 
-    utop, ubot, uint, ubase = waist_split_and_intersection(U, margin)
-    ttop, tbot, tint, tbase = waist_split_and_intersection(T, margin)
-    if uint is None or tint is None:
-        return 0.0, {"area_ratio": 0.0, "hu": 9.9, "quad": 0}
+            x, y, w, h_rect = cv2.boundingRect(cnt)
+            cy = y + h_rect // 2
+            # 腰帶內的重疊比例（越集中於腰帶越好）
+            band_overlap = max(0, min(y + h_rect, y1) - max(y, y0)) / max(1, (y1 - y0))
+            if band_overlap <= 0:
+                child = hier[0][child][0]
+                continue
 
-    u_cnt_raw = biggest_contour(uint)
-    t_cnt_raw = biggest_contour(tint)
-    if u_cnt_raw is None or t_cnt_raw is None:
-        return 0.0, {"area_ratio": 0.0, "hu": 9.9, "quad": 0}
+            # 幾何形狀：近似多邊形 & 凸
+            peri = cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, 0.02 * peri, True) if peri > 0 else cnt
+            verts = len(approx)
+            if verts < 4 or verts > 6:
+                child = hier[0][child][0]
+                continue
+            if not cv2.isContourConvex(approx):
+                child = hier[0][child][0]
+                continue
 
-    # --- 對稱占比：同時看 user 與 target 的上/下半最小面積 ---
-    # 避免某一方很薄時一刀切成 0 分
-    uarea = np.count_nonzero(uint)
-    tarea = np.count_nonzero(tint)
-    r_area_u = float(uarea / max(1, ubase))
-    r_area_t = float(tarea / max(1, tbase))
-    r_area_sym = min(r_area_u, r_area_t)
-    if r_area_sym < area_min_ratio:
-        return 0.0, {"area_ratio": r_area_sym, "hu": 9.9, "quad": 0}
+            pts = approx[:, 0, :].astype(np.float32)
+            # 角度互補
+            angs = _poly_angles_deg(pts)
+            if len(angs) < 4:
+                child = hier[0][child][0]
+                continue
+            ok_diag = (abs((angs[0] + angs[2]) - 180.0) <= angle_tol) and \
+                      (abs((angs[1] + angs[3]) - 180.0) <= angle_tol)
 
-    # --- 方向校正 + 尺寸標準化之後再做 Hu ---
-    u_rot = pca_deskew_mask(uint)
-    t_rot = pca_deskew_mask(tint)
-    u_box = crop_and_fit(u_rot, box_side=norm_box, pad=8)
-    t_box = crop_and_fit(t_rot, box_side=norm_box, pad=8)
+            # 扁平度（最小外接矩形）
+            rect = cv2.minAreaRect(cnt)
+            w_minrect, h_minrect = rect[1]
+            if w_minrect < 1 or h_minrect < 1:
+                child = hier[0][child][0]
+                continue
+            flat = min(w_minrect, h_minrect) / max(w_minrect, h_minrect)  # 0~1
+            if flat < flat_min:
+                child = hier[0][child][0]
+                continue
 
-    u_cnt = mask_to_cnt(u_box)
-    t_cnt = mask_to_cnt(t_box)
-    if u_cnt is None or t_cnt is None:
-        return 0.0, {"area_ratio": r_area_sym, "hu": 9.9, "quad": 0}
+            # 位置（洞中心靠近畫面水平中心 & 腰線）
+            M = cv2.moments(cnt)
+            if abs(M["m00"]) < 1e-6:
+                child = hier[0][child][0]
+                continue
+            cx = int(M["m10"]/M["m00"]); cy = int(M["m01"]/M["m00"])
+            dist_y = abs(cy - y_star)
+            dist_x = abs(cx - cx_mid)
+            # 轉成 [0,1] 距離分
+            y_span = max(1, (y1 - y0) // 2)
+            y_score = max(0.0, 1.0 - dist_y / (y_span * 1.5))
+            x_score = max(0.0, 1.0 - dist_x / (W * 0.25))
+            center_score = 0.5 * (y_score + x_score)  # 越靠近中心與腰線越高
 
-    hu = cv2.matchShapes(u_cnt, t_cnt, cv2.CONTOURS_MATCH_I1, 0)
+            # 幾何形狀分（角度 + 扁平）
+            ang_score = 1.0 if ok_diag else max(0.0, 1.0 - (abs((angs[0]+angs[2])-180.0) + abs((angs[1]+angs[3])-180.0)) / (2*angle_tol))
+            flat_score = (flat - flat_min) / (1.0 - flat_min)
+            flat_score = float(np.clip(flat_score, 0.0, 1.0))
+            geom = 0.6 * ang_score + 0.4 * flat_score
+            if 4 <= verts <= 6:
+                geom *= (1.0 + prefer_quad_bonus)
 
-    # --- 四邊形偵測 + 扁平加權（連續值，避免 0/1） ---
-    peri = cv2.arcLength(u_cnt, True)
-    approx = cv2.approxPolyDP(u_cnt, 0.02 * peri, True) if peri > 0 else u_cnt
-    is_quadish = (4 <= len(approx) <= 6) and cv2.isContourConvex(approx)
-    quad = 1 if is_quadish else 0
+            # 綜合：腰帶重疊 × [center/shape 權重] × 面積合理性
+            s = 100.0 * (band_overlap * (center_weight * center_score + shape_weight * geom))
 
-    flat = minrect_flatness(u_cnt)  # 0~1，越小越扁
-    # 讓再怎麼扁也有底：flat_floor；越不扁加權越高
-    flat_weight = max(flat_floor, min(1.0, flat_floor + flat_k * flat))
+            if s > best["score"]:
+                best.update({
+                    "score": float(s),
+                    "found": True,
+                    "hole_bbox": [int(x), int(y), int(w), int(h_rect)],
+                    "hole_area_frac": float(area_frac),
+                    "flat": float(flat),
+                    "angles": [float(a) for a in angs[:4]],
+                    "quad": 1,
+                    "center_dist_px": [int(dist_x), int(dist_y)]
+                })
 
-    # --- Hu 轉分數 ---
-    s_hu = max(0.0, min(100.0, (1.0 - hu / hu_tau) * 100.0))
-    # --- 綜合：Hu × 扁平加權 × 四邊形加權 ---
-    s = s_hu * flat_weight * (1.0 + quad_bonus * quad)
-    s = max(0.0, min(100.0, s))
-    return s, {"area_ratio": r_area_sym, "hu": float(hu), "quad": int(quad), "flat": float(flat)}
+            child = hier[0][child][0]  # 下一個洞
 
+    return float(best["score"]), best
 
-# ---------- 封裝一個總分 ----------
+# =========================
+# 總分封裝
+# =========================
 def score_one(user_rgb, target_rgb, cfg):
-    # 先把 target / user 都正規化到同尺寸
+    """
+    統一流程：
+      1) 規格化
+      2) 掃scale取最好的雙向Chamfer（外形）
+      3) 洞檢測（相交與否，腰帶視窗內）
+      4) 融合規則
+    cfg 重要參數：
+      - side, mode, tau, scan_from, scan_to, scan_n
+      - chamfer_weight  : 當有相交時，final = cw*Chamfer + (1-cw)*DiamondExist
+      - no_diamond_factor: 當無相交時，final = Chamfer * no_diamond_factor（可設 0~1）
+    """
+    # 1) 正規化（為了與 Chamfer 的最佳縮放一致）
     tgt = norm_by_bbox_to_canvas(target_rgb, side=cfg["side"], mode=cfg["mode"])
     img = norm_by_bbox_to_canvas(user_rgb,    side=cfg["side"], mode=cfg["mode"])
     scales = np.linspace(cfg["scan_from"], cfg["scan_to"], cfg["scan_n"])
 
+    # 2) 最佳 scale 的 Bi-Chamfer
     best = best_scale_bichamfer(img, tgt, tau_px=cfg["tau"], mode=cfg["mode"],
                                 side=cfg["side"], scales=scales)
-    chamfer = best["score"]
+    chamfer = float(best["score"])
 
-    ds, dmeta = diamond_score(img, tgt, side=cfg["side"],
-                              close_ks=cfg["close"], dilate_ks=cfg["dilate"], margin=cfg["margin"],
-                              area_min_ratio=cfg["area_min_ratio"], hu_tau=cfg["hu_tau"],
-                              quad_bonus=cfg["quad_bonus"])
+    # 3) 洞檢測（直接用未縮放前的 img/tgt 亦可；這裡用規格化版本）
+    #    這裡不依賴 target 的實心交集，只用 target 估腰帶位置
+    s_exist, dx_meta = diamond_exists_score(img, tgt, side=cfg["side"], mode=cfg["mode"],
+                                            dilate_ks=cfg.get("hole_dilate", 3),
+                                            close_ks=cfg.get("hole_close", 3),
+                                            band_frac=cfg.get("waist_band_frac", 0.20),
+                                            hole_area_min_frac=cfg.get("hole_area_min_frac", 0.0015),
+                                            hole_area_max_frac=cfg.get("hole_area_max_frac", 0.06),
+                                            flat_min=cfg.get("flat_min", 0.16),
+                                            angle_tol=cfg.get("angle_tol", 25.0),
+                                            center_weight=cfg.get("exist_center_w", 0.40),
+                                            shape_weight=cfg.get("exist_shape_w", 0.60),
+                                            prefer_quad_bonus=cfg.get("exist_quad_bonus", 0.10))
 
-    if cfg.get("mode_blend", False):
-        final = (1.0 - cfg["w_diamond"]) * chamfer + cfg["w_diamond"] * ds
+    has_diamond = s_exist >= cfg.get("exist_threshold", 15.0)  # 過低視為不存在（避免噪聲洞）
+    chamfer_weight   = cfg.get("chamfer_weight", 0.6)          # 有相交時的加權
+    no_diamond_factor= cfg.get("no_diamond_factor", 0.55)      # 無相交時懲罰
+
+    if has_diamond:
+        final = chamfer_weight * chamfer + (1.0 - chamfer_weight) * float(s_exist)
     else:
-        # ★ 你指定的規則：如果菱形分 < dia_min，就 final = 0.6 × Chamfer
-        dia_min = cfg.get("dia_min", 30.0)
-        low_factor = cfg.get("dia_low_factor", 0.6)
-        final = chamfer * (low_factor if ds < dia_min else 1.0)
+        final = chamfer * no_diamond_factor
 
     final = float(max(0.0, min(100.0, final)))
     return {
         "score": final,
         "details": {
             "chamfer": float(chamfer),
-            "diamond": float(ds),
-            "area_ratio": float(dmeta["area_ratio"]),
-            "hu": float(dmeta["hu"]),
-            "quad": int(dmeta["quad"]),
+            "diamond_exist": float(s_exist),
+            "has_diamond": bool(has_diamond),
             "avg_d": float(best["avg_d"]),
             "d_ab": float(best["d_ab"]),
             "d_ba": float(best["d_ba"]),
-            "best_scale": float(best["scale"])
+            "best_scale": float(best["scale"]),
+            # debug: 洞檢測
+            "waist_band": dx_meta.get("waist_band"),
+            "hole_bbox": dx_meta.get("hole_bbox"),
+            "hole_area_frac": dx_meta.get("hole_area_frac"),
+            "flat": dx_meta.get("flat"),
+            "angles": dx_meta.get("angles"),
+            "center_dist_px": dx_meta.get("center_dist_px")
         }
     }
