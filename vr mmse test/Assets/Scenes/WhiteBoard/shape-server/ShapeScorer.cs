@@ -2,7 +2,10 @@
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
-using System.IO;
+using System.IO;          // ← 新增
+#if UNITY_EDITOR
+using UnityEditor;        // ← 為了自動刷新 Project 視窗
+#endif
 
 public class ShapeScorer : MonoBehaviour
 {
@@ -24,13 +27,22 @@ public class ShapeScorer : MonoBehaviour
     public float scanFrom = 0.85f, scanTo = 1.25f;
     public int scanN = 11;
 
-    // 你指定的規則：ds < diaMin -> 只有 diaLowFactor × Chamfer
+    // 你指定的規則（和 server 一致）
     public float diaMin = 30f;
     public float diaLowFactor = 0.6f;
 
     [Header("Logs")]
-    public bool showRawJson = false;   // 印原始 JSON
-    public bool verboseLogs = true;    // 印細節（每個 target 的各項分數）
+    public bool showRawJson = false;
+    public bool verboseLogs = true;
+
+    [Header("Save On Judge (User Only)")]
+    [Tooltip("勾選後，每次判斷會把『上傳的使用者繪圖』存到 Assets/Scenes/pics")]
+    public bool saveUserOnJudge = false;
+
+    [Tooltip("存檔檔名前綴")]
+    public string saveFilePrefix = "user_";
+
+
 
     [System.Serializable] public class Details {
         public float chamfer;
@@ -50,110 +62,133 @@ public class ShapeScorer : MonoBehaviour
         StartCoroutine(SendForScore());
     }
 
-    IEnumerator SendForScore()
+IEnumerator SendForScore()
+{
+byte[] userPng = CaptureUserPNG();
+if (userPng == null) yield break;
+
+// === 依設定存出你的繪圖（只存 user，不存 targets）到 Assets/scences/pics ===
+if (saveUserOnJudge)
+{
+    try
     {
-        byte[] userPng = CaptureUserPNG();
-        if (userPng == null) yield break;
+        string assetsPath = Application.dataPath; // 指到 Assets/
+        string outDir = Path.Combine(assetsPath, "Scenes/pics");
+        Directory.CreateDirectory(outDir);
 
-        WWWForm form = new WWWForm();
-        form.AddBinaryData("user", userPng, "user.png", "image/png");
+        string ts = System.DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+        string fileName = $"{saveFilePrefix}{ts}.png";
+        string fullPath = Path.Combine(outDir, fileName);
 
-        // ---- 參數（與 server_flask.py 一致）----
-        form.AddField("mode", mode);
-        form.AddField("tau", tau.ToString("0.#####"));
-        form.AddField("side", side.ToString());
-        form.AddField("scan_from", scanFrom.ToString("0.###"));
-        form.AddField("scan_to", scanTo.ToString("0.###"));
-        form.AddField("scan_n", scanN.ToString());
-        form.AddField("dia_min", diaMin.ToString("0.###"));
-        form.AddField("dia_low_factor", diaLowFactor.ToString("0.###"));
-        // 其餘菱形參數使用 server 預設；若要在 Unity 端調，再加欄位即可。
+        File.WriteAllBytes(fullPath, userPng);
+        Debug.Log($"[SaveOnJudge] 已保存你的繪圖：{fullPath}");
 
-        // ---- targets by Texture2D ----
-        if (targetTextures != null)
+        #if UNITY_EDITOR
+        AssetDatabase.Refresh(); // 讓檔案立刻出現在 Project 視窗
+        #endif
+    }
+    catch (System.Exception e)
+    {
+        Debug.LogWarning($"[SaveOnJudge] 保存失敗：{e}");
+    }
+}
+
+
+
+    WWWForm form = new WWWForm();
+    form.AddBinaryData("user", userPng, "user.png", "image/png");
+
+    // 和 server 欄位對齊
+    form.AddField("mode", mode);
+    form.AddField("tau", tau.ToString("0.#####"));
+    form.AddField("side", side.ToString());
+    form.AddField("scan_from", scanFrom.ToString("0.###"));
+    form.AddField("scan_to", scanTo.ToString("0.###"));
+    form.AddField("scan_n", scanN.ToString());
+    form.AddField("dia_min", diaMin.ToString("0.###"));
+    form.AddField("dia_low_factor", diaLowFactor.ToString("0.###"));
+
+    if (targetTextures != null)
+    {
+        for (int i = 0; i < targetTextures.Length; i++)
         {
-            for (int i = 0; i < targetTextures.Length; i++)
-            {
-                var t = targetTextures[i];
-                if (t == null) continue;
-                byte[] png;
-                try { png = t.EncodeToPNG(); }
-                catch { var r = MakeReadable(t); png = r.EncodeToPNG(); Destroy(r); }
-                form.AddBinaryData("targets", png, $"target_{i}.png", "image/png");
-            }
+            var t = targetTextures[i];
+            if (t == null) continue;
+            byte[] png;
+            try { png = t.EncodeToPNG(); }
+            catch { var r = MakeReadable(t); png = r.EncodeToPNG(); Destroy(r); }
+            form.AddBinaryData("targets", png, $"target_{i}.png", "image/png");
         }
-        // ---- targets by FilePath ----
-        if (targetFilePaths != null)
+    }
+    if (targetFilePaths != null)
+    {
+        foreach (var path in targetFilePaths)
         {
-            foreach (var path in targetFilePaths)
-            {
-                if (string.IsNullOrEmpty(path)) continue;
-                if (!File.Exists(path)) { Debug.LogWarning($"找不到目標檔案：{path}"); continue; }
-                byte[] bytes = File.ReadAllBytes(path);
-                form.AddBinaryData("targets", bytes, Path.GetFileName(path), "image/png");
-            }
+            if (string.IsNullOrEmpty(path)) continue;
+            if (!System.IO.File.Exists(path)) { Debug.LogWarning($"找不到目標檔案：{path}"); continue; }
+            byte[] bytes = System.IO.File.ReadAllBytes(path);
+            form.AddBinaryData("targets", bytes, System.IO.Path.GetFileName(path), "image/png");
         }
+    }
 
-        using (UnityWebRequest req = UnityWebRequest.Post(scoreUrl, form))
-        {
-            req.timeout = 20;
-            yield return req.SendWebRequest();
+    using (UnityWebRequest req = UnityWebRequest.Post(scoreUrl, form))
+    {
+        req.timeout = 20;
+        yield return req.SendWebRequest();
 #if UNITY_2020_2_OR_NEWER
-            if (req.result != UnityWebRequest.Result.Success)
+        if (req.result != UnityWebRequest.Result.Success)
 #else
-            if (req.isNetworkError || req.isHttpError)
+        if (req.isNetworkError || req.isHttpError)
 #endif
+        {
+            Debug.LogError($"[Score] HTTP {req.responseCode} {req.error}\n{req.downloadHandler.text}");
+            yield break;
+        }
+
+        var json = req.downloadHandler.text;
+        if (showRawJson) Debug.Log("[Score JSON]\n" + PrettyJson(json));
+
+        var data = JsonUtility.FromJson<ScoreResp>(json);
+        if (data == null || data.results == null || data.results.Length == 0)
+        {
+            Debug.LogError("[Score] 回傳內容異常。");
+            yield break;
+        }
+
+        int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
+        string name = data.results[bi].name;
+        float score = data.results[bi].score;
+        Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
+
+        if (verboseLogs)
+        {
+            for (int i = 0; i < data.results.Length; i++)
             {
-                Debug.LogError($"[Score] HTTP {req.responseCode} {req.error}\n{req.downloadHandler.text}");
-                yield break;
-            }
+                var r = data.results[i];
+                var d = r.details;
+                string pen = (d != null && d.diamond < diaMin)
+                    ? $" | penalty×{diaLowFactor:0.##} (diamond<{diaMin:0.#})"
+                    : "";
 
-            var json = req.downloadHandler.text;
-            if (showRawJson) Debug.Log("[Score JSON]\n" + PrettyJson(json));
+                string line = $"[Score][{i}] {r.name}  總分 {r.score:F1}" +
+                              (d==null ? "" :
+                               $" | chamfer {d.chamfer:F1}" +
+                               $" | diamond {d.diamond:F1}" +
+                               $" | area {d.area_ratio:F3}" +
+                               $" | hu {d.hu:F3}" +
+                               $" | quad {d.quad}" +
+                               $" | avg_d {d.avg_d:F2}" +
+                               $" | d(A→T) {d.d_ab:F2}" +
+                               $" | d(T→A) {d.d_ba:F2}" +
+                               $" | best_scale {d.best_scale:F2}") +
+                               pen;
 
-            var data = JsonUtility.FromJson<ScoreResp>(json);
-            if (data == null || data.results == null || data.results.Length == 0)
-            {
-                Debug.LogError("[Score] 回傳內容異常。");
-                yield break;
-            }
-
-            // 總結（只顯示一次）
-            int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
-            string name = data.results[bi].name;
-            float score = data.results[bi].score;
-            Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
-
-            // 細節（每個 target 一列）
-            if (verboseLogs)
-            {
-                for (int i = 0; i < data.results.Length; i++)
-                {
-                    var r = data.results[i];
-                    var d = r.details;
-                    // 推導是否觸發菱形懲罰（依你在 Inspector 設定的閾值）
-                    string pen = (d != null && d.diamond < diaMin)
-                        ? $" | penalty×{diaLowFactor:0.##} (diamond<{diaMin:0.#})"
-                        : "";
-
-                    string line = $"[Score][{i}] {r.name}  總分 {r.score:F1}" +
-                                  (d==null ? "" :
-                                   $" | chamfer {d.chamfer:F1}" +
-                                   $" | diamond {d.diamond:F1}" +
-                                   $" | area {d.area_ratio:F3}" +
-                                   $" | hu {d.hu:F3}" +
-                                   $" | quad {d.quad}" +
-                                   $" | avg_d {d.avg_d:F2}" +
-                                   $" | d(A→T) {d.d_ab:F2}" +
-                                   $" | d(T→A) {d.d_ba:F2}" +
-                                   $" | best_scale {d.best_scale:F2}") +
-                                   pen;
-
-                    Debug.Log(line);
-                }
+                Debug.Log(line);
             }
         }
     }
+}
+
 
     // -------- 擷取畫面/轉可讀 --------
     private byte[] CaptureUserPNG()
@@ -195,7 +230,7 @@ public class ShapeScorer : MonoBehaviour
         return tex;
     }
 
-    // -------- JSON pretty print --------
+    // -------- JSON pretty print（沿用你原本的）--------
     private string PrettyJson(string json)
     {
         if (string.IsNullOrEmpty(json)) return json;
@@ -226,4 +261,17 @@ public class ShapeScorer : MonoBehaviour
         }
         return sb.ToString();
     }
+
+    // -------- 小工具：安全寫檔 + 時戳 --------
+    private static void SafeWriteAllBytes(string path, byte[] data)
+    {
+        try { File.WriteAllBytes(path, data); }
+        catch (System.Exception e) { Debug.LogWarning($"寫檔失敗：{path}\n{e}"); }
+    }
+    private static void SafeWriteAllText(string path, string text)
+    {
+        try { File.WriteAllText(path, text); }
+        catch (System.Exception e) { Debug.LogWarning($"寫檔失敗：{path}\n{e}"); }
+    }
+    private static string TimeStamp() => System.DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
 }

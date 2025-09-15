@@ -676,8 +676,12 @@ MonoBehaviour:
   renderTexture: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
   maxDistance: 0.03
   minBrushDistance: 0.5
-  backGroundColor: {r: 1, g: 1, b: 1, a: 0.39215687}
+  softBrushShader: {fileID: 4800000, guid: e0cbc67330ffc4905a2e9ebd317acef4, type: 3}
   markerAlpha: 1
+  edgeWidth: 0.12
+  hardness: 0.8
+  smoothFactor: 0.5
+  backGroundColor: {r: 1, g: 1, b: 1, a: 0.39215687}
   useBoxCollider: 1
   drawLayers:
     serializedVersion: 2
@@ -687,8 +691,8 @@ MonoBehaviour:
   - brushTransform: {fileID: 0}
     isHeld: 0
     color: {r: 1, g: 0, b: 0, a: 0}
-    sizeY: 10
-    sizeX: 10
+    sizeY: 30
+    sizeX: 30
     lastPosition: {x: 0, y: 0}
     isFirstDraw: 0
     isDrawing: 0
@@ -2987,7 +2991,7 @@ MonoBehaviour:
   - {fileID: 2800000, guid: f6dda0249022c42de9e76ccbdde84beb, type: 3}
   targetFilePaths: []
   mode: binary
-  tau: 8
+  tau: 16
   side: 128
   scanFrom: 0.85
   scanTo: 1.25
@@ -4418,55 +4422,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e37536240892e1f49a7ccddc63ac1a4b, type: 3}
---- !u!1 &1396059056
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1396059058}
-  - component: {fileID: 1396059059}
-  m_Layer: 0
-  m_Name: WhiteboardChamferJudge
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1396059058
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1396059056}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 8.014224, y: 1.5369419, z: -3.2849376}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1396059059
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1396059056}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bb808b2366645465ca93064bf2c27d0a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  whiteboardRT: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
-  templatePNG: {fileID: 2800000, guid: c2d7c82a0e649464dbf17c2190f48fea, type: 3}
-  analysisMaxSide: 512
-  preview: {fileID: 0}
-  scoreText: {fileID: 0}
 --- !u!1001 &1431736758
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8029,7 +7984,6 @@ SceneRoots:
   - {fileID: 1693586669}
   - {fileID: 1063505950}
   - {fileID: 536294694}
-  - {fileID: 1396059058}
   - {fileID: 776434842}
   - {fileID: 887910251}
   - {fileID: 736072684}

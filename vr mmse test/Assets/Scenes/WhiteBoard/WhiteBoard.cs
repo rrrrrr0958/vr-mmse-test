@@ -6,21 +6,25 @@ public class WhiteBoard : MonoBehaviour
     [Tooltip("The Render Texture to draw on")]
     public RenderTexture renderTexture;
 
-    [Header("BrushSettings")]
+    [Header("Brush Input")]
     [Tooltip("Max distance for brush detection (for physical pen mode)")]
     public float maxDistance = 0.2f;
 
     [Tooltip("Minimum distance between brush positions (pixels)")]
     public float minBrushDistance = 1f;
 
-    private Material brushMaterial; // Material used for GL drawing
+    [Header("Soft Brush (No MSAA Needed)")]
+    [Tooltip("Assign the shader 'Hidden/SoftBrushRadial'. Leave empty to auto-find.")]
+    public Shader softBrushShader;          // 指向 Hidden/SoftBrushRadial（可留空自動找）
+    private Material brushMaterial;         // 柔邊筆刷材質（GL 疊加）
 
-    public Color backGroundColor = Color.white;  // 初始化清空畫布
-    [Range(0, 1)]
-    public float markerAlpha = 0.7f;
+    [Range(0f, 1f)] public float markerAlpha = 1.0f;     // 筆跡不透明度（建議 0.9~1.0 更銳利）
+    [Range(0.01f, 0.5f)] public float edgeWidth = 0.12f; // 邊緣過渡寬度（越小越銳）
+    [Range(0f, 1f)] public float hardness  = 0.8f;       // 邊緣硬度（越大越硬）
+    [Range(0f, 1f)] public float smoothFactor = 0.25f;   // 位置平滑（0=關；0.2~0.3 推薦）
 
-    [Header("Collider Type")]
-    [Tooltip("Set false to use a MeshCollider for 3d objects")]
+    [Header("Board")]
+    public Color backGroundColor = Color.white;          // 初始化清空畫布
     public bool useBoxCollider = true;
 
     [Header("Raycast Filter")]
@@ -52,8 +56,18 @@ public class WhiteBoard : MonoBehaviour
 
     void Start()
     {
-        brushMaterial = new Material(Shader.Find("Hidden/Internal-Colored"));
+        // 建立柔邊筆刷材質
+        if (softBrushShader == null)
+            softBrushShader = Shader.Find("Hidden/SoftBrushRadial");
+        if (softBrushShader == null)
+        {
+            Debug.LogError("[WhiteBoard] 找不到 Shader 'Hidden/SoftBrushRadial'，請先加入對應 shader。");
+            enabled = false; return;
+        }
+        brushMaterial = new Material(softBrushShader);
+        SyncBrushMaterialParams();
 
+        // 將畫布掛到 Renderer（若有）
         var r = GetComponent<Renderer>();
         if (r != null && renderTexture != null)
             r.material.mainTexture = renderTexture;
@@ -68,12 +82,9 @@ public class WhiteBoard : MonoBehaviour
 
             foreach (var b in brushes)
             {
-                var c = b.color;
-                c.a = markerAlpha;
-                b.color = c;
-                // 起手狀態
-                b.isFirstDraw = true;
-                b.isDrawing = false;
+                // 套用整體 alpha 至每支筆的顏色
+                var c = b.color; c.a = markerAlpha; b.color = c;
+                b.isFirstDraw = true; b.isDrawing = false; b.lastPosition = Vector2.zero;
             }
 
             RenderTexture.active = prev;
@@ -93,8 +104,10 @@ public class WhiteBoard : MonoBehaviour
 
     void Update()
     {
-        // 仍保留「實體筆」模式（brushTransform + isHeld）：
-        if (renderTexture == null) return;
+        if (renderTexture == null || brushMaterial == null) return;
+
+        // 過程中若你在 Inspector 動態調整參數，這裡讓材質即時同步
+        SyncBrushMaterialParams();
 
         var prev = RenderTexture.active;
         RenderTexture.active = renderTexture;
@@ -129,7 +142,7 @@ public class WhiteBoard : MonoBehaviour
     /// <summary>用 RaycastHit（必須命中這塊 WhiteBoard）來畫，適用射線模式。</summary>
     public void StrokeFromHit(RaycastHit hit, int brushIndex, float rotationZDeg = 0f)
     {
-        if (renderTexture == null) return;
+        if (renderTexture == null || brushMaterial == null) return;
         if (brushIndex < 0 || brushIndex >= brushes.Count) return;
         if (hit.collider.gameObject != gameObject) return;
 
@@ -183,7 +196,7 @@ public class WhiteBoard : MonoBehaviour
         return new Vector2(x, y);
     }
 
-    // 統一處理插值與落筆
+    // 統一處理插值與落筆（含位置平滑）
     void ProcessStroke(BrushSettings brush, Vector2 current, float rotZDeg)
     {
         if (!brush.isDrawing)
@@ -191,6 +204,10 @@ public class WhiteBoard : MonoBehaviour
             brush.isFirstDraw = true;
             brush.isDrawing = true;
         }
+
+        // 一階平滑（EMA）：抑制手抖與鋸齒擺動
+        if (!brush.isFirstDraw)
+            current = Vector2.Lerp(brush.lastPosition, current, Mathf.Clamp01(smoothFactor));
 
         if (brush.isFirstDraw)
         {
@@ -200,7 +217,7 @@ public class WhiteBoard : MonoBehaviour
             return;
         }
 
-        // BoxCollider / 射線模式：永遠插值（避免斷點）
+        // 永遠插值（避免斷點）
         float dist = Vector2.Distance(current, brush.lastPosition);
         int steps = Mathf.Max(1, Mathf.CeilToInt(dist / Mathf.Max(0.1f, minBrushDistance)));
         for (int i = 1; i <= steps; i++)
@@ -212,33 +229,49 @@ public class WhiteBoard : MonoBehaviour
         brush.lastPosition = current;
     }
 
+    // 以「柔邊圓刷」貼合到畫布（GL + UV + 透明混合）
     void DrawAtPosition(Vector2 pos, Color color, float sizeX, float sizeY, float rotDeg)
     {
+        if (brushMaterial == null) return;
+
+        // 同步顏色與不透明度（每筆即時）
+        color.a = markerAlpha;
+        brushMaterial.SetColor("_Color", color);
+
         GL.PushMatrix();
         GL.LoadPixelMatrix(0, renderTexture.width, renderTexture.height, 0);
+
+        // Shader 內已設 Blend SrcAlpha OneMinusSrcAlpha
         brushMaterial.SetPass(0);
 
-        GL.Begin(GL.QUADS);
-        GL.Color(color);
-
         float rad = rotDeg * Mathf.Deg2Rad;
-        float cos = Mathf.Cos(rad);
-        float sin = Mathf.Sin(rad);
+        float cos = Mathf.Cos(rad), sin = Mathf.Sin(rad);
 
+        // 以筆心為中心的矩形（sizeX/sizeY 決定半徑；可形成橢圓）
         Vector2[] v = new Vector2[4];
         v[0] = new Vector2(-sizeX, -sizeY);
         v[1] = new Vector2( sizeX, -sizeY);
         v[2] = new Vector2( sizeX,  sizeY);
         v[3] = new Vector2(-sizeX,  sizeY);
 
+        Vector2[] uv = new Vector2[4] {
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
+        };
+
+        GL.Begin(GL.QUADS);
         for (int i = 0; i < 4; i++)
         {
             float rx = v[i].x * cos + v[i].y * sin;
             float ry = -v[i].x * sin + v[i].y * cos;
-            GL.Vertex3(pos.x + rx, pos.y + ry, 0);
-        }
 
+            GL.TexCoord2(uv[i].x, uv[i].y);   // 先給 UV
+            GL.Vertex3(pos.x + rx, pos.y + ry, 0f);
+        }
         GL.End();
+
         GL.PopMatrix();
     }
 
@@ -252,18 +285,26 @@ public class WhiteBoard : MonoBehaviour
         GL.Clear(true, true, backGroundColor);
         RenderTexture.active = prev;
 
-        // 重置筆狀態
         foreach (var b in brushes)
         {
             b.isFirstDraw = true;
             b.isDrawing = false;
+            b.lastPosition = Vector2.zero;
         }
+    }
+
+    // ---- 小工具 ----
+    void SyncBrushMaterialParams()
+    {
+        if (brushMaterial == null) return;
+        brushMaterial.SetFloat("_EdgeWidth", Mathf.Clamp(edgeWidth, 0.01f, 0.5f));
+        brushMaterial.SetFloat("_Hardness",  Mathf.Clamp01(hardness));
     }
 
     static void EnsureRTSettings(RenderTexture rt)
     {
-        rt.filterMode = FilterMode.Bilinear;
-        rt.wrapMode = TextureWrapMode.Clamp;
-        // 建議在 Inspector 令 antiAliasing=1
+        rt.filterMode = FilterMode.Bilinear;   // 放大時較不鋸齒
+        rt.wrapMode   = TextureWrapMode.Clamp;
+        // 不依賴 MSAA；antiAliasing=1 即可
     }
 }
