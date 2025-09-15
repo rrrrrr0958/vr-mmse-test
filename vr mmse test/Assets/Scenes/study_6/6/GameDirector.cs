@@ -14,7 +14,7 @@ public class GameDirector : MonoBehaviour
     public GameObject levelClearPanel; // 「恭喜完成」面板（預設關閉）
 
     [Header("Timings")]
-    public float delayShowClear = 2f;  // 選到後過幾秒顯示完成面板
+    public float delayShowClear = 8f;  // 選到後過幾秒顯示完成面板
     public float delayToGame2   = 2f;  // 顯示面板後再過幾秒切到 Game2
 
     [Header("XR")]
@@ -25,7 +25,7 @@ public class GameDirector : MonoBehaviour
     public string chosenId { get; private set; } = null;      // 第一次選到的 id
 
     void Awake()
-    {
+    {  
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
 

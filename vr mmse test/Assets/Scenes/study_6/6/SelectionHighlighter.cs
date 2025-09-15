@@ -20,6 +20,8 @@ public class SelectionHighlighter : MonoBehaviour
     public bool compensateParentScale = true;
     public int  sortingOrder = 4000;
 
+    
+
     [Header("Orientation")]
     [Tooltip("繞 Y 軸額外旋轉角度（例如 180° 做翻轉）")]
     public float yawDegrees = 0f;
