@@ -4,9 +4,9 @@ using UnityEngine.Networking;
 using UnityEngine.UI;   // 給 uGUI Text 用
 using TMPro;            // 如果你用 TextMeshPro
 using System.Collections;
-using System.IO;          // ← 新增
+using System.IO;
 #if UNITY_EDITOR
-using UnityEditor;        // ← 為了自動刷新 Project 視窗
+using UnityEditor;
 #endif
 
 public class ShapeScorer : MonoBehaviour
@@ -22,17 +22,50 @@ public class ShapeScorer : MonoBehaviour
     public Texture2D[] targetTextures;
     public string[] targetFilePaths;
 
-    [Header("Parameters（和 Python 對上）")]
-    public string mode = "binary";   // "binary" | "edges"
+    // -------- 與 Python 對齊（通用）--------
+    [Header("Common Parameters（和 Python 對上）")]
+    public string mode = "edges";    // "binary" | "edges"
     public float tau = 8f;
-    public int side = 128;
-    public float scanFrom = 0.85f, scanTo = 1.25f;
-    public int scanN = 11;
+    public int side = 512;           // 建議 512：A 版推此值
+    public float scanFrom = 0.90f, scanTo = 1.10f;
+    public int scanN = 9;
 
-    // 你指定的規則（和 server 一致）
-    public float diaMin = 30f;
-    public float diaLowFactor = 0.6f;
-    
+    // -------- A版：洞（相交）檢測 相關參數 --------
+    [Header("A版：洞檢測參數（和 Python 對上）")]
+    [Tooltip("二值邊緣的輕微膨脹與封孔，讓輪廓閉合")]
+    public int holeDilate = 3;
+    public int holeClose = 3;
+
+    [Tooltip("由 target 推估腰帶視窗高度比例（相對畫面高）")]
+    public float waistBandFrac = 0.20f;
+
+    [Tooltip("洞面積占整張影像的最小/最大比例")]
+    public float holeAreaMinFrac = 0.0015f;
+    public float holeAreaMaxFrac = 0.06f;
+
+    [Tooltip("最小外接矩形的短/長比門檻（太扁則捨去）")]
+    public float flatMin = 0.16f;
+
+    [Tooltip("對角互補角度的容忍度（度）")]
+    public float angleTol = 25.0f;
+
+    [Tooltip("存在分數：中心靠腰線的權重 / 幾何形狀權重")]
+    public float existCenterWeight = 0.40f;
+    public float existShapeWeight = 0.60f;
+
+    [Tooltip("近似四邊形的額外加分")]
+    public float existQuadBonus = 0.10f;
+
+    [Tooltip("存在分數門檻：低於此值視為『無菱形(無相交)』")]
+    public float existThreshold = 15.0f;
+
+    // -------- 總分融合 --------
+    [Header("Score Blend")]
+    [Tooltip("有相交時：final = chamferWeight * Chamfer + (1 - chamferWeight) * DiamondExist")]
+    public float chamferWeight = 0.60f;
+
+    [Tooltip("無相交時：final = Chamfer * noDiamondFactor")]
+    public float noDiamondFactor = 0.55f;
 
     [Header("Logs")]
     public bool showRawJson = false;
@@ -45,15 +78,31 @@ public class ShapeScorer : MonoBehaviour
     [Tooltip("存檔檔名前綴")]
     public string saveFilePrefix = "user_";
 
-
-
-    [System.Serializable] public class Details {
+    // ------- 回傳資料模型（需與 server JSON 對齊）-------
+    [System.Serializable]
+    public class Details {
         public float chamfer;
-        public float diamond;
-        public float area_ratio;
-        public float hu;
-        public int quad;
+
+        // A 版新增／取代舊 diamond 欄位
+        public float diamond_exist;    // 0~100
+        public bool has_diamond;       // true/false
+
+        // Chamfer 細節
         public float avg_d, d_ab, d_ba, best_scale;
+
+        // A 版洞檢測 debug 欄位（可為 null）
+        public int[] waist_band;       // [y0, y1]
+        public int[] hole_bbox;        // [x, y, w, h]
+        public float hole_area_frac;
+        public float flat;
+        public float[] angles;         // 四角角度
+        public int[] center_dist_px;   // [dx, dy]
+
+        // --- 舊欄位的相容占位（若 server 仍回傳舊鍵不會崩，若無就維持預設值）---
+        public float diamond;          // 舊：不再使用（server A版不會給）
+        public float area_ratio;       // 舊：不再使用
+        public float hu;               // 舊：不再使用
+        public int   quad;             // 舊：不再使用
     }
     [System.Serializable] public class ResultItem { public int index; public string name; public float score; public Details details; }
     [System.Serializable] public class ScoreResp { public int best_index; public float best_score; public ResultItem[] results; }
@@ -65,135 +114,158 @@ public class ShapeScorer : MonoBehaviour
         StartCoroutine(SendForScore());
     }
 
-IEnumerator SendForScore()
-{
-byte[] userPng = CaptureUserPNG();
-if (userPng == null) yield break;
-
-// === 依設定存出你的繪圖（只存 user，不存 targets）到 Assets/scences/pics ===
-if (saveUserOnJudge)
-{
-    try
+    IEnumerator SendForScore()
     {
-        string assetsPath = Application.dataPath; // 指到 Assets/
-        string outDir = Path.Combine(assetsPath, "Scenes/pics");
-        Directory.CreateDirectory(outDir);
+        byte[] userPng = CaptureUserPNG();
+        if (userPng == null) yield break;
 
-        string ts = System.DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-        string fileName = $"{saveFilePrefix}{ts}.png";
-        string fullPath = Path.Combine(outDir, fileName);
-
-        File.WriteAllBytes(fullPath, userPng);
-        Debug.Log($"[SaveOnJudge] 已保存你的繪圖：{fullPath}");
-
-        #if UNITY_EDITOR
-        AssetDatabase.Refresh(); // 讓檔案立刻出現在 Project 視窗
-        #endif
-    }
-    catch (System.Exception e)
-    {
-        Debug.LogWarning($"[SaveOnJudge] 保存失敗：{e}");
-    }
-}
-
-
-
-    WWWForm form = new WWWForm();
-    form.AddBinaryData("user", userPng, "user.png", "image/png");
-
-    // 和 server 欄位對齊
-    form.AddField("mode", mode);
-    form.AddField("tau", tau.ToString("0.#####"));
-    form.AddField("side", side.ToString());
-    form.AddField("scan_from", scanFrom.ToString("0.###"));
-    form.AddField("scan_to", scanTo.ToString("0.###"));
-    form.AddField("scan_n", scanN.ToString());
-    form.AddField("dia_min", diaMin.ToString("0.###"));
-    form.AddField("dia_low_factor", diaLowFactor.ToString("0.###"));
-
-    if (targetTextures != null)
-    {
-        for (int i = 0; i < targetTextures.Length; i++)
+        // === 依設定存出你的繪圖（只存 user，不存 targets）到 Assets/Scenes/pics ===
+        if (saveUserOnJudge)
         {
-            var t = targetTextures[i];
-            if (t == null) continue;
-            byte[] png;
-            try { png = t.EncodeToPNG(); }
-            catch { var r = MakeReadable(t); png = r.EncodeToPNG(); Destroy(r); }
-            form.AddBinaryData("targets", png, $"target_{i}.png", "image/png");
-        }
-    }
-    if (targetFilePaths != null)
-    {
-        foreach (var path in targetFilePaths)
-        {
-            if (string.IsNullOrEmpty(path)) continue;
-            if (!System.IO.File.Exists(path)) { Debug.LogWarning($"找不到目標檔案：{path}"); continue; }
-            byte[] bytes = System.IO.File.ReadAllBytes(path);
-            form.AddBinaryData("targets", bytes, System.IO.Path.GetFileName(path), "image/png");
-        }
-    }
-
-    using (UnityWebRequest req = UnityWebRequest.Post(scoreUrl, form))
-    {
-        req.timeout = 20;
-        yield return req.SendWebRequest();
-#if UNITY_2020_2_OR_NEWER
-        if (req.result != UnityWebRequest.Result.Success)
-#else
-        if (req.isNetworkError || req.isHttpError)
-#endif
-        {
-            Debug.LogError($"[Score] HTTP {req.responseCode} {req.error}\n{req.downloadHandler.text}");
-            yield break;
-        }
-
-        var json = req.downloadHandler.text;
-        if (showRawJson) Debug.Log("[Score JSON]\n" + PrettyJson(json));
-
-        var data = JsonUtility.FromJson<ScoreResp>(json);
-        if (data == null || data.results == null || data.results.Length == 0)
-        {
-            Debug.LogError("[Score] 回傳內容異常。");
-            yield break;
-        }
-
-        int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
-        string name = data.results[bi].name;
-        float score = data.results[bi].score;
-        Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
-
-        FindObjectOfType<ScoreUI>()?.UpdateScore(score);
-
-        if (verboseLogs)
-        {
-            for (int i = 0; i < data.results.Length; i++)
+            try
             {
-                var r = data.results[i];
-                var d = r.details;
-                string pen = (d != null && d.diamond < diaMin)
-                    ? $" | penalty×{diaLowFactor:0.##} (diamond<{diaMin:0.#})"
-                    : "";
+                string assetsPath = Application.dataPath; // 指到 Assets/
+                string outDir = Path.Combine(assetsPath, "Scenes/pics");
+                Directory.CreateDirectory(outDir);
 
-                string line = $"[Score][{i}] {r.name}  總分 {r.score:F1}" +
-                              (d==null ? "" :
-                               $" | chamfer {d.chamfer:F1}" +
-                               $" | diamond {d.diamond:F1}" +
-                               $" | area {d.area_ratio:F3}" +
-                               $" | hu {d.hu:F3}" +
-                               $" | quad {d.quad}" +
-                               $" | avg_d {d.avg_d:F2}" +
-                               $" | d(A→T) {d.d_ab:F2}" +
-                               $" | d(T→A) {d.d_ba:F2}" +
-                               $" | best_scale {d.best_scale:F2}") +
-                               pen;
+                string ts = System.DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+                string fileName = $"{saveFilePrefix}{ts}.png";
+                string fullPath = Path.Combine(outDir, fileName);
 
-                Debug.Log(line);
+                File.WriteAllBytes(fullPath, userPng);
+                Debug.Log($"[SaveOnJudge] 已保存你的繪圖：{fullPath}");
+
+                #if UNITY_EDITOR
+                AssetDatabase.Refresh(); // 讓檔案立刻出現在 Project 視窗
+                #endif
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[SaveOnJudge] 保存失敗：{e}");
+            }
+        }
+
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("user", userPng, "user.png", "image/png");
+
+        // 和 server 欄位對齊（通用）
+        form.AddField("mode", mode);
+        form.AddField("tau", tau.ToString("0.#####"));
+        form.AddField("side", side.ToString());
+        form.AddField("scan_from", scanFrom.ToString("0.###"));
+        form.AddField("scan_to", scanTo.ToString("0.###"));
+        form.AddField("scan_n", scanN.ToString());
+
+        // A 版：洞檢測參數
+        form.AddField("hole_dilate", holeDilate.ToString());
+        form.AddField("hole_close",  holeClose.ToString());
+        form.AddField("waist_band_frac", waistBandFrac.ToString("0.###"));
+        form.AddField("hole_area_min_frac", holeAreaMinFrac.ToString("0.#####"));
+        form.AddField("hole_area_max_frac", holeAreaMaxFrac.ToString("0.#####"));
+        form.AddField("flat_min", flatMin.ToString("0.#####"));
+        form.AddField("angle_tol", angleTol.ToString("0.###"));
+        form.AddField("exist_center_w", existCenterWeight.ToString("0.###"));
+        form.AddField("exist_shape_w", existShapeWeight.ToString("0.###"));
+        form.AddField("exist_quad_bonus", existQuadBonus.ToString("0.###"));
+        form.AddField("exist_threshold", existThreshold.ToString("0.###"));
+
+        // 總分融合
+        form.AddField("chamfer_weight",   chamferWeight.ToString("0.###"));
+        form.AddField("no_diamond_factor", noDiamondFactor.ToString("0.###"));
+
+        // Targets
+        if (targetTextures != null)
+        {
+            for (int i = 0; i < targetTextures.Length; i++)
+            {
+                var t = targetTextures[i];
+                if (t == null) continue;
+                byte[] png;
+                try { png = t.EncodeToPNG(); }
+                catch { var r = MakeReadable(t); png = r.EncodeToPNG(); Destroy(r); }
+                form.AddBinaryData("targets", png, $"target_{i}.png", "image/png");
+            }
+        }
+        if (targetFilePaths != null)
+        {
+            foreach (var path in targetFilePaths)
+            {
+                if (string.IsNullOrEmpty(path)) continue;
+                if (!System.IO.File.Exists(path)) { Debug.LogWarning($"找不到目標檔案：{path}"); continue; }
+                byte[] bytes = System.IO.File.ReadAllBytes(path);
+                form.AddBinaryData("targets", bytes, System.IO.Path.GetFileName(path), "image/png");
+            }
+        }
+
+        using (UnityWebRequest req = UnityWebRequest.Post(scoreUrl, form))
+        {
+            req.timeout = 20;
+            yield return req.SendWebRequest();
+#if UNITY_2020_2_OR_NEWER
+            if (req.result != UnityWebRequest.Result.Success)
+#else
+            if (req.isNetworkError || req.isHttpError)
+#endif
+            {
+                Debug.LogError($"[Score] HTTP {req.responseCode} {req.error}\n{req.downloadHandler.text}");
+                yield break;
+            }
+
+            var json = req.downloadHandler.text;
+            if (showRawJson) Debug.Log("[Score JSON]\n" + PrettyJson(json));
+
+            var data = JsonUtility.FromJson<ScoreResp>(json);
+            if (data == null || data.results == null || data.results.Length == 0)
+            {
+                Debug.LogError("[Score] 回傳內容異常。");
+                yield break;
+            }
+
+            int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
+            string name = data.results[bi].name;
+            float score = data.results[bi].score;
+            Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
+
+            FindObjectOfType<ScoreUI>()?.UpdateScore(score);
+
+            if (verboseLogs)
+            {
+                for (int i = 0; i < data.results.Length; i++)
+                {
+                    var r = data.results[i];
+                    var d = r.details ?? new Details();
+
+                    // A 版的懲罰邏輯：若 has_diamond==false，代表 server 端已用 noDiamondFactor 懲罰
+                    string pen = (d.has_diamond ? "" : $" | penalty×{noDiamondFactor:0.##} (no diamond)");
+
+                    string wb = (d.waist_band != null && d.waist_band.Length == 2)
+                                ? $"[{d.waist_band[0]}, {d.waist_band[1]}]" : "[]";
+                    string hb = (d.hole_bbox != null && d.hole_bbox.Length == 4)
+                                ? $"[{d.hole_bbox[0]}, {d.hole_bbox[1]}, {d.hole_bbox[2]}, {d.hole_bbox[3]}]" : "[]";
+                    string ang = (d.angles != null && d.angles.Length > 0)
+                                ? string.Join(",", d.angles) : "";
+
+                    string line =
+                        $"[Score][{i}] {r.name}  總分 {r.score:F1}" +
+                        $" | chamfer {d.chamfer:F1}" +
+                        $" | diamond_exist {d.diamond_exist:F1}" +
+                        $" | has_diamond {d.has_diamond}" +
+                        $" | avg_d {d.avg_d:F2}" +
+                        $" | d(A→T) {d.d_ab:F2}" +
+                        $" | d(T→A) {d.d_ba:F2}" +
+                        $" | best_scale {d.best_scale:F2}" +
+                        $" | waist_band {wb}" +
+                        $" | hole_bbox {hb}" +
+                        $" | hole_area_frac {d.hole_area_frac:0.0000}" +
+                        $" | flat {d.flat:0.000}" +
+                        (string.IsNullOrEmpty(ang) ? "" : $" | angles {ang}") +
+                        pen;
+
+                    Debug.Log(line);
+                }
             }
         }
     }
-}
-
 
     // -------- 擷取畫面/轉可讀 --------
     private byte[] CaptureUserPNG()
