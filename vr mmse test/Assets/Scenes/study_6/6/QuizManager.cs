@@ -5,6 +5,9 @@ using UnityEngine.Events;
 
 public class QuizManager : MonoBehaviour
 {
+    [Header("Feedback")]
+    public FeedbackUI feedbackUI;
+
     [Header("UI")]
     public TextMeshProUGUI questionText;
 
@@ -81,16 +84,23 @@ public class QuizManager : MonoBehaviour
     // ===== 遊戲一的最終提交流程：給 SelectableTarget 呼叫 =====
     public void Submit(string targetId)
     {
-        // 若 GameDirector 不允許互動（已鎖定 / 非 Game1）則忽略
         if (GameDirector.Instance == null || !GameDirector.Instance.CanInteractGame1())
             return;
 
         bool ok = targetId == currentAnswer;
 
-        // 交給 GameDirector：鎖定答案、關 UI、顯示面板、切換到 Game2
+        // ★ 顯示對錯到畫面 ★
+        if (feedbackUI)
+        {
+            if (ok)
+                feedbackUI.ShowCorrect($"答對了！");
+            else
+                feedbackUI.ShowWrong($"答錯了！繼續加油");
+        }
+
+        // 交給 GameDirector：鎖定答案、關 UI、顯示面板、切到 Game2
         GameDirector.Instance.LockAndAdvance(ok, targetId);
 
-        //（可選）外部 UnityEvent 仍然可用
         if (ok) onQuestionCleared?.Invoke();
     }
 
