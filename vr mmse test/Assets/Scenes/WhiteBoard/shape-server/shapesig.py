@@ -109,10 +109,63 @@ def biggest_contour(bin_mask):
     if not cnts: return None
     return max(cnts, key=cv2.contourArea)
 
+import numpy as np, cv2
+
+def mask_to_cnt(mask):
+    cnt = biggest_contour(mask)
+    return cnt
+
+def pca_deskew_mask(mask):
+    ys, xs = np.nonzero(mask > 0)
+    if len(xs) < 10:
+        return mask
+    pts = np.stack([xs, ys], axis=1).astype(np.float32)
+    mean, eigvec = cv2.PCACompute(pts, mean=np.array([]))
+    # 讓第一主成分朝「垂直」方向
+    v = eigvec[0]  # 主要方向
+    ang = np.degrees(np.arctan2(v[1], v[0]))  # 相對 x 軸
+    # 我們希望長軸接近垂直 => 旋轉到 90° 或 -90° 附近
+    rot_needed = 90 - ang
+    H, W = mask.shape
+    M = cv2.getRotationMatrix2D((W/2, H/2), rot_needed, 1.0)
+    rotated = cv2.warpAffine(mask, M, (W, H), flags=cv2.INTER_NEAREST, borderValue=0)
+    return rotated
+
+def crop_and_fit(mask, box_side=196, pad=8):
+    ys, xs = np.nonzero(mask > 0)
+    if len(xs) == 0: 
+        return np.zeros((box_side, box_side), np.uint8)
+    x1,x2 = xs.min(), xs.max(); y1,y2 = ys.min(), ys.max()
+    crop = mask[y1:y2+1, x1:x2+1]
+    h, w = crop.shape
+    # 留點白邊
+    box = np.zeros((box_side, box_side), np.uint8)
+    scale = (box_side - 2*pad) / max(h, w)
+    nh, nw = max(1,int(round(h*scale))), max(1,int(round(w*scale)))
+    resized = cv2.resize(crop, (nw, nh), interpolation=cv2.INTER_NEAREST)
+    y0 = (box_side - nh)//2; x0 = (box_side - nw)//2
+    box[y0:y0+nh, x0:x0+nw] = resized
+    return box
+
+def minrect_flatness(cnt):
+    # 扁平程度（短邊/長邊），數值 0~1；越小越扁
+    if cnt is None or len(cnt) < 3:
+        return 0.0
+    rect = cv2.minAreaRect(cnt)
+    (w, h) = rect[1]
+    if w < 1 or h < 1:
+        return 0.0
+    sh = min(w, h); lg = max(w, h)
+    return float(sh / lg)
+
+
 # ---------- 菱形分 ----------
 def diamond_score(user_rgb, target_rgb, side=512,
-                  close_ks=7, dilate_ks=7, margin=4,
-                  area_min_ratio=0.05, hu_tau=0.35, quad_bonus=0.15):
+                  close_ks=7, dilate_ks=9, margin=4,
+                  area_min_ratio=0.05, hu_tau=0.7, quad_bonus=0.15,
+                  flat_floor=0.35,      # 扁平最低加權
+                  flat_k=0.50,          # 扁平提升強度
+                  norm_box=196):        # Hu 比對的標準化盒子大小
     U = filled_strokes(user_rgb, close_ks, dilate_ks)
     T = filled_strokes(target_rgb, close_ks, dilate_ks)
 
@@ -121,26 +174,51 @@ def diamond_score(user_rgb, target_rgb, side=512,
     if uint is None or tint is None:
         return 0.0, {"area_ratio": 0.0, "hu": 9.9, "quad": 0}
 
-    uarea = np.count_nonzero(uint)
-    # 相對手繪 min(上,下) 的占比，避免「幾乎沒交疊」也過關
-    r_area = float(uarea / max(1, ubase))
-    if r_area < area_min_ratio:
-        return 0.0, {"area_ratio": r_area, "hu": 9.9, "quad": 0}
+    u_cnt_raw = biggest_contour(uint)
+    t_cnt_raw = biggest_contour(tint)
+    if u_cnt_raw is None or t_cnt_raw is None:
+        return 0.0, {"area_ratio": 0.0, "hu": 9.9, "quad": 0}
 
-    u_cnt = biggest_contour(uint); t_cnt = biggest_contour(tint)
+    # --- 對稱占比：同時看 user 與 target 的上/下半最小面積 ---
+    # 避免某一方很薄時一刀切成 0 分
+    uarea = np.count_nonzero(uint)
+    tarea = np.count_nonzero(tint)
+    r_area_u = float(uarea / max(1, ubase))
+    r_area_t = float(tarea / max(1, tbase))
+    r_area_sym = min(r_area_u, r_area_t)
+    if r_area_sym < area_min_ratio:
+        return 0.0, {"area_ratio": r_area_sym, "hu": 9.9, "quad": 0}
+
+    # --- 方向校正 + 尺寸標準化之後再做 Hu ---
+    u_rot = pca_deskew_mask(uint)
+    t_rot = pca_deskew_mask(tint)
+    u_box = crop_and_fit(u_rot, box_side=norm_box, pad=8)
+    t_box = crop_and_fit(t_rot, box_side=norm_box, pad=8)
+
+    u_cnt = mask_to_cnt(u_box)
+    t_cnt = mask_to_cnt(t_box)
     if u_cnt is None or t_cnt is None:
-        return 0.0, {"area_ratio": r_area, "hu": 9.9, "quad": 0}
+        return 0.0, {"area_ratio": r_area_sym, "hu": 9.9, "quad": 0}
 
     hu = cv2.matchShapes(u_cnt, t_cnt, cv2.CONTOURS_MATCH_I1, 0)
+
+    # --- 四邊形偵測 + 扁平加權（連續值，避免 0/1） ---
     peri = cv2.arcLength(u_cnt, True)
     approx = cv2.approxPolyDP(u_cnt, 0.02 * peri, True) if peri > 0 else u_cnt
     is_quadish = (4 <= len(approx) <= 6) and cv2.isContourConvex(approx)
     quad = 1 if is_quadish else 0
 
+    flat = minrect_flatness(u_cnt)  # 0~1，越小越扁
+    # 讓再怎麼扁也有底：flat_floor；越不扁加權越高
+    flat_weight = max(flat_floor, min(1.0, flat_floor + flat_k * flat))
+
+    # --- Hu 轉分數 ---
     s_hu = max(0.0, min(100.0, (1.0 - hu / hu_tau) * 100.0))
-    s = s_hu * (1.0 + quad_bonus * quad)
+    # --- 綜合：Hu × 扁平加權 × 四邊形加權 ---
+    s = s_hu * flat_weight * (1.0 + quad_bonus * quad)
     s = max(0.0, min(100.0, s))
-    return s, {"area_ratio": r_area, "hu": float(hu), "quad": int(quad)}
+    return s, {"area_ratio": r_area_sym, "hu": float(hu), "quad": int(quad), "flat": float(flat)}
+
 
 # ---------- 封裝一個總分 ----------
 def score_one(user_rgb, target_rgb, cfg):
