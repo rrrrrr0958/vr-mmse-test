@@ -1,6 +1,8 @@
 // Assets/Scenes/WhiteBoard/shape-server/ShapeScorer.cs
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;   // 給 uGUI Text 用
+using TMPro;            // 如果你用 TextMeshPro
 using System.Collections;
 using System.IO;          // ← 新增
 #if UNITY_EDITOR
@@ -30,6 +32,7 @@ public class ShapeScorer : MonoBehaviour
     // 你指定的規則（和 server 一致）
     public float diaMin = 30f;
     public float diaLowFactor = 0.6f;
+    
 
     [Header("Logs")]
     public bool showRawJson = false;
@@ -159,6 +162,8 @@ if (saveUserOnJudge)
         string name = data.results[bi].name;
         float score = data.results[bi].score;
         Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
+
+        FindObjectOfType<ScoreUI>()?.UpdateScore(score);
 
         if (verboseLogs)
         {
