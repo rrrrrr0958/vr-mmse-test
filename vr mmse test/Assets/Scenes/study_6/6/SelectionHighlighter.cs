@@ -15,12 +15,15 @@ public class SelectionHighlighter : MonoBehaviour
     [Header("Visual")]
     public Color hoverColor  = new Color(0.20f, 0.80f, 1.00f); // 藍
     public Color selectColor = new Color(2.0f,  2.0f,  2.0f);  // 白（HDR）
+    
+    [Header("Loading Effect")]
+    public float rotationSpeed = 180f; // 每秒旋轉角度
+    public float loadingSegmentSize = 0.3f; // 亮部分佔整個圓的比例 (0-1)
+    public float loadingDimFactor = 0.5f; // 暗部分的亮度係數 (0-1)
 
     [Header("Behaviour")]
     public bool compensateParentScale = true;
     public int  sortingOrder = 4000;
-
-    
 
     [Header("Orientation")]
     [Tooltip("繞 Y 軸額外旋轉角度（例如 180° 做翻轉）")]
@@ -32,6 +35,9 @@ public class SelectionHighlighter : MonoBehaviour
     LineRenderer ring;
     Material ringMat;
     Coroutine pulseCo;
+    Coroutine loadingCo;
+    float currentRotation = 0f;
+    bool isHovering = false;
 
     // 便捷：目前是否就是「全域唯一選中者」
     public bool IsCurrentSelected => SelectionHighlightRegistry.Current == this;
@@ -152,6 +158,66 @@ public class SelectionHighlighter : MonoBehaviour
         ring.startColor = c;
         ring.endColor = c;
     }
+    
+    // 設置漸層色環效果
+    void SetLoadingRingColors(Color baseColor, float rotation)
+    {
+        if (!ring) return;
+        
+        // 創建漸層顏色
+        Gradient gradient = new Gradient();
+        Color dimColor = new Color(
+            baseColor.r * loadingDimFactor,
+            baseColor.g * loadingDimFactor,
+            baseColor.b * loadingDimFactor,
+            baseColor.a
+        );
+        
+        // 計算關鍵點位置
+        float startPos = rotation / 360f;
+        float endPos = (rotation + loadingSegmentSize * 360f) / 360f;
+        
+        // 確保在0-1範圍內
+        startPos = startPos - Mathf.Floor(startPos);
+        endPos = endPos - Mathf.Floor(endPos);
+        
+        // 準備關鍵點
+        GradientColorKey[] colorKeys;
+        GradientAlphaKey[] alphaKeys = new GradientAlphaKey[2];
+        alphaKeys[0].alpha = 1.0f;
+        alphaKeys[0].time = 0.0f;
+        alphaKeys[1].alpha = 1.0f;
+        alphaKeys[1].time = 1.0f;
+        
+        // 如果亮部分跨越了0度位置
+        if (endPos < startPos)
+        {
+            colorKeys = new GradientColorKey[4];
+            colorKeys[0].color = baseColor;
+            colorKeys[0].time = 0.0f;
+            colorKeys[1].color = dimColor;
+            colorKeys[1].time = endPos;
+            colorKeys[2].color = dimColor;
+            colorKeys[2].time = startPos;
+            colorKeys[3].color = baseColor;
+            colorKeys[3].time = 1.0f;
+        }
+        else
+        {
+            colorKeys = new GradientColorKey[4];
+            colorKeys[0].color = dimColor;
+            colorKeys[0].time = 0.0f;
+            colorKeys[1].color = baseColor;
+            colorKeys[1].time = startPos;
+            colorKeys[2].color = baseColor;
+            colorKeys[2].time = endPos;
+            colorKeys[3].color = dimColor;
+            colorKeys[3].time = 1.0f;
+        }
+        
+        gradient.SetKeys(colorKeys, alphaKeys);
+        ring.colorGradient = gradient;
+    }
 
     // 公開：供 Registry 或外部關閉
     public void ForceDeselect()
@@ -159,6 +225,8 @@ public class SelectionHighlighter : MonoBehaviour
         if (!ring) return;
         ring.enabled = false;
         if (pulseCo != null) { StopCoroutine(pulseCo); pulseCo = null; }
+        if (loadingCo != null) { StopCoroutine(loadingCo); loadingCo = null; }
+        isHovering = false;
     }
 
     // 被選中 → 成為全域唯一選中者（白圈常亮）
@@ -167,7 +235,12 @@ public class SelectionHighlighter : MonoBehaviour
         SelectionHighlightRegistry.Take(this);
         if (!ring) return;
 
+        // 停止載入動畫
+        if (loadingCo != null) { StopCoroutine(loadingCo); loadingCo = null; }
+        
+        // 重置為單色
         SetRingColor(selectColor);
+        
         if (pulseCo != null) StopCoroutine(pulseCo);
         pulseCo = StartCoroutine(Pulse());
         ring.enabled = true;
@@ -184,22 +257,44 @@ public class SelectionHighlighter : MonoBehaviour
             return;
         }
 
+        isHovering = true;
         ring.enabled = true;
-        SetRingColor(IsCurrentSelected ? selectColor : hoverColor);
+        
+        // 如果不是當前選中的，則顯示載入動畫
+        if (!IsCurrentSelected)
+        {
+            if (loadingCo != null) StopCoroutine(loadingCo);
+            loadingCo = StartCoroutine(LoadingAnimation());
+        }
+        else
+        {
+            SetRingColor(selectColor);
+        }
     }
 
     void OnHoverExited(HoverExitEventArgs _)
     {
         if (!ring) return;
 
+        isHovering = false;
+        
         if (!Game1Active)
         {
             ring.enabled = false;       // ★ Game2/已鎖定 → 保險關閉
             return;
         }
 
+        // 停止載入動畫
+        if (loadingCo != null)
+        {
+            StopCoroutine(loadingCo);
+            loadingCo = null;
+        }
+
         if (!IsCurrentSelected && pulseCo == null)
             ring.enabled = false;
+        else if (IsCurrentSelected)
+            SetRingColor(selectColor); // 恢復選中顏色
     }
 
     IEnumerator Pulse()
@@ -216,6 +311,32 @@ public class SelectionHighlighter : MonoBehaviour
         ring.widthMultiplier = baseW;
         pulseCo = null;
     }
+    
+    // 新增：載入動畫協程
+    IEnumerator LoadingAnimation()
+    {
+        currentRotation = 0f;
+        ring.enabled = true;
+        
+        while (isHovering && !IsCurrentSelected)
+        {
+            // 更新旋轉角度
+            currentRotation += rotationSpeed * Time.deltaTime;
+            if (currentRotation >= 360f)
+                currentRotation -= 360f;
+                
+            // 應用漸層色環
+            SetLoadingRingColors(hoverColor, currentRotation);
+            
+            yield return null;
+        }
+        
+        // 如果退出時是選中狀態，恢復為選中樣式
+        if (IsCurrentSelected)
+            SetRingColor(selectColor);
+            
+        loadingCo = null;
+    }
 
 #if UNITY_EDITOR
     void OnValidate()
@@ -229,6 +350,10 @@ public class SelectionHighlighter : MonoBehaviour
 
             var mr = ring.GetComponent<MeshRenderer>();
             if (mr) mr.sortingOrder = sortingOrder;
+            
+            // 限制參數範圍
+            loadingSegmentSize = Mathf.Clamp01(loadingSegmentSize);
+            loadingDimFactor = Mathf.Clamp01(loadingDimFactor);
         }
     }
 #endif

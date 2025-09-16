@@ -622,6 +622,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.3
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -1998,6 +2001,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.3
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -2759,6 +2765,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.3
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4455,6 +4464,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.3
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4482,6 +4494,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.3
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4690,8 +4705,11 @@ MonoBehaviour:
   yOffset: 0.05
   zOffset: 0.085
   segments: 64
-  hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
+  hoverColor: {r: 1, g: 0.9550255, b: 0.6933962, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -6479,6 +6497,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 90
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.3
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
