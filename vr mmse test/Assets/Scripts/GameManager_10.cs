@@ -229,7 +229,7 @@ public class GameManager : MonoBehaviour
                 $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
                 $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
                 $"正確率：{accuracy * 100f:F1}% 用時 {timeUsed:F2}s\n" +
-                $"結果：{(allCorrect ? "完全正確！🎉" : "請再試試")}";
+                $"結果：{(allCorrect ? "完全正確！" : "請再試試")}";
         }
 
         if (confirmPanel) confirmPanel.SetActive(false);
