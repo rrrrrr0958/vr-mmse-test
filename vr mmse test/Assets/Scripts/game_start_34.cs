@@ -85,7 +85,6 @@ public class GameManager : MonoBehaviour
     // 私有變數 (腳本內部使用)
     // =========================================================================
 
-    // 修改：現在用來存放可點擊的物件
     private GameObject[] clickableStallObjects;
     private List<string> stallNames = new List<string>();
     private List<string> nonFishStallNames = new List<string>();
@@ -101,6 +100,11 @@ public class GameManager : MonoBehaviour
     private AudioClip recordingClip;
     private List<string> currentQuestionAnswers = new List<string>();
 
+    private GameObject currentHoveredObject = null;
+    private Color originalHoverColor;
+    private GameObject clickedStallObject = null;
+    private Dictionary<GameObject, Color> originalColors = new Dictionary<GameObject, Color>();
+
 #if ENABLE_INPUT_SYSTEM
     private bool lastTriggerPressed = false;
 #endif
@@ -112,28 +116,26 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        // === 修改：從 "StallNameText" 改為你新的 Tag "ClickableStall" ===
         clickableStallObjects = GameObject.FindGameObjectsWithTag("ClickableStall");
         Debug.Log($"Awake: Found {clickableStallObjects.Length} stall clickable objects by tag.");
 
-        // === 新增：建立物件名稱與攤位名稱的對應關係 ===
-        // 這些對應關係是硬編碼的，你需要確保物件名稱正確。
         Dictionary<string, string> nameMapping = new Dictionary<string, string>
         {
             { "Breadbg_34", "麵包" },
             { "Meatonbg_34", "肉攤" },
             { "fishbg_34", "魚攤" },
-            // 你需要在這裡加入所有可點擊物件的名稱對應
             { "fruitbg_34", "蔬果" },
             { "Weaponbg_34", "武器" }
-            // 確保所有物件名稱和攤位名稱都正確
         };
 
         foreach (GameObject stallObject in clickableStallObjects)
         {
-            stallObject.SetActive(true); // 物件一開始都顯示
+            stallObject.SetActive(true);
+            if (stallObject.GetComponent<Renderer>() != null)
+            {
+                originalColors[stallObject] = stallObject.GetComponent<Renderer>().material.color;
+            }
 
-            // === 修改：從物件名稱中獲取攤位名稱 ===
             if (nameMapping.TryGetValue(stallObject.name, out string stallName))
             {
                 stallNames.Add(stallName);
@@ -186,73 +188,114 @@ public class GameManager : MonoBehaviour
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
         }
-        // 這個協程現在沒有作用，因為物件一開始就是啟用的
-        // 但我們保留它以防未來有需要
         StartCoroutine(ShowTextsAfterDelay());
         initialQuestionCoroutine = StartCoroutine(MainClickSequence());
     }
 
     void Update()
     {
-        // === 獨立的滑鼠點擊偵測 ===
-        // 這樣在任何時候點擊滑鼠都能被偵測到，但只有在「等待點擊」的狀態下才會執行後續邏輯。
-        // 這段程式碼獨立出來，不受 `isWaitingForClickInput` 的影響。
+        Ray hoverRay;
+        Transform originT = rayOriginOverride != null ? rayOriginOverride : rightController;
+
 #if ENABLE_INPUT_SYSTEM
-    if (UnityEngine.InputSystem.Mouse.current != null &&
-        UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
-    {
-        Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(pos);
-        // 呼叫新的函式來處理點擊
-        HandleClickRaycast(ray.origin, ray.direction);
-    }
+        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.position != null)
+        {
+            Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+            hoverRay = Camera.main.ScreenPointToRay(pos);
+        }
+        else if (originT != null)
+        {
+            hoverRay = new Ray(originT.position, originT.forward);
+        }
+        else
+        {
+            return;
+        }
+#else
+        hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+#endif
+
+        RaycastHit hoverHit;
+        if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, vrRayLength, stallLayerMask.value))
+        {
+            if (hoverHit.collider.gameObject == clickedStallObject)
+            {
+                return;
+            }
+
+            if (hoverHit.collider.gameObject != currentHoveredObject)
+            {
+                if (currentHoveredObject != null)
+                {
+                    currentHoveredObject.GetComponent<Renderer>().material.color = originalHoverColor;
+                }
+
+                currentHoveredObject = hoverHit.collider.gameObject;
+                originalHoverColor = currentHoveredObject.GetComponent<Renderer>().material.color;
+
+                Color darkColor = originalHoverColor * 0.7f;
+                currentHoveredObject.GetComponent<Renderer>().material.color = darkColor;
+            }
+        }
+        else
+        {
+            if (currentHoveredObject != null)
+            {
+                currentHoveredObject.GetComponent<Renderer>().material.color = originalHoverColor;
+                currentHoveredObject = null;
+            }
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        if (UnityEngine.InputSystem.Mouse.current != null &&
+            UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+            Ray ray = Camera.main.ScreenPointToRay(pos);
+            HandleClickRaycast(ray.origin, ray.direction);
+        }
 #else
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            // 呼叫新的函式來處理點擊
             HandleClickRaycast(ray.origin, ray.direction);
         }
 #endif
 
-        // === VR 控制器或遊戲流程邏輯（不受影響）===
         if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
             return;
 
-        var originT = rayOriginOverride != null ? rayOriginOverride : rightController;
-
 #if ENABLE_INPUT_SYSTEM
-    if (originT != null)
-    {
-        var xrRight = UnityEngine.InputSystem.XR.XRController.rightHand;
-        if (xrRight != null)
+        if (originT != null)
         {
-            var trigger = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
-            var aButton = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
-
-            bool pressed = false;
-
-            if (trigger != null)
+            var xrRight = UnityEngine.InputSystem.XR.XRController.rightHand;
+            if (xrRight != null)
             {
-                float v = trigger.ReadValue();
-                bool nowPressed = v > 0.5f;
-                if (nowPressed && !lastTriggerPressed) pressed = true;
-                lastTriggerPressed = nowPressed;
-            }
+                var trigger = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
+                var aButton = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
 
-            if (aButton != null && aButton.wasPressedThisFrame)
-                pressed = true;
+                bool pressed = false;
 
-            if (pressed)
-            {
-                TryRaycastHit(originT.position, originT.forward);
+                if (trigger != null)
+                {
+                    float v = trigger.ReadValue();
+                    bool nowPressed = v > 0.5f;
+                    if (nowPressed && !lastTriggerPressed) pressed = true;
+                    lastTriggerPressed = nowPressed;
+                }
+
+                if (aButton != null && aButton.wasPressedThisFrame)
+                    pressed = true;
+
+                if (pressed)
+                {
+                    TryRaycastHit(originT.position, originT.forward);
+                }
             }
         }
-    }
 #endif
     }
 
-    // === 新增一個共用的處理點擊函式 ===
     void HandleClickRaycast(Vector3 origin, Vector3 direction)
     {
         RaycastHit hit;
@@ -263,7 +306,6 @@ public class GameManager : MonoBehaviour
                 string clickedObjectName = hit.collider.gameObject.name;
                 string clickedStallName = "";
 
-                // 這裡根據你的物件名稱來設定對應
                 if (clickedObjectName.Contains("Breadbg_34")) clickedStallName = "麵包";
                 else if (clickedObjectName.Contains("Meatonbg_34")) clickedStallName = "肉攤";
                 else if (clickedObjectName.Contains("fishbg_34")) clickedStallName = "魚攤";
@@ -277,13 +319,26 @@ public class GameManager : MonoBehaviour
 
                 Debug.Log($"你點擊了：{clickedStallName}");
 
-                // 只有在等待點擊輸入時，才進行答案判斷
                 if (isWaitingForClickInput && !string.IsNullOrEmpty(currentTargetStallName))
                 {
                     if (clickedStallName == currentTargetStallName)
                     {
                         Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
                         correctAnswersCount++;
+
+                        clickedStallObject = hit.collider.gameObject;
+                        if (clickedStallObject != null)
+                        {
+                            if (currentHoveredObject != null)
+                            {
+                                currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
+                                currentHoveredObject = null;
+                            }
+
+                            Color newColor = originalColors[clickedStallObject] * 0.5f;
+                            clickedStallObject.GetComponent<Renderer>().material.color = newColor;
+                        }
+
                     }
                     else
                     {
@@ -297,14 +352,8 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-        // Debug.DrawRay 放在這裡，可以隨時看到滑鼠射線
         Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.magenta, 0.25f);
     }
-
-
-    // =========================================================================
-    // 遊戲流程控制方法
-    // =========================================================================
 
     void HideAllStallNamesAndQuestion()
     {
@@ -328,6 +377,20 @@ public class GameManager : MonoBehaviour
         Debug.Log("所有攤位物件已顯示。");
     }
 
+    void ResetAllStallColors()
+    {
+        foreach (var entry in originalColors)
+        {
+            if (entry.Key != null && entry.Key.GetComponent<Renderer>() != null)
+            {
+                entry.Key.GetComponent<Renderer>().material.color = entry.Value;
+            }
+        }
+        clickedStallObject = null;
+        currentHoveredObject = null;
+        Debug.Log("所有攤位物件的顏色已重置。");
+    }
+
     IEnumerator MainClickSequence()
     {
         yield return new WaitForSeconds(initialTextDelay + questionBroadcastDelay);
@@ -338,6 +401,8 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < 2; i++)
         {
+            ResetAllStallColors();
+
             if (tempNonFishStallNames.Count == 0)
             {
                 Debug.LogWarning("沒有足夠的非魚攤名稱可供隨機選擇！請確保至少有兩個非魚攤。");
@@ -365,6 +430,8 @@ public class GameManager : MonoBehaviour
 
             yield return new WaitForSeconds(timeBetweenQuestions);
         }
+
+        ResetAllStallColors();
 
         currentTargetStallName = "魚攤";
         string finalQuestion = $"請點選 {currentTargetStallName} 攤位！";
@@ -607,6 +674,7 @@ public class GameManager : MonoBehaviour
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
             yield return new WaitForSeconds(recordingDuration);
             Microphone.End(null);
+
             Debug.Log("錄音結束。");
 
             if (questionBroadcastTextMeshPro != null)
@@ -751,20 +819,16 @@ public class GameManager : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
         {
-            // === 修改：從 hit.collider.CompareTag("StallNameText") 改為新的 Tag ===
             if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
             {
-                // === 修改：直接使用被點擊物件的名稱，並從中提取攤位名稱 ===
                 string clickedObjectName = hit.collider.gameObject.name;
                 string clickedStallName = "";
 
                 if (clickedObjectName.Contains("Breadbg_34")) clickedStallName = "麵包";
                 else if (clickedObjectName.Contains("Meatonbg_34")) clickedStallName = "肉攤";
                 else if (clickedObjectName.Contains("fishbg_34")) clickedStallName = "魚攤";
-                // 這裡你需要根據你的物件名稱來新增所有對應
                 else if (clickedObjectName.Contains("fruitbg_34")) clickedStallName = "蔬果";
                 else if (clickedObjectName.Contains("Weaponbg_34")) clickedStallName = "武器";
-                // 如果物件名稱格式不符合，則不處理
                 else
                 {
                     Debug.LogWarning($"點擊了未知物件：{clickedObjectName}，無法判斷攤位名稱。");
@@ -777,6 +841,19 @@ public class GameManager : MonoBehaviour
                 {
                     Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
                     correctAnswersCount++;
+
+                    clickedStallObject = hit.collider.gameObject;
+                    if (clickedStallObject != null)
+                    {
+                        if (currentHoveredObject != null)
+                        {
+                            currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
+                            currentHoveredObject = null;
+                        }
+
+                        Color newColor = originalColors[clickedStallObject] * 0.5f;
+                        clickedStallObject.GetComponent<Renderer>().material.color = newColor;
+                    }
                 }
                 else
                 {
@@ -788,9 +865,6 @@ public class GameManager : MonoBehaviour
         Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.cyan, 0.25f);
     }
 
-    // =========================================================================
-    // 傳回伺服器 JSON 的資料結構
-    // =========================================================================
     [System.Serializable]
     public class RecognitionResponse
     {

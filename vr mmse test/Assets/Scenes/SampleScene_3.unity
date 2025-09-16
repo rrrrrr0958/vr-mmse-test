@@ -5706,7 +5706,7 @@ MonoBehaviour:
   fishColorAudioClip: {fileID: 8300000, guid: 28beae60842bca643931e664533bc22c, type: 3}
   whatIsThatAudioClip: {fileID: 8300000, guid: 10f39250c7392b0409c8f3466f7f0f10, type: 3}
   serverUrl: http://localhost:5000/recognize_speech
-  recordingDuration: 5
+  recordingDuration: 3.5
   rightController: {fileID: 1676529178}
   vrRayLength: 50
   useOVRInput: 0
