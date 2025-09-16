@@ -578,7 +578,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133a1a4ca47544c15abd96d8e2cfc3a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dwellSeconds: 2
+  dwellSeconds: 3
   showTenths: 1
   yOffset: 0.16
   zOffset: -0.185
@@ -624,7 +624,7 @@ MonoBehaviour:
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
-  loadingDimFactor: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -2003,7 +2003,7 @@ MonoBehaviour:
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
-  loadingDimFactor: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -2767,7 +2767,7 @@ MonoBehaviour:
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
-  loadingDimFactor: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4466,7 +4466,7 @@ MonoBehaviour:
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
-  loadingDimFactor: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4496,7 +4496,7 @@ MonoBehaviour:
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
-  loadingDimFactor: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4705,7 +4705,7 @@ MonoBehaviour:
   yOffset: 0.05
   zOffset: 0.085
   segments: 64
-  hoverColor: {r: 1, g: 0.9550255, b: 0.6933962, a: 1}
+  hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
@@ -6499,7 +6499,7 @@ MonoBehaviour:
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   rotationSpeed: 90
   loadingSegmentSize: 0.3
-  loadingDimFactor: 0.3
+  loadingDimFactor: 0.6
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
