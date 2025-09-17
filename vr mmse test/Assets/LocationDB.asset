@@ -13,28 +13,28 @@ MonoBehaviour:
   m_Name: LocationDB
   m_EditorClassIdentifier: 
   entries:
-  - sceneName: f1
-    floorLabel: f1
-    stallLabel: Weapons
-    viewpointName: VP_Weapons
-    displayText: "\u4E00\u6A13 \u6B66\u5668\u5E97"
-  - sceneName: f2
-    floorLabel: f2
+  - sceneName: f3_8
+    floorLabel: f3_8
     stallLabel: Fruit
-    viewpointName: VP_Fruit
-    displayText: "\u4E8C\u6A13 \u6C34\u679C\u6524"
-  - sceneName: f2
-    floorLabel: f2
+    viewpointName: VP_Fruit_8
+    displayText: "\u4E09\u6A13 \u6C34\u679C\u6524"
+  - sceneName: f3_8
+    floorLabel: f3_8
     stallLabel: Meat
-    viewpointName: VP_Meat
-    displayText: "\u4E8C\u6A13 \u8089\u8216"
-  - sceneName: b1
-    floorLabel: b1
+    viewpointName: VP_Meat_8
+    displayText: "\u4E09\u6A13 \u8089\u6524"
+  - sceneName: f2_8
+    floorLabel: f2_8
+    stallLabel: Weapons
+    viewpointName: VP_Weapons_8
+    displayText: "\u4E8C\u6A13 \u6B66\u5668\u5E97"
+  - sceneName: f1_8
+    floorLabel: f1_8
     stallLabel: Bread
-    viewpointName: VP_Bread
-    displayText: "\u5730\u4E0B\u4E00\u6A13 \u9EB5\u5305\u5E97"
-  - sceneName: b1
-    floorLabel: b1
-    stallLabel: Fish
-    viewpointName: VP_Fish
-    displayText: "\u5730\u4E0B\u4E00\u6A13 \u9B5A\u6524"
+    viewpointName: VP_Bread_8
+    displayText: "\u4E00\u6A13 \u9EB5\u5305\u5E97"
+  - sceneName: f1_8
+    floorLabel: f1_8
+    stallLabel: Bread
+    viewpointName: VP_Bread_8
+    displayText: "\u4E00\u6A13 \u9B5A\u6524"
