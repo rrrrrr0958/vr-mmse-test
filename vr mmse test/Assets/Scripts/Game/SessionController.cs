@@ -180,7 +180,7 @@ public class SessionController : MonoBehaviour
         var cam = Camera.main ? Camera.main.transform : (_mover ? _mover.cameraTransform : null);
         if (quizPanel && cam) quizPanel.PlaceHudInFront(cam, 1.6f, 0f);
 
-        quizPanel.Show("where r u?", labels, OnPick);
+        quizPanel.Show("你現在在哪裡?", labels, OnPick);
 
         logger?.SetDisplayTextCache(correct.displayText);
         logger?.BeginQuestion(sceneName, correct.viewpointName, correct.displayText);
