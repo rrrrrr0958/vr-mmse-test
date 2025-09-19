@@ -26,6 +26,7 @@ public class QuestionManager : MonoBehaviour
         public string questionText;
         public AudioClip audioClip;
         public GameObject cameraTarget;
+        public GameObject vrCameraTarget;
         public GameObject numberObject;
         public GameObject bgObject;
         public GameObject recordingObject;
@@ -60,11 +61,16 @@ public class QuestionManager : MonoBehaviour
 
     public float cameraMoveSpeed = 2.0f;
 
+    // VR 相關修正：新增 XR Origin 的引用
+    [Header("VR 攝影機設定")]
+    public Transform xrOriginTransform;
+
     void Start()
     {
         if (questionText == null || panelBackground == null || questionAudioSource == null ||
             initialMoneyAudio == null || mainCamera == null || initialCameraPosition == null ||
-            moneyNumber5 == null || moneyBg5 == null || allQuestions.Count < 3)
+            moneyNumber5 == null || moneyBg5 == null || allQuestions.Count < 3 ||
+            xrOriginTransform == null) // 新增：檢查 xrOriginTransform
         {
             Debug.LogError("請確保所有公開變數都已在 Unity Inspector 中設定！");
             return;
@@ -143,14 +149,18 @@ public class QuestionManager : MonoBehaviour
             QuestionData currentQuestionData = currentQuestionSequence[i];
             string currentQuestionText = currentQuestionData.questionText;
 
+            Transform targetTransform = (xrOriginTransform != null && currentQuestionData.vrCameraTarget != null) ?
+                currentQuestionData.vrCameraTarget.transform :
+                currentQuestionData.cameraTarget.transform;
+
+            if (targetTransform != null)
+            {
+                yield return StartCoroutine(MoveCameraToTarget(targetTransform));
+            }
+
             if (i > 0)
             {
                 currentQuestionText = "再" + currentQuestionText;
-            }
-
-            if (currentQuestionData.cameraTarget != null)
-            {
-                yield return StartCoroutine(MoveCameraToTarget(currentQuestionData.cameraTarget.transform));
             }
 
             questionText.text = currentQuestionText;
@@ -166,12 +176,9 @@ public class QuestionManager : MonoBehaviour
                 yield return new WaitForSeconds(currentQuestionData.audioClip.length);
                 currentQuestionData.numberObject.SetActive(false);
                 currentQuestionData.bgObject.SetActive(false);
-                // 移除這個延遲，讓錄音可以立即開始
-                // yield return new WaitForSeconds(delayBetweenQuestions); 
             }
             else
             {
-                // 若沒有音頻，直接等待
                 yield return new WaitForSeconds(delayBetweenQuestions);
             }
 
@@ -180,27 +187,36 @@ public class QuestionManager : MonoBehaviour
 
         Debug.Log("所有題目已顯示完畢！");
         questionText.text = "商品購買完畢！";
-        yield return StartCoroutine(MoveCameraToTarget(initialCameraPosition));
+        // 移除或註解掉這段程式碼
+        // Transform endTarget = (xrOriginTransform != null && vrEndPosition != null) ? vrEndPosition : initialCameraPosition;
+        // yield return StartCoroutine(MoveCameraToTarget(endTarget));
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
     }
 
     IEnumerator MoveCameraToTarget(Transform target)
     {
+        // 這裡必須是 xrOriginTransform
+        // 而不是 mainCamera.transform
+        if (xrOriginTransform == null)
+        {
+            Debug.LogError("XR Origin Transform is not assigned!");
+            yield break;
+        }
+
         float startTime = Time.time;
-        Vector3 startPosition = mainCamera.transform.position;
-        Quaternion startRotation = mainCamera.transform.rotation;
+        Vector3 startPosition = xrOriginTransform.position;
+        Quaternion startRotation = xrOriginTransform.rotation;
         float journeyLength = Vector3.Distance(startPosition, target.position);
 
-        while (mainCamera.transform.position != target.position || mainCamera.transform.rotation != target.rotation)
+        while (Vector3.Distance(xrOriginTransform.position, target.position) > 0.01f ||
+               Quaternion.Angle(xrOriginTransform.rotation, target.rotation) > 0.01f)
         {
             float distCovered = (Time.time - startTime) * cameraMoveSpeed;
             float fractionOfJourney = journeyLength > 0 ? distCovered / journeyLength : 1f;
 
-            mainCamera.transform.position = Vector3.Lerp(startPosition, target.position, fractionOfJourney);
-            mainCamera.transform.rotation = Quaternion.Lerp(startRotation, target.rotation, fractionOfJourney);
-
-            if (fractionOfJourney >= 1.0f) break;
+            xrOriginTransform.position = Vector3.Lerp(startPosition, target.position, fractionOfJourney);
+            xrOriginTransform.rotation = Quaternion.Lerp(startRotation, target.rotation, fractionOfJourney);
 
             yield return null;
         }
@@ -213,7 +229,6 @@ public class QuestionManager : MonoBehaviour
 
     IEnumerator WaitForAnswer(QuestionData currentQuestionData)
     {
-        // 立即顯示錄音物件，不需等待額外延遲
         if (currentQuestionData.recordingObject != null)
         {
             currentQuestionData.recordingObject.SetActive(true);
@@ -353,7 +368,6 @@ public class QuestionManager : MonoBehaviour
             this.count = count;
         }
     }
-
 
     byte[] ConvertAudioClipToWav(AudioClip clip)
     {
