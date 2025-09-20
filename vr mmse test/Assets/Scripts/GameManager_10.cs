@@ -25,7 +25,7 @@ public class GameManager : MonoBehaviour
 
     [Header("正確答案設定")]
     public bool loadFromPreviousScene = true;
-    public List<string> correctAnswerSequence = new List<string> { "兔子", "熊貓", "鹿" };
+    public List<string> correctAnswerSequence = new List<string> { "鳳梨", "蘋果", "葡萄" };
 
     // 狀態
     private readonly List<string> clickedOrder = new List<string>();

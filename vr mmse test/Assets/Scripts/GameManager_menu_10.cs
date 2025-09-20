@@ -169,7 +169,7 @@ public class GameManagerMenu : MonoBehaviour
         {
             resultText.gameObject.SetActive(true);
             resultText.text =
-                $"你選擇的動物：{string.Join("、", clickedAnimalSequence)}\n" +
+                $"你選擇的水果：{string.Join("、", clickedAnimalSequence)}\n" +
                 $"選擇數量：{clickedAnimalSequence.Count} 個\n" +
                 $"用時：{timeUsed:F2} 秒\n" +
                 $"選擇完成！";
@@ -293,7 +293,7 @@ public class GameManagerMenu : MonoBehaviour
         foreach (var kv in originalColors)
             if (kv.Key && kv.Key.image) kv.Key.image.color = kv.Value;
 
-        Debug.Log("選擇已重置，可以重新選擇3個動物");
+        Debug.Log("選擇已重置，可以重新選擇3個水果");
     }
 
     public bool IsSelectionComplete() => selectedSet.Count >= 3;
