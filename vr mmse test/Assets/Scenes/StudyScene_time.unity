@@ -1556,9 +1556,13 @@ MonoBehaviour:
   - {fileID: 2122664720}
   - {fileID: 1499440902}
   - {fileID: 1286492175}
-  audioSource: {fileID: 0}
+  audioSource: {fileID: 395446084}
   correctSFX: {fileID: 0}
   incorrectSFX: {fileID: 0}
+  springAmbience: {fileID: 8300000, guid: c5f35959f4ec6bc49a23f80f0fa245d3, type: 3}
+  summerAmbience: {fileID: 8300000, guid: 93549c46314335a4491baf4f5538106c, type: 3}
+  autumnAmbience: {fileID: 8300000, guid: fe12df2d21dc0d34d8042dfbd35ec71c, type: 3}
+  winterAmbience: {fileID: 8300000, guid: 123e3555300fbbd43be24c0a4fad17d7, type: 3}
   seasonMaterials:
   - {fileID: 2100000, guid: 7662f2de4c6d2804b86c038f8634feaf, type: 2}
   - {fileID: 2100000, guid: 4b6d87b6d752cd3438d5f216fe27afca, type: 2}
@@ -4088,6 +4092,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1031598540 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1680501586, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 2055199208}
+  m_PrefabAsset: {fileID: 0}
+--- !u!81 &1031598542
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031598540}
+  m_Enabled: 1
 --- !u!1001 &1034840915
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8767,7 +8784,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1680501586, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1031598542}
   m_SourcePrefab: {fileID: 100100000, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
 --- !u!1 &2057719609
 GameObject:
