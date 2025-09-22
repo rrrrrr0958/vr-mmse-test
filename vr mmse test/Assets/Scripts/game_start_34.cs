@@ -35,8 +35,8 @@ public class GameManager : MonoBehaviour
     [Header("點擊題設定")]
     public float clickResponseDuration = 3.0f;
 
-    [Header("攝影機目標點")]
-    public Transform cameraTarget_FishStall;
+    //[Header("攝影機目標點")]
+    //public Transform cameraTarget_FishStall;
 
     [Header("攝影機移動設定")]
     public float cameraMoveSpeed = 50.0f;
@@ -71,6 +71,14 @@ public class GameManager : MonoBehaviour
 
     [Header("點擊圖層")]
     public LayerMask stallLayerMask;
+
+    // 在 GameManager 類別開頭
+    [Header("VR 攝影機設定")]
+    public Transform xrOriginTransform;
+
+    [Header("攝影機目標點")]
+    public Transform cameraTarget_FishStall; // 傳統模式用
+    public Transform vrCameraTarget_FishStall; // VR 模式用
 
 #if ENABLE_INPUT_SYSTEM
     [Header("XR Input Actions")]
@@ -184,6 +192,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Debug.Log("GameManager Start() called.");
+        SetupCameraMode(); // <-- 新增這行
         if (questionBroadcastTextMeshPro != null)
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
@@ -321,29 +330,39 @@ public class GameManager : MonoBehaviour
 
                 if (isWaitingForClickInput && !string.IsNullOrEmpty(currentTargetStallName))
                 {
+                    // 取得被點擊的物件
+                    clickedStallObject = hit.collider.gameObject;
+
+                    // ==========================================================
+                    //  ✔  將變色邏輯放在這裡：在點擊後立即執行
+                    // ==========================================================
+                    if (clickedStallObject != null)
+                    {
+                        // 確保先重置懸停顏色
+                        if (currentHoveredObject != null)
+                        {
+                            currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
+                            currentHoveredObject = null;
+                        }
+
+                        // 設置成你想要的顏色，這裡用黃色舉例
+                        Color clickedColor = Color.yellow;
+                        clickedStallObject.GetComponent<Renderer>().material.color = clickedColor;
+                    }
+                    // ==========================================================
+
+                    // 判斷點擊是否正確
                     if (clickedStallName == currentTargetStallName)
                     {
                         Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
                         correctAnswersCount++;
-
-                        clickedStallObject = hit.collider.gameObject;
-                        if (clickedStallObject != null)
-                        {
-                            if (currentHoveredObject != null)
-                            {
-                                currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
-                                currentHoveredObject = null;
-                            }
-
-                            Color newColor = originalColors[clickedStallObject] * 0.5f;
-                            clickedStallObject.GetComponent<Renderer>().material.color = newColor;
-                        }
-
                     }
                     else
                     {
                         Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
                     }
+
+                    // 點擊後，清空目標並結束等待輸入
                     currentTargetStallName = "";
                 }
                 else
@@ -487,12 +506,26 @@ public class GameManager : MonoBehaviour
     IEnumerator MoveCameraToFishStallAndStartFishStallQuestions()
     {
         Debug.Log("準備將攝影機轉向魚攤...");
-        if (cameraTarget_FishStall == null)
+        Transform targetTransform;
+
+        // 檢查 xrOriginTransform 是否已賦值，來判斷是否處於 VR 模式
+        if (xrOriginTransform != null && vrCameraTarget_FishStall != null)
         {
-            Debug.LogError("cameraTarget_FishStall is not assigned! Cannot move camera.");
+            targetTransform = vrCameraTarget_FishStall;
+        }
+        else
+        {
+            targetTransform = cameraTarget_FishStall;
+        }
+
+        if (targetTransform == null)
+        {
+            Debug.LogError("目標點未賦值！無法移動攝影機。");
             yield break;
         }
-        yield return StartCoroutine(SmoothCameraMove(cameraTarget_FishStall.position, cameraTarget_FishStall.rotation));
+
+        // 這個協程會根據模式移動 XR Origin 或 Main Camera
+        yield return StartCoroutine(SmoothCameraMove(targetTransform.position, targetTransform.rotation));
         Debug.Log("攝影機已成功轉向魚攤。");
         StartCoroutine(FishStallQuestionSequence());
     }
@@ -634,21 +667,53 @@ public class GameManager : MonoBehaviour
 
     IEnumerator SmoothCameraMove(Vector3 targetPosition, Quaternion targetRotation)
     {
-        Transform mainCameraTransform = Camera.main.transform;
-        Vector3 startPosition = mainCameraTransform.position;
-        Quaternion startRotation = mainCameraTransform.rotation;
-        float elapsedTime = 0;
-        float duration = Vector3.Distance(startPosition, targetPosition) / cameraMoveSpeed;
-        if (duration < 0.05f) duration = 0.05f;
-        while (elapsedTime < duration)
+        // 如果 xrOriginTransform 存在，則使用它
+        if (xrOriginTransform != null)
         {
-            mainCameraTransform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / duration);
-            mainCameraTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, elapsedTime / duration);
-            elapsedTime += Time.deltaTime;
-            yield return null;
+            // 算出 Main Camera 相對於 XR Origin 的偏移量
+            Vector3 cameraOffset = Camera.main.transform.position - xrOriginTransform.position;
+            Quaternion rotationOffset = Quaternion.Inverse(xrOriginTransform.rotation) * Camera.main.transform.rotation;
+
+            // 計算 XR Origin 的最終目標位置
+            Vector3 xrTargetPosition = targetPosition - cameraOffset;
+            Quaternion xrTargetRotation = targetRotation * Quaternion.Inverse(rotationOffset);
+
+            Vector3 startPosition = xrOriginTransform.position;
+            Quaternion startRotation = xrOriginTransform.rotation;
+            float elapsedTime = 0;
+            float duration = Vector3.Distance(startPosition, xrTargetPosition) / cameraMoveSpeed;
+            if (duration < 0.05f) duration = 0.05f;
+
+            while (elapsedTime < duration)
+            {
+                xrOriginTransform.position = Vector3.Lerp(startPosition, xrTargetPosition, elapsedTime / duration);
+                xrOriginTransform.rotation = Quaternion.Slerp(startRotation, xrTargetRotation, elapsedTime / duration);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            xrOriginTransform.position = xrTargetPosition;
+            xrOriginTransform.rotation = xrTargetRotation;
         }
-        mainCameraTransform.position = targetPosition;
-        mainCameraTransform.rotation = targetRotation;
+        else
+        {
+            // 傳統模式，直接移動 Main Camera
+            Transform movingTransform = Camera.main.transform;
+            Vector3 startPosition = movingTransform.position;
+            Quaternion startRotation = movingTransform.rotation;
+            float elapsedTime = 0;
+            float duration = Vector3.Distance(startPosition, targetPosition) / cameraMoveSpeed;
+            if (duration < 0.05f) duration = 0.05f;
+
+            while (elapsedTime < duration)
+            {
+                movingTransform.position = Vector3.Lerp(startPosition, targetPosition, elapsedTime / duration);
+                movingTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, elapsedTime / duration);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            movingTransform.position = targetPosition;
+            movingTransform.rotation = targetRotation;
+        }
         Debug.Log("攝影機平滑移動完成。");
     }
 
@@ -668,7 +733,7 @@ public class GameManager : MonoBehaviour
             Debug.Log("開始錄音...");
             if (questionBroadcastTextMeshPro != null)
             {
-                questionBroadcastTextMeshPro.text = "開始錄音";
+                questionBroadcastTextMeshPro.text = "請說出答案";
             }
 
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
@@ -809,6 +874,21 @@ public class GameManager : MonoBehaviour
         }
 
         return bytes;
+    }
+
+    private void SetupCameraMode()
+    {
+        // 如果 xrOriginTransform 存在，表示處於 VR 模式
+        bool isVRMode = (xrOriginTransform != null);
+
+        // 如果是 PC 模式，且 vrCameraTarget_FishStall 已設定
+        if (!isVRMode && vrCameraTarget_FishStall != null)
+        {
+            // 讓 PC 的 Main Camera 自動複製 VR 攝影機的位置
+            Camera.main.transform.position = vrCameraTarget_FishStall.position;
+            Camera.main.transform.rotation = vrCameraTarget_FishStall.rotation;
+            Debug.Log("已自動將 Main Camera 的位置設為 VR 模式的目標點。");
+        }
     }
 
     // =========================================================================

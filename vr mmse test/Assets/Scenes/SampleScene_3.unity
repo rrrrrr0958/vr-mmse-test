@@ -5692,7 +5692,6 @@ MonoBehaviour:
   timeBetweenQuestions: 1
   voiceQuestionBufferTime: 0.5
   clickResponseDuration: 1.5
-  cameraTarget_FishStall: {fileID: 1521415764}
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 1424894083}
   highlightCircleImage: {fileID: 2018152758}
@@ -5714,6 +5713,9 @@ MonoBehaviour:
   stallLayerMask:
     serializedVersion: 2
     m_Bits: 2176
+  xrOriginTransform: {fileID: 1343644231}
+  cameraTarget_FishStall: {fileID: 1521415764}
+  vrCameraTarget_FishStall: {fileID: 1608464303}
   rightSelectAction:
     m_UseReference: 0
     m_Action:
@@ -15308,6 +15310,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2267205790312996123, guid: 5c2023285b6214242a8f9f473ccc1ab7, type: 3}
   m_PrefabInstance: {fileID: 1341407685}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &1343644231 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 1643077638}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1359250015
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16533,7 +16540,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u958B\u59CB\u9304\u97F3"
+  m_text: "\u8ACB\u8AAA\u51FA\u7B54\u6848"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 02cdee6c03eebc94692d8cdd0aae7141, type: 2}
   m_sharedMaterial: {fileID: 5779167594411848066, guid: 02cdee6c03eebc94692d8cdd0aae7141, type: 2}
@@ -16560,8 +16567,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 9
+  m_fontSizeBase: 9
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -16659,8 +16666,8 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1424894082}
-  m_LocalRotation: {x: 0, y: 0.7660445, z: -0, w: -0.6427876}
-  m_LocalPosition: {x: 0, y: 0, z: 8.17}
+  m_LocalRotation: {x: -0.028612081, y: 0.8170639, z: -0.08632671, w: -0.5693291}
+  m_LocalPosition: {x: 0, y: 0, z: 7.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -16669,7 +16676,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 260, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.76, y: 2.37}
+  m_AnchoredPosition: {x: -1.08, y: 2.37}
   m_SizeDelta: {x: 18, y: 4}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1428656795
@@ -18634,6 +18641,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5011283435284658397, guid: 5cecfbcb65f1d3c46a6d74cd15ebfb7a, type: 3}
   m_PrefabInstance: {fileID: 1598550335}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1608464302
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1608464303}
+  m_Layer: 0
+  m_Name: VR_Target_FishStall_3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1608464303
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608464302}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.08698751, y: -0.8071541, z: 0.1691562, w: 0.55885744}
+  m_LocalPosition: {x: 4.9992657, y: 4.4823117, z: 10.277435}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 7, y: 50, z: 0}
 --- !u!1001 &1608738890
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23854,8 +23892,8 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2018152756}
-  m_LocalRotation: {x: 0, y: 0.3420201, z: 0, w: 0.9396927}
-  m_LocalPosition: {x: 0, y: 0, z: -975.3}
+  m_LocalRotation: {x: 0.000000010244548, y: 0.34202012, z: -0.0000000018626451, w: 0.9396927}
+  m_LocalPosition: {x: 0, y: 0, z: -976.20026}
   m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -23863,7 +23901,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 40, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 19.6, y: 5}
+  m_AnchoredPosition: {x: 19.500029, y: 9.599914}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2018152758
@@ -26632,6 +26670,7 @@ SceneRoots:
   - {fileID: 797697139}
   - {fileID: 1948403745}
   - {fileID: 1521415764}
+  - {fileID: 1608464303}
   - {fileID: 1340103563}
   - {fileID: 1424894085}
   - {fileID: 1412375194}
