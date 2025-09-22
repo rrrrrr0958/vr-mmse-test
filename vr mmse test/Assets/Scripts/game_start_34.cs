@@ -35,9 +35,6 @@ public class GameManager : MonoBehaviour
     [Header("點擊題設定")]
     public float clickResponseDuration = 3.0f;
 
-    //[Header("攝影機目標點")]
-    //public Transform cameraTarget_FishStall;
-
     [Header("攝影機移動設定")]
     public float cameraMoveSpeed = 50.0f;
 
@@ -65,7 +62,6 @@ public class GameManager : MonoBehaviour
     // ===== 新增：VR 控制器 & Ray 設定 =====
     [Header("VR 控制器設定（方案A）")]
     public Transform rightController;
-    public float vrRayLength = 50f;
     public bool useOVRInput = true;
     public bool useNewInputSystem = false;
 
@@ -112,6 +108,9 @@ public class GameManager : MonoBehaviour
     private Color originalHoverColor;
     private GameObject clickedStallObject = null;
     private Dictionary<GameObject, Color> originalColors = new Dictionary<GameObject, Color>();
+
+    private HashSet<GameObject> lockedClickedObjects = new HashSet<GameObject>();
+
 
 #if ENABLE_INPUT_SYSTEM
     private bool lastTriggerPressed = false;
@@ -192,7 +191,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Debug.Log("GameManager Start() called.");
-        SetupCameraMode(); // <-- 新增這行
+        SetupCameraMode();
         if (questionBroadcastTextMeshPro != null)
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
@@ -203,79 +202,70 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        // 取得 Ray 的來源，根據 VR 或滑鼠模式決定
         Ray hoverRay;
         Transform originT = rayOriginOverride != null ? rayOriginOverride : rightController;
 
 #if ENABLE_INPUT_SYSTEM
-        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.position != null)
+        // 新版輸入系統：判斷是否為 VR 模式或使用滑鼠
+        if (useNewInputSystem || useOVRInput)
         {
-            Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-            hoverRay = Camera.main.ScreenPointToRay(pos);
-        }
-        else if (originT != null)
-        {
-            hoverRay = new Ray(originT.position, originT.forward);
+            if (originT != null)
+            {
+                hoverRay = new Ray(originT.position, originT.forward);
+            }
+            else
+            {
+                // 如果沒有 VR 控制器，則退回使用滑鼠
+                hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+            }
         }
         else
         {
-            return;
+            // 非 VR 模式，使用滑鼠
+            hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         }
 #else
+        // 舊版輸入系統：僅滑鼠
         hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
 #endif
 
+        // --- 處理 Hover 偵測 ---
         RaycastHit hoverHit;
-        if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, vrRayLength, stallLayerMask.value))
+        if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, Mathf.Infinity, stallLayerMask))
         {
-            if (hoverHit.collider.gameObject == clickedStallObject)
-            {
+            GameObject hoverObj = hoverHit.collider.gameObject;
+            if (lockedClickedObjects.Contains(hoverObj))
                 return;
-            }
 
-            if (hoverHit.collider.gameObject != currentHoveredObject)
+            if (hoverObj != currentHoveredObject)
             {
-                if (currentHoveredObject != null)
+                if (currentHoveredObject != null && !lockedClickedObjects.Contains(currentHoveredObject) && originalColors.ContainsKey(currentHoveredObject))
                 {
-                    currentHoveredObject.GetComponent<Renderer>().material.color = originalHoverColor;
+                    currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
                 }
-
-                currentHoveredObject = hoverHit.collider.gameObject;
+                currentHoveredObject = hoverObj;
                 originalHoverColor = currentHoveredObject.GetComponent<Renderer>().material.color;
-
                 Color darkColor = originalHoverColor * 0.7f;
                 currentHoveredObject.GetComponent<Renderer>().material.color = darkColor;
             }
         }
         else
         {
-            if (currentHoveredObject != null)
+            if (currentHoveredObject != null && !lockedClickedObjects.Contains(currentHoveredObject) && originalColors.ContainsKey(currentHoveredObject))
             {
-                currentHoveredObject.GetComponent<Renderer>().material.color = originalHoverColor;
+                currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
                 currentHoveredObject = null;
             }
         }
 
-#if ENABLE_INPUT_SYSTEM
-        if (UnityEngine.InputSystem.Mouse.current != null &&
-            UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-            Ray ray = Camera.main.ScreenPointToRay(pos);
-            HandleClickRaycast(ray.origin, ray.direction);
-        }
-#else
-        if (Input.GetMouseButtonDown(0))
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            HandleClickRaycast(ray.origin, ray.direction);
-        }
-#endif
-
+        // --- 處理點擊邏輯 ---
         if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
             return;
 
 #if ENABLE_INPUT_SYSTEM
-        if (originT != null)
+        // 新版輸入系統：VR 控制器點擊
+        if ((useNewInputSystem || useOVRInput) && originT != null)
         {
             var xrRight = UnityEngine.InputSystem.XR.XRController.rightHand;
             if (xrRight != null)
@@ -284,7 +274,6 @@ public class GameManager : MonoBehaviour
                 var aButton = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
 
                 bool pressed = false;
-
                 if (trigger != null)
                 {
                     float v = trigger.ReadValue();
@@ -292,15 +281,29 @@ public class GameManager : MonoBehaviour
                     if (nowPressed && !lastTriggerPressed) pressed = true;
                     lastTriggerPressed = nowPressed;
                 }
-
                 if (aButton != null && aButton.wasPressedThisFrame)
                     pressed = true;
 
                 if (pressed)
                 {
-                    TryRaycastHit(originT.position, originT.forward);
+                    HandleClickRaycast(originT.position, originT.forward);
                 }
             }
+        }
+
+        // 新版輸入系統：滑鼠點擊
+        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame && !useOVRInput)
+        {
+            Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+            Ray ray = Camera.main.ScreenPointToRay(pos);
+            HandleClickRaycast(ray.origin, ray.direction);
+        }
+#else
+        // 舊版輸入系統：滑鼠點擊
+        if (Input.GetMouseButtonDown(0))
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            HandleClickRaycast(ray.origin, ray.direction);
         }
 #endif
     }
@@ -308,7 +311,7 @@ public class GameManager : MonoBehaviour
     void HandleClickRaycast(Vector3 origin, Vector3 direction)
     {
         RaycastHit hit;
-        if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
+        if (Physics.Raycast(origin, direction, out hit, Mathf.Infinity, stallLayerMask.value))
         {
             if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
             {
@@ -330,28 +333,26 @@ public class GameManager : MonoBehaviour
 
                 if (isWaitingForClickInput && !string.IsNullOrEmpty(currentTargetStallName))
                 {
-                    // 取得被點擊的物件
                     clickedStallObject = hit.collider.gameObject;
+                    
+                    // 優化：無論點擊的是不是 Hover 物件，都先將 Hover 顏色復原
+                    if (currentHoveredObject != null && originalColors.ContainsKey(currentHoveredObject))
+                    {
+                        currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
+                        currentHoveredObject = null;
+                    }
 
-                    // ==========================================================
-                    //  ✔  將變色邏輯放在這裡：在點擊後立即執行
-                    // ==========================================================
                     if (clickedStallObject != null)
                     {
-                        // 確保先重置懸停顏色
-                        if (currentHoveredObject != null)
-                        {
-                            currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
-                            currentHoveredObject = null;
-                        }
+                        Renderer rend = clickedStallObject.GetComponent<Renderer>();
+                        if (rend.material.HasProperty("_BaseColor"))
+                            rend.material.SetColor("_BaseColor", Color.yellow);
+                        else
+                            rend.material.color = Color.yellow;
 
-                        // 設置成你想要的顏色，這裡用黃色舉例
-                        Color clickedColor = Color.yellow;
-                        clickedStallObject.GetComponent<Renderer>().material.color = clickedColor;
+                        lockedClickedObjects.Add(clickedStallObject);
                     }
-                    // ==========================================================
 
-                    // 判斷點擊是否正確
                     if (clickedStallName == currentTargetStallName)
                     {
                         Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
@@ -362,7 +363,6 @@ public class GameManager : MonoBehaviour
                         Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
                     }
 
-                    // 點擊後，清空目標並結束等待輸入
                     currentTargetStallName = "";
                 }
                 else
@@ -371,7 +371,7 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-        Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.magenta, 0.25f);
+        Debug.DrawRay(origin, direction.normalized * 100f, Color.magenta, 0.25f);
     }
 
     void HideAllStallNamesAndQuestion()
@@ -407,8 +407,10 @@ public class GameManager : MonoBehaviour
         }
         clickedStallObject = null;
         currentHoveredObject = null;
+        lockedClickedObjects.Clear();
         Debug.Log("所有攤位物件的顏色已重置。");
     }
+
 
     IEnumerator MainClickSequence()
     {
@@ -508,7 +510,6 @@ public class GameManager : MonoBehaviour
         Debug.Log("準備將攝影機轉向魚攤...");
         Transform targetTransform;
 
-        // 檢查 xrOriginTransform 是否已賦值，來判斷是否處於 VR 模式
         if (xrOriginTransform != null && vrCameraTarget_FishStall != null)
         {
             targetTransform = vrCameraTarget_FishStall;
@@ -524,7 +525,6 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        // 這個協程會根據模式移動 XR Origin 或 Main Camera
         yield return StartCoroutine(SmoothCameraMove(targetTransform.position, targetTransform.rotation));
         Debug.Log("攝影機已成功轉向魚攤。");
         StartCoroutine(FishStallQuestionSequence());
@@ -667,14 +667,11 @@ public class GameManager : MonoBehaviour
 
     IEnumerator SmoothCameraMove(Vector3 targetPosition, Quaternion targetRotation)
     {
-        // 如果 xrOriginTransform 存在，則使用它
         if (xrOriginTransform != null)
         {
-            // 算出 Main Camera 相對於 XR Origin 的偏移量
             Vector3 cameraOffset = Camera.main.transform.position - xrOriginTransform.position;
             Quaternion rotationOffset = Quaternion.Inverse(xrOriginTransform.rotation) * Camera.main.transform.rotation;
 
-            // 計算 XR Origin 的最終目標位置
             Vector3 xrTargetPosition = targetPosition - cameraOffset;
             Quaternion xrTargetRotation = targetRotation * Quaternion.Inverse(rotationOffset);
 
@@ -696,7 +693,6 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            // 傳統模式，直接移動 Main Camera
             Transform movingTransform = Camera.main.transform;
             Vector3 startPosition = movingTransform.position;
             Quaternion startRotation = movingTransform.rotation;
@@ -716,10 +712,6 @@ public class GameManager : MonoBehaviour
         }
         Debug.Log("攝影機平滑移動完成。");
     }
-
-    // =========================================================================
-    // 語音辨識相關的核心函式
-    // =========================================================================
 
     IEnumerator WaitForAnswer(List<string> correctAnswers)
     {
@@ -878,71 +870,14 @@ public class GameManager : MonoBehaviour
 
     private void SetupCameraMode()
     {
-        // 如果 xrOriginTransform 存在，表示處於 VR 模式
         bool isVRMode = (xrOriginTransform != null);
 
-        // 如果是 PC 模式，且 vrCameraTarget_FishStall 已設定
         if (!isVRMode && vrCameraTarget_FishStall != null)
         {
-            // 讓 PC 的 Main Camera 自動複製 VR 攝影機的位置
             Camera.main.transform.position = vrCameraTarget_FishStall.position;
             Camera.main.transform.rotation = vrCameraTarget_FishStall.rotation;
             Debug.Log("已自動將 Main Camera 的位置設為 VR 模式的目標點。");
         }
-    }
-
-    // =========================================================================
-    // 方案A：共用 Raycast 判定（桌機/VR 都呼叫）
-    // =========================================================================
-    void TryRaycastHit(Vector3 origin, Vector3 direction)
-    {
-        RaycastHit hit;
-        if (Physics.Raycast(origin, direction, out hit, vrRayLength, stallLayerMask.value))
-        {
-            if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
-            {
-                string clickedObjectName = hit.collider.gameObject.name;
-                string clickedStallName = "";
-
-                if (clickedObjectName.Contains("Breadbg_34")) clickedStallName = "麵包";
-                else if (clickedObjectName.Contains("Meatonbg_34")) clickedStallName = "肉攤";
-                else if (clickedObjectName.Contains("fishbg_34")) clickedStallName = "魚攤";
-                else if (clickedObjectName.Contains("fruitbg_34")) clickedStallName = "蔬果";
-                else if (clickedObjectName.Contains("Weaponbg_34")) clickedStallName = "武器";
-                else
-                {
-                    Debug.LogWarning($"點擊了未知物件：{clickedObjectName}，無法判斷攤位名稱。");
-                    return;
-                }
-
-                Debug.Log($"你點擊了：{clickedStallName}");
-
-                if (clickedStallName == currentTargetStallName)
-                {
-                    Debug.Log($"✅ 正確！點擊了目標攤位: {currentTargetStallName}。");
-                    correctAnswersCount++;
-
-                    clickedStallObject = hit.collider.gameObject;
-                    if (clickedStallObject != null)
-                    {
-                        if (currentHoveredObject != null)
-                        {
-                            currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
-                            currentHoveredObject = null;
-                        }
-
-                        Color newColor = originalColors[clickedStallObject] * 0.5f;
-                        clickedStallObject.GetComponent<Renderer>().material.color = newColor;
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
-                }
-                currentTargetStallName = "";
-            }
-        }
-        Debug.DrawRay(origin, direction.normalized * vrRayLength, Color.cyan, 0.25f);
     }
 
     [System.Serializable]
