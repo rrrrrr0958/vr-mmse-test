@@ -64,9 +64,29 @@ public class QuestionManager : MonoBehaviour
     // VR 相關修正：新增 XR Origin 的引用
     [Header("VR 攝影機設定")]
     public Transform xrOriginTransform;
+    public Camera hmdCamera;   // 新增：XR Origin 裡的相機
+    public Transform initialSpawnPoint; // 新增：你希望玩家開始站的位置
+
 
     void Start()
     {
+        if (hmdCamera == null || xrOriginTransform == null || initialSpawnPoint == null)
+    {
+        Debug.LogError("請確認 hmdCamera、xrOriginTransform、initialSpawnPoint 都已經設定！");
+        return;
+    }
+
+    // 🔹 方法一：計算 offset，把頭顯拉到指定初始位置
+    Vector3 offset = initialSpawnPoint.position - hmdCamera.transform.position;
+    xrOriginTransform.position += offset;
+
+    // 🔹 只對齊 Yaw，不硬調 pitch/roll（避免暈）
+    Vector3 camForward = Vector3.ProjectOnPlane(hmdCamera.transform.forward, Vector3.up).normalized;
+    Vector3 tgtForward = Vector3.ProjectOnPlane(initialSpawnPoint.forward, Vector3.up).normalized;
+    float yawDelta = Vector3.SignedAngle(camForward, tgtForward, Vector3.up);
+    xrOriginTransform.Rotate(Vector3.up, yawDelta, Space.World);
+
+
         if (questionText == null || panelBackground == null || questionAudioSource == null ||
             initialMoneyAudio == null || mainCamera == null || initialCameraPosition == null ||
             moneyNumber5 == null || moneyBg5 == null || allQuestions.Count < 3 ||
@@ -75,6 +95,7 @@ public class QuestionManager : MonoBehaviour
             Debug.LogError("請確保所有公開變數都已在 Unity Inspector 中設定！");
             return;
         }
+        
 
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => {
             Firebase.DependencyStatus dependencyStatus = task.Result;
