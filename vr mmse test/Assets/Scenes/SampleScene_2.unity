@@ -20890,12 +20890,12 @@ MonoBehaviour:
   recorder: {fileID: 1655928439}
   hostFlask: {fileID: 1597536242}
   statusText: {fileID: 1707024648}
-  introClip: {fileID: 8300000, guid: 7e7a481819cfd8945b3088c380dd9ab8, type: 3}
-  clip1: {fileID: 8300000, guid: 85dd74e07ee6f3a4a9d0d1409137e6bb, type: 3}
-  clip2: {fileID: 8300000, guid: 9fd44900e22552d4180fe1f256c13b09, type: 3}
-  clip3: {fileID: 8300000, guid: a925e5c07a319da49b47dc552a4171e7, type: 3}
+  introClip: {fileID: 8300000, guid: 9e65b1213fbefd74b90e579683bab8f3, type: 3}
+  clip1: {fileID: 8300000, guid: cc8a6fd2656eacc4a8218e5a2bbcf9ad, type: 3}
+  clip2: {fileID: 8300000, guid: 542307a3d49bc47449730230679b252c, type: 3}
+  clip3: {fileID: 8300000, guid: ccbb7bc42e8cde54da85d391e9264aaf, type: 3}
   waitAfterIntro: 2
-  waitAfterQuestion: 2
+  waitAfterQuestion: 0
   recordDuration: 7
 --- !u!82 &1968425819
 AudioSource:

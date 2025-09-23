@@ -14,17 +14,17 @@ public class BackgroundVoice2 : MonoBehaviour
     public AudioClip introClip;
 
     [Header("題目音檔")]
-    public AudioClip clip1;  // 魚肉特價快來買
+    public AudioClip clip1;  // 海鮮折扣快來買
     public AudioClip clip2;  // 雞豬牛羊都有賣
     public AudioClip clip3;  // 早起買菜精神好
 
     [Header("流程參數")]
     public float waitAfterIntro = 2f;      // 前導播完後再等
-    public float waitAfterQuestion = 2f;   // 題目播完後再等
+    public float waitAfterQuestion = 0f;   // 題目播完後再等
     public float recordDuration = 7f;      // 錄音秒數
 
     private readonly string[] sentences = {
-        "魚肉特價快來買",
+        "海鮮折扣快來買",
         "雞豬牛羊都有賣",
         "早起買菜精神好"
     };
@@ -64,7 +64,7 @@ public class BackgroundVoice2 : MonoBehaviour
         yield return new WaitForSeconds(broadcastSource.clip.length + waitAfterQuestion);
 
         // Step 2: 錄音
-        statusText.text = "錄音中...";
+        statusText.text = "請直接說出來，錄音中...";
         recorder.StartRecording(recordDuration);
 
         // Step 3: 錄音結束後 → 提示正在辨識
