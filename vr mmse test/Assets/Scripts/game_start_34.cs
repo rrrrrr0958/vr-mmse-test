@@ -534,21 +534,40 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        voiceCorrectAnswersCount = 0;
-
+        // --- 第一個問題 ---
         Debug.Log("Console 問題: 這個攤位在賣什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤" }));
+        if (questionBroadcastTextMeshPro != null)
+        {
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 新增這行
+        }
 
+        yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
+
+        // --- 第二個問題 ---
         Debug.Log("Console 問題: 魚的顏色是什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(fishColorAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "藍色", "藍", "藍白", "藍白色", "白藍", "白藍色", "淺藍", "淺藍色" }));
+        if (questionBroadcastTextMeshPro != null)
+        {
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 新增這行
+        }
 
+        yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
+
+        // --- 第三個問題 ---
         Debug.Log("Console 問題: 那個是什麼？");
-        yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
         ShowHighlightCircle();
+        yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "燈", "路燈", "跟", "路跟", "膯", "路膯", "入燈", "入膯", "入跟" }));
         HideHighlightCircle();
+        if (questionBroadcastTextMeshPro != null)
+        {
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 新增這行
+        }
+
+        // ==========================================================
 
         Debug.Log("Console: 所有魚攤問題已完成！");
         Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/3");
@@ -825,7 +844,7 @@ public class GameManager : MonoBehaviour
 
         if (questionBroadcastTextMeshPro != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false);
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 這裡隱藏文字
         }
     }
 
