@@ -622,6 +622,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -657,7 +660,7 @@ Transform:
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1448659929}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
@@ -2361,9 +2364,9 @@ Transform:
   m_GameObject: {fileID: 617217978}
   serializedVersion: 2
   m_LocalRotation: {x: 1, y: 0, z: 0, w: 0}
-  m_LocalPosition: {x: 8.93, y: 1.32, z: -5.843}
-  m_LocalScale: {x: 3, y: 2.28, z: 0.082499996}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 8.939, y: 1.436, z: -5.843}
+  m_LocalScale: {x: 2.631579, y: 2, z: 0.07236841}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 2008776482}
   - {fileID: 2021371251}
@@ -2500,6 +2503,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -2828,8 +2834,8 @@ Transform:
   m_GameObject: {fileID: 776434841}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 7.25, y: 2.044, z: -8.121}
-  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_LocalPosition: {x: 7.39, y: 2.206, z: -8.121}
+  m_LocalScale: {x: 1.35, y: 1.35, z: 1.35}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1448659929}
@@ -3047,8 +3053,19 @@ MonoBehaviour:
   scanFrom: 0.85
   scanTo: 1.25
   scanN: 11
-  diaMin: 2
-  diaLowFactor: 0.6
+  holeDilate: 3
+  holeClose: 3
+  waistBandFrac: 0.2
+  holeAreaMinFrac: 0.0015
+  holeAreaMaxFrac: 0.06
+  flatMin: 0.16
+  angleTol: 25
+  existCenterWeight: 0.4
+  existShapeWeight: 0.6
+  existQuadBonus: 0.1
+  existThreshold: 15
+  chamferWeight: 0.6
+  noDiamondFactor: 0.55
   showRawJson: 1
   verboseLogs: 1
   saveUserOnJudge: 0
@@ -3388,6 +3405,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -4772,7 +4792,7 @@ Transform:
   m_GameObject: {fileID: 1448659928}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.6255851, y: -0.238, z: 1.9505587}
+  m_LocalPosition: {x: -0.6255851, y: -0.272, z: 1.9505587}
   m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -4990,6 +5010,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -5017,6 +5040,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -5227,6 +5253,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -5999,7 +6028,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: -0.327, y: 0.2686374}
+  m_AnchoredPosition: {x: -0.309, y: 0.221}
   m_SizeDelta: {x: 1.6907, y: 0.4887}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1778713149
@@ -6741,6 +6770,9 @@ MonoBehaviour:
   segments: 64
   hoverColor: {r: 0.2, g: 0.8, b: 1, a: 1}
   selectColor: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+  rotationSpeed: 180
+  loadingSegmentSize: 0.3
+  loadingDimFactor: 0.5
   compensateParentScale: 1
   sortingOrder: 4000
   yawDegrees: 0
@@ -7713,7 +7745,7 @@ RectTransform:
   m_GameObject: {fileID: 4422659090267363562}
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 1.948}
-  m_LocalScale: {x: 0.0041, y: 0.00362869, z: 0.003642869}
+  m_LocalScale: {x: 0.0041, y: 0.0032, z: 0.003642869}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 732877343537912663}
