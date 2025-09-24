@@ -1633,6 +1633,14 @@ MonoBehaviour:
   scoreTMP: {fileID: 1176443684}
   format: '{0:0.0}'
   lerpTime: 0.4
+  showBinary: 1
+  passThreshold: 60
+  passText: 1
+  failText: 0
+  usePassFailColors: 1
+  passColor: {r: 0, g: 0, b: 0, a: 1}
+  failColor: {r: 0, g: 0, b: 0, a: 1}
+  animateColorInBinary: 0
   useColorGradient: 1
   lowColor: {r: 0.85, g: 0.2, b: 0.2, a: 1}
   highColor: {r: 0.2, g: 0.8, b: 0.3, a: 1}
@@ -3066,8 +3074,8 @@ MonoBehaviour:
   existThreshold: 15
   chamferWeight: 0.6
   noDiamondFactor: 0.55
-  showRawJson: 1
-  verboseLogs: 1
+  showRawJson: 0
+  verboseLogs: 0
   saveUserOnJudge: 0
   saveFilePrefix: user_
 --- !u!4 &862861125 stripped

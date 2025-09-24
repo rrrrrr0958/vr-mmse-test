@@ -214,87 +214,93 @@ def diamond_exists_score(user_rgb, target_rgb, side=512, mode="edges",
             cnt = cnts[child]
             area = cv2.contourArea(cnt)
             area_frac = area / total_area
-            if area_frac < hole_area_min_frac or area_frac > hole_area_max_frac:
-                child = hier[0][child][0]
-                continue
+
+            # --- 面積權重（軟式）：在 [min,max] 內給 1；外側逐步衰減到 ~0.3 ---
+            amin = hole_area_min_frac; amax = hole_area_max_frac
+            if area_frac <= 0:
+                area_w = 0.0
+            elif area_frac < amin:
+                area_w = max(0.3, float(area_frac / max(1e-6, amin)))  # 小也給低分，不丟掉
+            elif area_frac > amax:
+                area_w = max(0.3, float(amax / area_frac))             # 大也給低分，不丟掉
+            else:
+                area_w = 1.0
 
             x, y, w, h_rect = cv2.boundingRect(cnt)
             cy = y + h_rect // 2
-            # 腰帶內的重疊比例（越集中於腰帶越好）
-            band_overlap = max(0, min(y + h_rect, y1) - max(y, y0)) / max(1, (y1 - y0))
-            if band_overlap <= 0:
-                child = hier[0][child][0]
-                continue
 
-            # 幾何形狀：近似多邊形 & 凸
+            # --- 腰帶權重（軟式）：沒重疊也給 0.2 的殘留分 ---
+            overlap = max(0, min(y + h_rect, y1) - max(y, y0))
+            band_overlap = overlap / max(1, (y1 - y0))  # 0~1
+            band_w = 0.2 + 0.8 * float(np.clip(band_overlap * 1.2, 0.0, 1.0))  # 放寬
+
+            # --- 近似多邊形與凸性（軟式）---
             peri = cv2.arcLength(cnt, True)
-            approx = cv2.approxPolyDP(cnt, 0.02 * peri, True) if peri > 0 else cnt
+            approx = cv2.approxPolyDP(cnt, 0.03 * peri, True) if peri > 0 else cnt  # 放鬆 0.02→0.03
             verts = len(approx)
-            if verts < 4 or verts > 6:
-                child = hier[0][child][0]
-                continue
-            if not cv2.isContourConvex(approx):
-                child = hier[0][child][0]
-                continue
+            verts_w = 1.0 if 4 <= verts <= 6 else (0.7 if 3 <= verts <= 8 else 0.4)
+            convex_w = 1.0 if cv2.isContourConvex(approx) else 0.85
 
             pts = approx[:, 0, :].astype(np.float32)
-            # 角度互補
-            angs = _poly_angles_deg(pts)
-            if len(angs) < 4:
-                child = hier[0][child][0]
-                continue
-            ok_diag = (abs((angs[0] + angs[2]) - 180.0) <= angle_tol) and \
-                      (abs((angs[1] + angs[3]) - 180.0) <= angle_tol)
+            # 角度互補（軟式）
+            angs = _poly_angles_deg(pts) if len(pts) >= 4 else []
+            if len(angs) >= 4:
+                e0 = abs((angs[0] + angs[2]) - 180.0)
+                e1 = abs((angs[1] + angs[3]) - 180.0)
+                # 容忍度放寬：angle_tol 內=1；到 2*angle_tol 緩降到 0
+                tol = angle_tol
+                ang0 = max(0.0, 1.0 - e0 / max(1e-6, 2*tol))
+                ang1 = max(0.0, 1.0 - e1 / max(1e-6, 2*tol))
+                ang_score = 0.5 * (ang0 + ang1)
+            else:
+                ang_score = 0.5  # 頂點數太少也給半分
 
-            # 扁平度（最小外接矩形）
+            # 扁平度（軟式）
             rect = cv2.minAreaRect(cnt)
-            w_minrect, h_minrect = rect[1]
-            if w_minrect < 1 or h_minrect < 1:
-                child = hier[0][child][0]
-                continue
-            flat = min(w_minrect, h_minrect) / max(w_minrect, h_minrect)  # 0~1
-            if flat < flat_min:
-                child = hier[0][child][0]
-                continue
+            w_minrect, h_minrect = rect[1] if rect[1] != (0.0,0.0) else (1.0,1.0)
+            flat = min(w_minrect, h_minrect) / max(w_minrect, h_minrect)
+            flat_score = float(np.clip((flat - flat_min) / max(1e-6, (1.0 - flat_min)), 0.0, 1.0))
 
-            # 位置（洞中心靠近畫面水平中心 & 腰線）
+            # 位置（靠近畫面中心與腰線）
             M = cv2.moments(cnt)
             if abs(M["m00"]) < 1e-6:
-                child = hier[0][child][0]
-                continue
-            cx = int(M["m10"]/M["m00"]); cy = int(M["m01"]/M["m00"])
-            dist_y = abs(cy - y_star)
-            dist_x = abs(cx - cx_mid)
-            # 轉成 [0,1] 距離分
+                cx, cy = x + w//2, y + h_rect//2
+            else:
+                cx = int(M["m10"]/M["m00"]); cy = int(M["m01"]/M["m00"])
+            dist_y = abs(cy - y_star); dist_x = abs(cx - cx_mid)
             y_span = max(1, (y1 - y0) // 2)
             y_score = max(0.0, 1.0 - dist_y / (y_span * 1.5))
             x_score = max(0.0, 1.0 - dist_x / (W * 0.25))
-            center_score = 0.5 * (y_score + x_score)  # 越靠近中心與腰線越高
+            center_score = 0.5 * (y_score + x_score)
 
-            # 幾何形狀分（角度 + 扁平）
-            ang_score = 1.0 if ok_diag else max(0.0, 1.0 - (abs((angs[0]+angs[2])-180.0) + abs((angs[1]+angs[3])-180.0)) / (2*angle_tol))
-            flat_score = (flat - flat_min) / (1.0 - flat_min)
-            flat_score = float(np.clip(flat_score, 0.0, 1.0))
-            geom = 0.6 * ang_score + 0.4 * flat_score
+            # 幾何形狀綜合（軟式）+ 四邊形加分
+            geom = 0.5 * ang_score + 0.5 * flat_score
             if 4 <= verts <= 6:
                 geom *= (1.0 + prefer_quad_bonus)
 
-            # 綜合：腰帶重疊 × [center/shape 權重] × 面積合理性
-            s = 100.0 * (band_overlap * (center_weight * center_score + shape_weight * geom))
+            # 最終存在分（全部是連續權重，沒有硬丟棄）
+            s = 100.0 * (
+                band_w *                               # 腰帶權重（放寬）
+                area_w *                               # 面積權重（放寬）
+                convex_w * verts_w *                   # 形狀權重（放寬）
+                (center_weight * center_score + shape_weight * geom)
+            )
 
             if s > best["score"]:
                 best.update({
                     "score": float(s),
                     "found": True,
+                    "waist_band": [int(y0), int(y1)],
                     "hole_bbox": [int(x), int(y), int(w), int(h_rect)],
                     "hole_area_frac": float(area_frac),
                     "flat": float(flat),
-                    "angles": [float(a) for a in angs[:4]],
-                    "quad": 1,
+                    "angles": [float(a) for a in (angs[:4] if len(angs)>=4 else [])],
+                    "quad": 1 if 4 <= verts <= 6 else 0,
                     "center_dist_px": [int(dist_x), int(dist_y)]
                 })
 
-            child = hier[0][child][0]  # 下一個洞
+            child = hier[0][child][0]
+
 
     return float(best["score"]), best
 
