@@ -4216,7 +4216,7 @@ GameObject:
   - component: {fileID: 327106329}
   - component: {fileID: 327106328}
   m_Layer: 0
-  m_Name: "\u756A\u8304"
+  m_Name: "\u9999\u8549"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4254,7 +4254,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d6d7356afc08764c98953f5c8cefc51, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animalName: "\u756A\u8304"
+  animalName: "\u9999\u8549"
 --- !u!114 &327106329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10250,7 +10250,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -6725965872243440687, guid: f7d9621e72bd3e14c9b0789c762cea85, type: 3}
+  m_Sprite: {fileID: 5921690456534884042, guid: 27090d4349ff0c4489194e753aaec7c0, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -17282,7 +17282,7 @@ GameObject:
   - component: {fileID: 1503430683}
   - component: {fileID: 1503430682}
   m_Layer: 0
-  m_Name: "\u8349\u8393"
+  m_Name: "\u897F\u74DC"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -17320,7 +17320,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d6d7356afc08764c98953f5c8cefc51, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animalName: "\u8349\u8393"
+  animalName: "\u897F\u74DC"
 --- !u!114 &1503430683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19259,7 +19259,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -4065582907265667202, guid: b0bfc699c10a2ea4fb834339f60b613b, type: 3}
+  m_Sprite: {fileID: 8495642495149920525, guid: ae15e5c8730f0be46a1c3f72d857d064, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

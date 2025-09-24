@@ -131,8 +131,25 @@ public class SceneFlowManager : MonoBehaviour
 
             p.ErrorDataReceived += (sender, e) =>
             {
-                if (!string.IsNullOrEmpty(e.Data))
-                    UnityEngine.Debug.LogError($"[Python-Error:{scriptToRun}] {e.Data}");
+                if (string.IsNullOrEmpty(e.Data)) return;
+
+                string line = e.Data;
+
+                // 常見無害訊息（依實際情況可再補關鍵字）
+                if (
+                    // line.Contains("Running on http://"/) ||
+                    line.Contains("Running on all addresses (0.0.0.0)") ||
+                    line.Contains("Press CTRL+C to quit") ||
+                    line.Contains("Debugger PIN:") ||
+                    line.Contains("This is a development server") ||
+                    line.Contains("Restarting with stat"))
+                {
+                    UnityEngine.Debug.Log($"[Python-Info:{scriptToRun}] {line}");
+                }
+                else
+                {
+                    UnityEngine.Debug.LogError($"[Python-Error:{scriptToRun}] {line}");
+                }
             };
 
             bool started = p.Start();

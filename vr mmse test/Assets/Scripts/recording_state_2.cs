@@ -16,7 +16,7 @@ public class RecordingState2 : MonoBehaviour
 
     IEnumerator RecordPlayerVoice(float duration)
     {
-        statusText.text = "錄音中...";
+        statusText.text = "請直接說出來，錄音中...";
         if (Microphone.devices.Length == 0) {
             statusText.text = "沒有偵測到麥克風";
             yield break;
