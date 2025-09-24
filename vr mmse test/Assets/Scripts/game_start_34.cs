@@ -19,7 +19,7 @@ using UnityEngine.InputSystem.Controls;
 #endif
 
 
-public class GameManager : MonoBehaviour
+public class game_start_34 : MonoBehaviour
 {
     // =========================================================================
     // 公開變數 (在 Unity Inspector 中設定)
