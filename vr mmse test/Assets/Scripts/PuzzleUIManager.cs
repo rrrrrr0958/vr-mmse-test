@@ -16,6 +16,7 @@ public class PuzzleUIManager : MonoBehaviour
     public float appearDuration = 0.35f;
     public float distanceFromCamera = 2.0f;
     public string nextSceneName = "";
+    
 
     private void Awake()
     {
