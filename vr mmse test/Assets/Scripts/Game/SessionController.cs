@@ -13,7 +13,15 @@ public class SessionController : MonoBehaviour
     public LocationDB db;
 
     [Header("UI")]
-    public QuizPanel quizPanel;                    // 可留空，會自動尋找（XR Origin 下優先）
+    public QuizPanel quizPanel; // 可留空，會自動尋找（XR Origin 下優先）
+    [Tooltip("指到 NavPanel 根物件上的 CanvasGroup（不指定也會自動尋找/補上）。此物件會被整體顯示/隱藏。")]
+    [SerializeField] CanvasGroup navPanelGroup;
+
+    [Header("Nav Panel 行為")]
+    [Tooltip("作答後是否恢復顯示 NavPanel（左/右轉等）。設為 false = 作答後仍保持隱藏。")]
+    public bool showNavPanelAfterAnswer = false;   // ★ 預設關閉，符合你的需求
+    [Tooltip("當本元件被停用/換場時，是否強制顯示 NavPanel 以避免下一場景卡住。")]
+    public bool forceShowNavPanelOnDisable = true;
 
     [Header("Logging")]
     public RunLogger logger;
@@ -36,9 +44,9 @@ public class SessionController : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
         SafeBindMover("OnEnable");
         RewireQuizPanelIfNeeded();
+        TryWireNavPanelGroup();              // ★ 自動掛線或補 CanvasGroup
         RewireLoggerIfNeeded();
         logger?.StartRun();
-        // ★ 不再在進場/換場時自動出題；只在瞬移完成後（HandleTeleportedTarget）出題
     }
 
     void OnDisable()
@@ -46,6 +54,10 @@ public class SessionController : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
         UnbindMover();
         logger?.EndRun();
+
+        // 避免切場景後 NavPanel 永久消失造成卡關，可由參數控制
+        if (forceShowNavPanelOnDisable) ShowNavPanel();
+
         if (quizPanel) quizPanel.Hide();
     }
 
@@ -54,9 +66,10 @@ public class SessionController : MonoBehaviour
         UnbindMover();
         SafeBindMover("sceneLoaded");
         RewireQuizPanelIfNeeded();
+        TryWireNavPanelGroup();              // ★ 切樓層後重綁 NavPanelGroup
         RewireLoggerIfNeeded();
-        // ★ 也不在換場後自動出題
     }
+
     public void StartQuizByStallId(string stallId)
     {
         if (_quizActive) return;
@@ -72,6 +85,7 @@ public class SessionController : MonoBehaviour
 
         AskQuestion(correct.sceneName, correct.viewpointName);
     }
+
     // ===== 綁定 mover（僅使用帶 Transform 的事件）=====
     void SafeBindMover(string from)
     {
@@ -92,6 +106,7 @@ public class SessionController : MonoBehaviour
             StartCoroutine(RetryBindNextFrame());
         }
     }
+
     System.Collections.IEnumerator RetryBindNextFrame() { yield return null; SafeBindMover("retry-next-frame"); }
 
     void UnbindMover()
@@ -164,6 +179,7 @@ public class SessionController : MonoBehaviour
             if (correct == null) { Debug.LogWarning("[Session] DB 空，無法出題。"); return; }
             Debug.LogWarning($"[Session] 找不到 VP '{vpName}'，回退：{correct.displayText}");
         }
+
         int panelCapacity = quizPanel ? quizPanel.MaxOptions : optionsPerQuestion;
         int want = Mathf.Clamp(optionsPerQuestion, 2, Mathf.Max(2, panelCapacity));
         _currentOptions = BuildOptions(correct, want);
@@ -172,6 +188,7 @@ public class SessionController : MonoBehaviour
         var labels = _currentOptions.Select(e =>
             string.IsNullOrEmpty(e.displayText) ? $"{e.floorLabel} {e.stallLabel}".Trim() : e.displayText
         ).ToArray();
+
         Debug.Log("[Session] labels count = " + labels.Length);
         _quizActive = true;
         if (_mover) _mover.allowMove = false;
@@ -182,6 +199,8 @@ public class SessionController : MonoBehaviour
 
         quizPanel.Show("你現在在哪裡?", labels, OnPick);
 
+        // 出題時讓 NavPanel 直接消失
+        HideNavPanel();
         logger?.SetDisplayTextCache(correct.displayText);
         logger?.BeginQuestion(sceneName, correct.viewpointName, correct.displayText);
     }
@@ -194,6 +213,10 @@ public class SessionController : MonoBehaviour
 
         if (quizPanel) quizPanel.Hide();
         if (_mover) _mover.allowMove = true;
+
+        // ★ 依設定決定是否恢復 NavPanel（預設：不顯示）
+        if (showNavPanelAfterAnswer) ShowNavPanel();
+
         _quizActive = false;
     }
 
@@ -236,6 +259,44 @@ public class SessionController : MonoBehaviour
     {
         if (db != null && db.entries != null && db.entries.Count > 0) return true;
         Debug.LogWarning("[Session] LocationDB 為空，瞬移後不會出題。");
+        return false;
+    }
+
+    // ===== NavPanel 顯示/隱藏（整個物件顯示/消失） =====
+    void HideNavPanel()
+    {
+        if (!navPanelGroup) return;
+        if (navPanelGroup.gameObject.activeSelf)
+            navPanelGroup.gameObject.SetActive(false);
+    }
+
+    void ShowNavPanel()
+    {
+        if (!navPanelGroup) return;
+        if (!navPanelGroup.gameObject.activeSelf)
+            navPanelGroup.gameObject.SetActive(true);
+    }
+
+    bool TryWireNavPanelGroup()
+    {
+        if (navPanelGroup) return true;
+
+        // 先嘗試從 NavPanel 腳本找
+        var nav = FindFirstObjectByType<NavPanel>(FindObjectsInactive.Include);
+        if (nav)
+        {
+            navPanelGroup = nav.GetComponent<CanvasGroup>();
+            if (!navPanelGroup) navPanelGroup = nav.gameObject.AddComponent<CanvasGroup>();
+            return true;
+        }
+
+        // 退而求其次：用名稱找物件
+        var go = GameObject.Find("NavPanel");
+        if (go)
+        {
+            navPanelGroup = go.GetComponent<CanvasGroup>() ?? go.AddComponent<CanvasGroup>();
+            return true;
+        }
         return false;
     }
 }

@@ -5075,14 +5075,15 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 472937488}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 59ef2a6fffd59a64da0188790694a727, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   db: {fileID: 11400000, guid: 025979435d536f946894d7055637d163, type: 2}
   quizPanel: {fileID: 935020410}
-  logger: {fileID: 0}
+  navPanelGroup: {fileID: 0}
+  logger: {fileID: 472937489}
   autoCreateLoggerIfMissing: 1
   optionsPerQuestion: 4
 --- !u!4 &472937491
