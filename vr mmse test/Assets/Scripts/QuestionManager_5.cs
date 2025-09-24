@@ -71,20 +71,20 @@ public class QuestionManager : MonoBehaviour
     void Start()
     {
         if (hmdCamera == null || xrOriginTransform == null || initialSpawnPoint == null)
-    {
-        Debug.LogError("請確認 hmdCamera、xrOriginTransform、initialSpawnPoint 都已經設定！");
-        return;
-    }
+        {
+            Debug.LogError("請確認 hmdCamera、xrOriginTransform、initialSpawnPoint 都已經設定！");
+            return;
+        }
 
-    // 🔹 方法一：計算 offset，把頭顯拉到指定初始位置
-    Vector3 offset = initialSpawnPoint.position - hmdCamera.transform.position;
-    xrOriginTransform.position += offset;
+        // 🔹 方法一：計算 offset，把頭顯拉到指定初始位置
+        Vector3 offset = initialSpawnPoint.position - hmdCamera.transform.position;
+        xrOriginTransform.position += offset;
 
-    // 🔹 只對齊 Yaw，不硬調 pitch/roll（避免暈）
-    Vector3 camForward = Vector3.ProjectOnPlane(hmdCamera.transform.forward, Vector3.up).normalized;
-    Vector3 tgtForward = Vector3.ProjectOnPlane(initialSpawnPoint.forward, Vector3.up).normalized;
-    float yawDelta = Vector3.SignedAngle(camForward, tgtForward, Vector3.up);
-    xrOriginTransform.Rotate(Vector3.up, yawDelta, Space.World);
+        // 🔹 只對齊 Yaw，不硬調 pitch/roll（避免暈）
+        Vector3 camForward = Vector3.ProjectOnPlane(hmdCamera.transform.forward, Vector3.up).normalized;
+        Vector3 tgtForward = Vector3.ProjectOnPlane(initialSpawnPoint.forward, Vector3.up).normalized;
+        float yawDelta = Vector3.SignedAngle(camForward, tgtForward, Vector3.up);
+        xrOriginTransform.Rotate(Vector3.up, yawDelta, Space.World);
 
 
         if (questionText == null || panelBackground == null || questionAudioSource == null ||
@@ -95,9 +95,10 @@ public class QuestionManager : MonoBehaviour
             Debug.LogError("請確保所有公開變數都已在 Unity Inspector 中設定！");
             return;
         }
-        
 
-        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => {
+
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
+        {
             Firebase.DependencyStatus dependencyStatus = task.Result;
             if (dependencyStatus == Firebase.DependencyStatus.Available)
             {
@@ -117,6 +118,7 @@ public class QuestionManager : MonoBehaviour
         HideAllRecordingObjects();
 
         StartCoroutine(StartGameSequence());
+        SceneFlowManager.instance.StartServerForScene("SampleScene_5");
     }
 
     void HideAllQuestionObjects()
@@ -142,6 +144,7 @@ public class QuestionManager : MonoBehaviour
         currentMoney = 100;
         correctAnswerCount = 0;
         panelBackground.SetActive(true);
+        
 
         questionText.text = initialMoneyQuestion;
         Debug.Log("顯示題目: " + initialMoneyQuestion);
@@ -213,6 +216,7 @@ public class QuestionManager : MonoBehaviour
         // yield return StartCoroutine(MoveCameraToTarget(endTarget));
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator MoveCameraToTarget(Transform target)

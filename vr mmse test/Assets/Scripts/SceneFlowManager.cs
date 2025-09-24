@@ -12,6 +12,8 @@ public class SceneFlowManager : MonoBehaviour
 
     private readonly List<string> sceneOrder = new List<string>
     {
+        "SampleScene_5",
+        "SampleScene_3",
         "SampleScene_11_1",
         "SampleScene_11",
         "SampleScene_2",
@@ -54,7 +56,7 @@ public class SceneFlowManager : MonoBehaviour
         StartCoroutine(LoadSceneRoutine(nextScene));
     }
 
-    private IEnumerator LoadSceneRoutine(string nextScene)
+    public IEnumerator LoadSceneRoutine(string nextScene)
     {
         // 1) 黑幕淡入
         yield return StartCoroutine(Fade(0f, 1f));
@@ -83,7 +85,7 @@ public class SceneFlowManager : MonoBehaviour
     }
 
     // 依場景名稱啟動對應 Python 伺服器（會記錄到 currentServerProcess）
-    private void StartServerForScene(string sceneName)
+    public void StartServerForScene(string sceneName)
     {
         string pythonExe = "python";  // 若需要，可改成絕對路徑或 "py"、"python3"
         string workingDir = Path.Combine(Application.dataPath, "Scripts");
@@ -92,8 +94,11 @@ public class SceneFlowManager : MonoBehaviour
 
         switch (sceneName)
         {
-            case "SampleScene_11":
-                scriptToRun = "app_test.py";  // 你的 whisper/Google Web Speech 腳本
+            case "SampleScene_5":
+                scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
+                break;
+            case "SampleScene_3":
+                scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
                 break;
             case "SampleScene_2":
                 scriptToRun = "app_2.py";
@@ -137,7 +142,7 @@ public class SceneFlowManager : MonoBehaviour
 
                 // 常見無害訊息（依實際情況可再補關鍵字）
                 if (
-                    // line.Contains("Running on http://"/) ||
+                    line.Contains("Running on http://") ||
                     line.Contains("Running on all addresses (0.0.0.0)") ||
                     line.Contains("Press CTRL+C to quit") ||
                     line.Contains("Debugger PIN:") ||

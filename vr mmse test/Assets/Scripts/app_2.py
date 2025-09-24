@@ -13,7 +13,7 @@ import shutil
 
 import speech_recognition as sr
 from pydub import AudioSegment
-from opencc import OpenCC
+from opencc import OpenCC0
 
 # ---- 初始化 ----
 app = Flask(__name__)
@@ -28,7 +28,7 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 TARGET_PASS_THRESHOLD = 0.5  # 50%
 
 # OpenCC 繁簡轉換（台灣用詞）
-cc = OpenCC("s2twp")
+cc = OpenCC0("s2twp")
 
 # 初始化 SpeechRecognition
 recognizer = sr.Recognizer()

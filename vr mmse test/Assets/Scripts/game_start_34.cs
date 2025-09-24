@@ -573,6 +573,7 @@ public class game_start_34 : MonoBehaviour
         Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/3");
 
         UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator PlayAudioClipAndThenWait(AudioClip clip)
