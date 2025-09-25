@@ -19,8 +19,8 @@ public class SessionController : MonoBehaviour
 
     [Header("Nav Panel 行為")]
     [Tooltip("作答後是否恢復顯示 NavPanel（左/右轉等）。設為 false = 作答後仍保持隱藏。")]
-    public bool showNavPanelAfterAnswer = false;   // ★ 預設關閉，符合你的需求
-    [Tooltip("當本元件被停用/換場時，是否強制顯示 NavPanel 以避免下一場景卡住。")]
+    public bool showNavPanelAfterAnswer = false;
+    [Tooltip("當本元件被停用/換場時，下一個場景是否要自動顯示 NavPanel。")]
     public bool forceShowNavPanelOnDisable = true;
 
     [Header("Logging")]
@@ -39,12 +39,15 @@ public class SessionController : MonoBehaviour
     bool _quizActive = false;
     bool _boundTargetEvent = false;
 
+    // NavPanel 期望顯示狀態（避免在 OnDisable 階段 SetActive 造成錯誤）
+    bool _navPanelVisibleDesired = true;
+
     void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
         SafeBindMover("OnEnable");
         RewireQuizPanelIfNeeded();
-        TryWireNavPanelGroup();              // ★ 自動掛線或補 CanvasGroup
+        TryWireNavPanelGroup();          // 自動掛線或補 CanvasGroup
         RewireLoggerIfNeeded();
         logger?.StartRun();
     }
@@ -55,8 +58,8 @@ public class SessionController : MonoBehaviour
         UnbindMover();
         logger?.EndRun();
 
-        // 避免切場景後 NavPanel 永久消失造成卡關，可由參數控制
-        if (forceShowNavPanelOnDisable) ShowNavPanel();
+        // 只更新「期望狀態」旗幟，不在停用中呼叫 SetActive
+        if (forceShowNavPanelOnDisable) _navPanelVisibleDesired = true;
 
         if (quizPanel) quizPanel.Hide();
     }
@@ -66,8 +69,11 @@ public class SessionController : MonoBehaviour
         UnbindMover();
         SafeBindMover("sceneLoaded");
         RewireQuizPanelIfNeeded();
-        TryWireNavPanelGroup();              // ★ 切樓層後重綁 NavPanelGroup
+        TryWireNavPanelGroup();          // 切樓層後重綁 NavPanelGroup
         RewireLoggerIfNeeded();
+
+        // 場景載入完成後，統一套用 NavPanel 期望狀態（避免 OnDisable 期間切換）
+        ApplyNavPanelDesiredState();
     }
 
     public void StartQuizByStallId(string stallId)
@@ -82,7 +88,6 @@ public class SessionController : MonoBehaviour
             Debug.LogWarning($"[Session] StartQuizByStallId: 找不到 stallId={stallId}，取消此次出題。");
             return;
         }
-
         AskQuestion(correct.sceneName, correct.viewpointName);
     }
 
@@ -106,7 +111,6 @@ public class SessionController : MonoBehaviour
             StartCoroutine(RetryBindNextFrame());
         }
     }
-
     System.Collections.IEnumerator RetryBindNextFrame() { yield return null; SafeBindMover("retry-next-frame"); }
 
     void UnbindMover()
@@ -201,6 +205,7 @@ public class SessionController : MonoBehaviour
 
         // 出題時讓 NavPanel 直接消失
         HideNavPanel();
+
         logger?.SetDisplayTextCache(correct.displayText);
         logger?.BeginQuestion(sceneName, correct.viewpointName, correct.displayText);
     }
@@ -214,7 +219,7 @@ public class SessionController : MonoBehaviour
         if (quizPanel) quizPanel.Hide();
         if (_mover) _mover.allowMove = true;
 
-        // ★ 依設定決定是否恢復 NavPanel（預設：不顯示）
+        // 依設定決定是否恢復 NavPanel（預設：不顯示）
         if (showNavPanelAfterAnswer) ShowNavPanel();
 
         _quizActive = false;
@@ -265,16 +270,37 @@ public class SessionController : MonoBehaviour
     // ===== NavPanel 顯示/隱藏（整個物件顯示/消失） =====
     void HideNavPanel()
     {
+        _navPanelVisibleDesired = false;
         if (!navPanelGroup) return;
-        if (navPanelGroup.gameObject.activeSelf)
-            navPanelGroup.gameObject.SetActive(false);
+
+        var go = navPanelGroup.gameObject;
+        // 只有在目前可安全切換時才立即 SetActive
+        if (go.activeInHierarchy && go.activeSelf)
+            go.SetActive(false);
     }
 
     void ShowNavPanel()
     {
+        _navPanelVisibleDesired = true;
         if (!navPanelGroup) return;
-        if (!navPanelGroup.gameObject.activeSelf)
-            navPanelGroup.gameObject.SetActive(true);
+
+        var go = navPanelGroup.gameObject;
+        if (go.activeInHierarchy && !go.activeSelf)
+            go.SetActive(true);
+    }
+
+    void ApplyNavPanelDesiredState()
+    {
+        if (!navPanelGroup) return;
+        var go = navPanelGroup.gameObject;
+        if (_navPanelVisibleDesired)
+        {
+            if (!go.activeSelf) go.SetActive(true);
+        }
+        else
+        {
+            if (go.activeSelf) go.SetActive(false);
+        }
     }
 
     bool TryWireNavPanelGroup()
