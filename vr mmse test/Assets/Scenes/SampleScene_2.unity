@@ -15795,10 +15795,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06dc57f809587a145a92915a45c9af98, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  serverUrl: http://localhost:5000/recognize_speech
   statusText: {fileID: 1707024648}
-  serverUrl: http://localhost:5000/transcribe
-  targetSentence: "\u9B5A\u8089\u7279\u50F9\u5FEB\u4F86\u8CB7"
-  autoAdvanceDelay: 2
+  answerManager: {fileID: 2076102337}
 --- !u!4 &1597536243
 Transform:
   m_ObjectHideFlags: 0
@@ -16636,7 +16635,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   statusText: {fileID: 1707024648}
-  flaskHost: {fileID: 1597536242}
+  audioSender: {fileID: 1597536242}
+  currentQuestionIndex: 0
 --- !u!4 &1655928440
 Transform:
   m_ObjectHideFlags: 0
@@ -22309,6 +22309,51 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7576170614525935266, guid: 7ae44cce9c551704984deac91f767c88, type: 3}
   m_PrefabInstance: {fileID: 2067665585}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2076102336
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2076102338}
+  - component: {fileID: 2076102337}
+  m_Layer: 0
+  m_Name: AnswerManagerObj_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2076102337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2076102336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39b2be50de729bc42888aba814511c65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  statusText: {fileID: 0}
+--- !u!4 &2076102338
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2076102336}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 28.289146, y: 2.8353796, z: -36.64387}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2104863468
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24031,6 +24076,7 @@ SceneRoots:
   - {fileID: 1968425820}
   - {fileID: 1655928440}
   - {fileID: 1597536243}
+  - {fileID: 2076102338}
   - {fileID: 415689825}
   - {fileID: 1844499420}
   - {fileID: 1787906758}
