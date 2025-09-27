@@ -2,81 +2,106 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using TMPro;
-using System.IO;
+using System;
 
-public class HostFlask2 : MonoBehaviour
+// 注意：這裡不再定義 RecognitionResponse，它會從你的 RecognitionResponse_3_4_5.cs 引用
+
+public class AudioToServerSender : MonoBehaviour
 {
-    public TextMeshProUGUI statusText;
-    public string serverUrl = "http://localhost:5000/transcribe";
-    [HideInInspector] public string targetSentence;
+    // 伺服器 URL 使用第一個參考程式碼的路由 /recognize_speech
+    public string serverUrl = "http://localhost:5000/recognize_speech";
 
-    [Header("自動換場設定")]
-    public float autoAdvanceDelay = 2f;  // 換場前延遲秒數
+    [Header("UI & 邏輯連接")]
+    public TextMeshProUGUI statusText; 
+    public AnswerLogicManager answerManager;
 
-    public void SendFileToWhisper(string path)
+    // 啟動傳送協程的方法
+    public void SendAudioForRecognition(byte[] audioData, int questionSequenceIndex)
     {
-        StartCoroutine(SendToWhisper(path));
+        StartCoroutine(SendAudioToServer(audioData, questionSequenceIndex));
     }
 
-    IEnumerator SendToWhisper(string path)
+    IEnumerator SendAudioToServer(byte[] audioData, int questionSequenceIndex)
     {
-        if (!File.Exists(path))
-        {
-            if (statusText) statusText.text = "錯誤：錄音檔不存在";
-            yield break;
-        }
+        if (statusText) statusText.text = "正在進行語音辨識...";
 
-        byte[] audioBytes = File.ReadAllBytes(path);
         WWWForm form = new WWWForm();
-        form.AddBinaryData("file", audioBytes, Path.GetFileName(path), "audio/wav");
-        form.AddField("target", targetSentence);
+        form.AddBinaryData("file", audioData, "recording.wav", "audio/wav");
 
-        using (UnityWebRequest www = UnityWebRequest.Post(serverUrl, form))
+        UnityWebRequest request = UnityWebRequest.Post(serverUrl, form);
+        request.timeout = 30; // 設置超時時間
+        yield return request.SendWebRequest();
+
+        string userResponse = string.Empty;
+
+        if (request.result == UnityWebRequest.Result.Success)
         {
-            if (statusText) statusText.text = "上傳中…";
-            yield return www.SendWebRequest();
+            string jsonResponse = request.downloadHandler.text;
+            Debug.Log("[AudioSender] 伺服器回應: " + jsonResponse);
 
-            if (www.result != UnityWebRequest.Result.Success)
+            try
             {
-                if (statusText) statusText.text = "辨識錯誤: " + www.error;
-            }
-            else
-            {
-                string json = www.downloadHandler.text;
-                MyTranscriptionResult res = JsonUtility.FromJson<MyTranscriptionResult>(json);
+                // 直接使用 RecognitionResponse 類別 (來自 RecognitionResponse_3_4_5.cs)
+                RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
 
-                if (res == null)
+                if (response != null && !string.IsNullOrEmpty(response.transcription))
                 {
-                    if (statusText) statusText.text = "回傳解析失敗: " + json;
+                    userResponse = response.transcription;
+                    if (statusText) statusText.text = $"辨識結果：{userResponse}";
+
+                    // 🔹 呼叫答案檢查
+                    if (answerManager != null)
+                    {
+                        answerManager.CheckAnswer(userResponse, questionSequenceIndex);
+
+                        // --- 🔹 答題完成後自動轉場 ---
+                        if (SceneFlowManager.instance != null)
+                        {
+                            // 這裡你可以選擇：不管答對/答錯都轉場
+                            StartCoroutine(LoadNextSceneWithDelay(2f));
+
+                            // 或者 → 只有答對才轉場（註解掉上面，改用這個）
+                            // if (similarity >= 0.50f) StartCoroutine(LoadNextSceneWithDelay(2f));
+                        }
+                    }
+                }
+                // 檢查是否有錯誤欄位
+                else if (response != null && !string.IsNullOrEmpty(response.error))
+                {
+                    if (statusText) statusText.text = $"辨識錯誤：{response.error}";
+                    Debug.LogWarning($"[AudioSender] 伺服器回傳辨識錯誤: {response.error}");
+                    userResponse = string.Empty;
                 }
                 else
                 {
-                    if (statusText)
-                    {
-                        statusText.text = $"題目：{targetSentence}\n" +
-                                          $"辨識：{res.spoken_text}\n" +
-                                          $"正確率：{res.accuracy:0.00}%\n" +
-                                          $"通過：{(res.passed ? "是" : "否")}";
-                    }
+                    if (statusText) statusText.text = "辨識回傳解析失敗";
+                    Debug.LogError("[AudioSender] 解析 JSON 失敗: 無效的結構或內容。");
                 }
             }
-
-            // ★★★ 無論成功或失敗，這裡都會進入換場 ★★★
-            StartCoroutine(AdvanceNextAfterDelay(autoAdvanceDelay));
-        }
-    }
-
-    private IEnumerator AdvanceNextAfterDelay(float delay)
-    {
-        if (delay > 0f) yield return new WaitForSeconds(delay);
-
-        if (SceneFlowManager.instance != null)
-        {
-            SceneFlowManager.instance.LoadNextScene();
+            catch (System.Exception ex)
+            {
+                if (statusText) statusText.text = "辨識回傳解析失敗";
+                Debug.LogError("[AudioSender] 解析 JSON 失敗: " + ex.Message);
+            }
         }
         else
         {
-            Debug.LogError("[HostFlask2] SceneFlowManager.instance 為 null，請確認第一個場景有放 SceneFlowManager 物件");
+            if (statusText) statusText.text = "語音辨識請求失敗";
+            Debug.LogError($"[AudioSender] 語音辨識請求失敗: {request.error}. Response: {request.downloadHandler.text}");
         }
+
+        // 這裡進行下一步答題邏輯
+        Debug.Log($"[AudioSender] 傳輸結束。辨識結果: {userResponse}");
+    }
+
+    // --- 🔹 延遲換場方法 ---
+    private IEnumerator LoadNextSceneWithDelay(float delay)
+    {
+        // if (statusText != null)
+        // {
+        //     statusText.text += "\n即將進入下一關...";
+        // }
+        yield return new WaitForSeconds(delay);
+        SceneFlowManager.instance.LoadNextScene();
     }
 }
