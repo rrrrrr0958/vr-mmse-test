@@ -26,17 +26,17 @@ public class game_start_34 : MonoBehaviour
     // =========================================================================
 
     [Header("遊戲開始設定")]
-    public float initialTextDelay = 3f;
-    public float questionBroadcastDelay = 2f;
-    public float timeBetweenQuestions = 2f;
+    public float initialTextDelay = 0.5f;
+    public float questionBroadcastDelay = 1f;
+    public float timeBetweenQuestions = 1f;
     [Tooltip("語音問題結束後，到開始錄音前的緩衝時間。調低這個值可以更快開始錄音。")]
-    public float voiceQuestionBufferTime = 0;
+    public float voiceQuestionBufferTime = 0.5f;
 
     [Header("點擊題設定")]
-    public float clickResponseDuration = 3.0f;
+    public float clickResponseDuration = 2.5f;
 
     [Header("攝影機移動設定")]
-    public float cameraMoveSpeed = 50.0f;
+    public float cameraMoveSpeed = 5.0f;
 
     [Header("UI 連結")]
     public TMPro.TextMeshPro questionBroadcastTextMeshPro;
@@ -57,7 +57,7 @@ public class game_start_34 : MonoBehaviour
 
     [Header("語音辨識設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
-    public float recordingDuration = 5.0f;
+    public float recordingDuration = 3.5f;
 
     // ===== 新增：VR 控制器 & Ray 設定 =====
     [Header("VR 控制器設定（方案A）")]
@@ -75,6 +75,7 @@ public class game_start_34 : MonoBehaviour
     [Header("攝影機目標點")]
     public Transform cameraTarget_FishStall; // 傳統模式用
     public Transform vrCameraTarget_FishStall; // VR 模式用
+    public Transform cameraTarget_lamp_3; // 第三題燈光目標點
 
 #if ENABLE_INPUT_SYSTEM
     [Header("XR Input Actions")]
@@ -537,10 +538,10 @@ public class game_start_34 : MonoBehaviour
         // --- 第一個問題 ---
         Debug.Log("Console 問題: 這個攤位在賣什麼？");
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤" }));
         if (questionBroadcastTextMeshPro != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 新增這行
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); 
         }
 
         yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
@@ -551,7 +552,18 @@ public class game_start_34 : MonoBehaviour
         yield return StartCoroutine(WaitForAnswer(new List<string> { "藍色", "藍", "藍白", "藍白色", "白藍", "白藍色", "淺藍", "淺藍色" }));
         if (questionBroadcastTextMeshPro != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 新增這行
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); 
+        }
+
+        if (cameraTarget_lamp_3 != null)
+        {
+            Debug.Log("攝影機開始轉向第三題目標（燈光）...");
+            yield return StartCoroutine(SmoothCameraMove(cameraTarget_lamp_3.position, cameraTarget_lamp_3.rotation));
+            Debug.Log("攝影機轉向完成。");
+        }
+        else
+        {
+            Debug.LogError("cameraTarget_lamp_3 未設定！攝影機將維持原位。");
         }
 
         yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
@@ -564,7 +576,7 @@ public class game_start_34 : MonoBehaviour
         HideHighlightCircle();
         if (questionBroadcastTextMeshPro != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 新增這行
+            questionBroadcastTextMeshPro.gameObject.SetActive(false); 
         }
 
         // ==========================================================
@@ -756,7 +768,7 @@ public class game_start_34 : MonoBehaviour
 
             if (questionBroadcastTextMeshPro != null)
             {
-                questionBroadcastTextMeshPro.text = "處理中";
+                questionBroadcastTextMeshPro.text = "語音處理中";
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);

@@ -24,7 +24,8 @@ public class QuestionManager : MonoBehaviour
     public class QuestionData
     {
         public string questionText;
-        public AudioClip audioClip;
+        public AudioClip audioClip; // 🔹 這是第一題/起始的語音 (e.g., "花費XX元...")
+        public AudioClip nextAudioClip; // 🔹 【新增】這是第二/三題的語音 (e.g., "接下來再花費XX元...")
         public GameObject cameraTarget;
         public GameObject vrCameraTarget;
         public GameObject numberObject;
@@ -107,7 +108,7 @@ public class QuestionManager : MonoBehaviour
             else
             {
                 Debug.LogError(string.Format(
-                   "無法解決 Firebase 依賴關係: {0}", dependencyStatus));
+                    "無法解決 Firebase 依賴關係: {0}", dependencyStatus));
             }
         });
 
@@ -144,7 +145,7 @@ public class QuestionManager : MonoBehaviour
         currentMoney = 100;
         correctAnswerCount = 0;
         panelBackground.SetActive(true);
-        
+
 
         questionText.text = initialMoneyQuestion;
         Debug.Log("顯示題目: " + initialMoneyQuestion);
@@ -172,6 +173,7 @@ public class QuestionManager : MonoBehaviour
         {
             QuestionData currentQuestionData = currentQuestionSequence[i];
             string currentQuestionText = currentQuestionData.questionText;
+            AudioClip currentAudioClip = null; // 🔹 新增：用於儲存當前要播放的語音
 
             Transform targetTransform = (xrOriginTransform != null && currentQuestionData.vrCameraTarget != null) ?
                 currentQuestionData.vrCameraTarget.transform :
@@ -182,27 +184,41 @@ public class QuestionManager : MonoBehaviour
                 yield return StartCoroutine(MoveCameraToTarget(targetTransform));
             }
 
-            if (i > 0)
+            // 🔹 根據題號 i 來決定要使用哪種版本的語音
+            if (i == 0)
             {
-                currentQuestionText = "再" + currentQuestionText;
+                // 第一題 (i=0): 使用原版語音和文字 (e.g., "花費XX元...")
+                currentAudioClip = currentQuestionData.audioClip;
+                // 不需要修改 currentQuestionText，它已經是 "花費XX元..."
+            }
+            else
+            {
+                // 第二題 (i=1) 和之後的題目 (i>0):
+                // 1. 使用新增的 "接下來/再" 版語音
+                currentAudioClip = currentQuestionData.nextAudioClip;
+
+                // 2. 在文字上加上 "再"
+                currentQuestionText = "接下來再" + currentQuestionText;
             }
 
             questionText.text = currentQuestionText;
             Debug.Log("顯示題目: " + currentQuestionText);
 
-            if (currentQuestionData.audioClip != null)
+            if (currentAudioClip != null) // 🔹 改為判斷 currentAudioClip
             {
-                questionAudioSource.clip = currentQuestionData.audioClip;
+                questionAudioSource.clip = currentAudioClip; // 🔹 播放正確的語音
                 questionAudioSource.Play();
                 currentQuestionData.numberObject.SetActive(true);
                 currentQuestionData.bgObject.SetActive(true);
 
-                yield return new WaitForSeconds(currentQuestionData.audioClip.length);
+                yield return new WaitForSeconds(currentAudioClip.length); // 🔹 等待正確語音的長度
                 currentQuestionData.numberObject.SetActive(false);
                 currentQuestionData.bgObject.SetActive(false);
             }
             else
             {
+                // 🔹 處理沒有設定語音的情況，並發出警告
+                Debug.LogWarning($"第 {i + 1} 題沒有設定 {(i == 0 ? "audioClip" : "nextAudioClip")}，將等待 {delayBetweenQuestions} 秒。");
                 yield return new WaitForSeconds(delayBetweenQuestions);
             }
 
