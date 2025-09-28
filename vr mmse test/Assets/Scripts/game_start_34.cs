@@ -75,7 +75,13 @@ public class game_start_34 : MonoBehaviour
     [Header("攝影機目標點")]
     public Transform cameraTarget_FishStall; // 傳統模式用
     public Transform vrCameraTarget_FishStall; // VR 模式用
-    public Transform cameraTarget_lamp_3; // 第三題燈光目標點
+    public Transform cameraTarget_banana_3; // 第三題燈光目標點
+
+    [Header("第三題物件與文字板")]
+    [Tooltip("要取代 Highlight Circle 的新物件 (banana_bg_4)")]
+    public GameObject banana_bg_4;
+    [Tooltip("第三題語音提示文字板 (請說出答案/語音處理中)")]
+    public TMPro.TextMeshPro question3_VoiceText;
 
 #if ENABLE_INPUT_SYSTEM
     [Header("XR Input Actions")]
@@ -111,6 +117,8 @@ public class game_start_34 : MonoBehaviour
     private Dictionary<GameObject, Color> originalColors = new Dictionary<GameObject, Color>();
 
     private HashSet<GameObject> lockedClickedObjects = new HashSet<GameObject>();
+
+    private int currentVoiceQuestionIndex = 0; // 新增：用於追蹤目前的語音問題編號
 
 
 #if ENABLE_INPUT_SYSTEM
@@ -172,6 +180,11 @@ public class game_start_34 : MonoBehaviour
         }
 
         if (highlightCircleImage != null) highlightCircleImage.gameObject.SetActive(false);
+
+        // >>> [修改點 2] 初始化時隱藏新增的第三題物件和文字板
+        if (banana_bg_4 != null) banana_bg_4.SetActive(false);
+        if (question3_VoiceText != null) question3_VoiceText.gameObject.SetActive(false);
+        // <<< [修改點 2]
 
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
@@ -537,52 +550,58 @@ public class game_start_34 : MonoBehaviour
 
         // --- 第一個問題 ---
         Debug.Log("Console 問題: 這個攤位在賣什麼？");
+        currentVoiceQuestionIndex = 1; // 追蹤問題編號
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤" }));
-        if (questionBroadcastTextMeshPro != null)
-        {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); 
-        }
+        // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
         yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
 
         // --- 第二個問題 ---
         Debug.Log("Console 問題: 魚的顏色是什麼？");
+        currentVoiceQuestionIndex = 2; // 追蹤問題編號
         yield return StartCoroutine(PlayAudioClipAndThenWait(fishColorAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "藍色", "藍", "藍白", "藍白色", "白藍", "白藍色", "淺藍", "淺藍色" }));
-        if (questionBroadcastTextMeshPro != null)
-        {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); 
-        }
+        // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
-        if (cameraTarget_lamp_3 != null)
+        // >>> [修改點 4.1] 轉換第三題視角前，啟用新物件 banana_bg_4
+        if (banana_bg_4 != null)
+        {
+            banana_bg_4.SetActive(true);
+            Debug.Log("banana_bg_4 已在視角轉換前啟用。");
+        }
+        // <<< [修改點 4.1]
+
+        if (cameraTarget_banana_3 != null)
         {
             Debug.Log("攝影機開始轉向第三題目標（燈光）...");
-            yield return StartCoroutine(SmoothCameraMove(cameraTarget_lamp_3.position, cameraTarget_lamp_3.rotation));
+            yield return StartCoroutine(SmoothCameraMove(cameraTarget_banana_3.position, cameraTarget_banana_3.rotation));
             Debug.Log("攝影機轉向完成。");
         }
         else
         {
-            Debug.LogError("cameraTarget_lamp_3 未設定！攝影機將維持原位。");
+            Debug.LogError("cameraTarget_banana_3 未設定！攝影機將維持原位。");
         }
 
         yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
 
+
         // --- 第三個問題 ---
+        currentVoiceQuestionIndex = 3; // 追蹤問題編號
         Debug.Log("Console 問題: 那個是什麼？");
-        ShowHighlightCircle();
+        ShowHighlightCircle(); // 這裡現在控制 banana_bg_4
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "燈", "路燈", "跟", "路跟", "膯", "路膯", "入燈", "入膯", "入跟" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉" }));
+        //yield return StartCoroutine(WaitForAnswer(new List<string> { "燈", "路燈", "跟", "路跟", "膯", "路膯", "入燈", "入膯", "入跟" }));
         HideHighlightCircle();
-        if (questionBroadcastTextMeshPro != null)
-        {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); 
-        }
+        // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
         // ==========================================================
 
         Debug.Log("Console: 所有魚攤問題已完成！");
         Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/3");
+
+        currentVoiceQuestionIndex = 0; // 重置問題編號
 
         UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
@@ -637,24 +656,34 @@ public class game_start_34 : MonoBehaviour
 
     void ShowHighlightCircle()
     {
-        if (highlightCircleImage != null)
+        // >>> [修改點 3.1] 移除 highlightCircleImage 的啟用，改用 banana_bg_4
+        if (banana_bg_4 != null)
         {
-            highlightCircleImage.gameObject.SetActive(true);
-            Debug.Log("HighlightCircle 已啟用並顯示。其位置和大小由 Editor 設定。");
+            banana_bg_4.SetActive(true);
+            Debug.Log("banana_bg_4 (新物件) 已啟用並顯示。");
         }
         else
         {
-            Debug.LogError("HighlightCircleImage 未賦值，無法顯示圈圈！");
+            Debug.LogError("banana_bg_4 未賦值，無法顯示新物件！");
         }
+        // <<< [修改點 3.1]
     }
 
     void HideHighlightCircle()
     {
-        if (highlightCircleImage != null)
+        // >>> [修改點 3.2] 隱藏 banana_bg_4
+        if (banana_bg_4 != null)
         {
-            highlightCircleImage.gameObject.SetActive(false);
-            Debug.Log("HighlightCircle 已禁用。");
+            banana_bg_4.SetActive(false);
+            Debug.Log("banana_bg_4 已禁用。");
         }
+        else if (highlightCircleImage != null)
+        {
+            // 如果 banana_bg_4 沒設，則退回隱藏舊的 highlightCircleImage
+            highlightCircleImage.gameObject.SetActive(false);
+            Debug.Log("HighlightCircle 已禁用 (banana_bg_4 未設定)。");
+        }
+        // <<< [修改點 3.2]
     }
 
     void PlayInitialVoiceQuestion(string stallName)
@@ -747,17 +776,35 @@ public class game_start_34 : MonoBehaviour
 
     IEnumerator WaitForAnswer(List<string> correctAnswers)
     {
-        if (questionBroadcastTextMeshPro != null)
+        TMPro.TextMeshPro textDisplay = null;
+
+        // >>> [修改點 5.1] 判斷是否為第三題，並使用專屬的文字板
+        if (currentVoiceQuestionIndex == 3 && question3_VoiceText != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(true);
+            textDisplay = question3_VoiceText;
+            // 確保主文字板在 Q3 是關閉的
+            if (questionBroadcastTextMeshPro != null && questionBroadcastTextMeshPro.gameObject.activeSelf)
+            {
+                questionBroadcastTextMeshPro.gameObject.SetActive(false);
+            }
         }
+        else
+        {
+            textDisplay = questionBroadcastTextMeshPro;
+        }
+
+        if (textDisplay != null)
+        {
+            textDisplay.gameObject.SetActive(true);
+        }
+        // <<< [修改點 5.1]
 
         if (Microphone.devices.Length > 0)
         {
             Debug.Log("開始錄音...");
-            if (questionBroadcastTextMeshPro != null)
+            if (textDisplay != null)
             {
-                questionBroadcastTextMeshPro.text = "請說出答案";
+                textDisplay.text = "請說出答案"; // 使用選定的文字板
             }
 
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
@@ -766,21 +813,27 @@ public class game_start_34 : MonoBehaviour
 
             Debug.Log("錄音結束。");
 
-            if (questionBroadcastTextMeshPro != null)
+            if (textDisplay != null)
             {
-                questionBroadcastTextMeshPro.text = "語音處理中";
+                textDisplay.text = "語音處理中"; // 使用選定的文字板
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
+            // 流程：SendAudioToServer -> CheckAnswer -> ShowResultAndContinue
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
+            // 備註：這裡不需要額外呼叫 ShowResultAndContinue，因為它會被 CheckAnswer 呼叫。
         }
         else
         {
-            Debug.LogError("沒有找到麥克風設備！");
-            if (questionBroadcastTextMeshPro != null)
+            Debug.LogError("沒有找到麥克風設備！流程將跳過本次語音辨識。");
+            if (textDisplay != null)
             {
-                questionBroadcastTextMeshPro.gameObject.SetActive(false);
+                textDisplay.gameObject.SetActive(false);
             }
+
+            // >>> 【修正點】如果沒有麥克風，必須呼叫 ShowResultAndContinue 來結束流程。
+            yield return StartCoroutine(ShowResultAndContinue(false));
+            // <<< 【修正點】
         }
     }
 
@@ -853,12 +906,21 @@ public class game_start_34 : MonoBehaviour
             voiceCorrectAnswersCount++;
         }
 
+        // 可選：在這裡顯示正確或錯誤的視覺提示（例如：文字板閃爍顏色）
+        // ...
+
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        if (questionBroadcastTextMeshPro != null)
+        // >>> 隱藏對應的文字板
+        if (currentVoiceQuestionIndex == 3 && question3_VoiceText != null)
         {
-            questionBroadcastTextMeshPro.gameObject.SetActive(false); // 這裡隱藏文字
+            question3_VoiceText.gameObject.SetActive(false);
         }
+        else if (questionBroadcastTextMeshPro != null)
+        {
+            questionBroadcastTextMeshPro.gameObject.SetActive(false);
+        }
+        // <<<
     }
 
     byte[] ConvertAudioClipToWav(AudioClip clip)
