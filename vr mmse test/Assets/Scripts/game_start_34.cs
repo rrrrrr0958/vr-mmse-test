@@ -552,7 +552,7 @@ public class game_start_34 : MonoBehaviour
         Debug.Log("Console 問題: 這個攤位在賣什麼？");
         currentVoiceQuestionIndex = 1; // 追蹤問題編號
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤", "祈雨" }));
         // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
         yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
