@@ -19,7 +19,7 @@ public class SelectionHighlighter : MonoBehaviour
     [Header("Loading Effect")]
     public float rotationSpeed = 180f; // 每秒旋轉角度
     public float loadingSegmentSize = 0.3f; // 亮部分佔整個圓的比例 (0-1)
-    public float loadingDimFactor = 0.5f; // 暗部分的亮度係數 (0-1)
+    public float loadingDimFactor = 0.5f;   // 暗部分的亮度係數 (0-1)
 
     [Header("Behaviour")]
     public bool compensateParentScale = true;
@@ -42,8 +42,19 @@ public class SelectionHighlighter : MonoBehaviour
     // 便捷：目前是否就是「全域唯一選中者」
     public bool IsCurrentSelected => SelectionHighlightRegistry.Current == this;
 
-    bool Game1Active =>
-        GameDirector.Instance == null || GameDirector.Instance.CanInteractGame1();
+    // ✅ 改用 QuizManager 取代 GameDirector
+    bool CanInteract
+    {
+        get
+        {
+#if UNITY_2022_2_OR_NEWER
+            var qm = FindFirstObjectByType<QuizManager>();
+#else
+            var qm = FindObjectOfType<QuizManager>();
+#endif
+            return qm != null && qm.CanInteract();
+        }
+    }
 
     void Awake()
     {
@@ -147,8 +158,8 @@ public class SelectionHighlighter : MonoBehaviour
         ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
         ApplyScaleCompensation(ring.transform);
 
-        // ★ 若已不在 Game1，且不是目前選中的那顆 → 一律關閉圈圈
-        if (!Game1Active && !IsCurrentSelected)
+        // ★ 若不能互動，且不是目前選中的那顆 → 一律關閉圈圈
+        if (!CanInteract && !IsCurrentSelected)
             ring.enabled = false;
     }
 
@@ -164,7 +175,6 @@ public class SelectionHighlighter : MonoBehaviour
     {
         if (!ring) return;
         
-        // 創建漸層顏色
         Gradient gradient = new Gradient();
         Color dimColor = new Color(
             baseColor.r * loadingDimFactor,
@@ -173,15 +183,12 @@ public class SelectionHighlighter : MonoBehaviour
             baseColor.a
         );
         
-        // 計算關鍵點位置
         float startPos = rotation / 360f;
         float endPos = (rotation + loadingSegmentSize * 360f) / 360f;
         
-        // 確保在0-1範圍內
         startPos = startPos - Mathf.Floor(startPos);
         endPos = endPos - Mathf.Floor(endPos);
         
-        // 準備關鍵點
         GradientColorKey[] colorKeys;
         GradientAlphaKey[] alphaKeys = new GradientAlphaKey[2];
         alphaKeys[0].alpha = 1.0f;
@@ -189,7 +196,6 @@ public class SelectionHighlighter : MonoBehaviour
         alphaKeys[1].alpha = 1.0f;
         alphaKeys[1].time = 1.0f;
         
-        // 如果亮部分跨越了0度位置
         if (endPos < startPos)
         {
             colorKeys = new GradientColorKey[4];
@@ -219,7 +225,6 @@ public class SelectionHighlighter : MonoBehaviour
         ring.colorGradient = gradient;
     }
 
-    // 公開：供 Registry 或外部關閉
     public void ForceDeselect()
     {
         if (!ring) return;
@@ -229,16 +234,13 @@ public class SelectionHighlighter : MonoBehaviour
         isHovering = false;
     }
 
-    // 被選中 → 成為全域唯一選中者（白圈常亮）
     public void ManualSelect()
     {
         SelectionHighlightRegistry.Take(this);
         if (!ring) return;
 
-        // 停止載入動畫
         if (loadingCo != null) { StopCoroutine(loadingCo); loadingCo = null; }
         
-        // 重置為單色
         SetRingColor(selectColor);
         
         if (pulseCo != null) StopCoroutine(pulseCo);
@@ -246,21 +248,19 @@ public class SelectionHighlighter : MonoBehaviour
         ring.enabled = true;
     }
 
-    // 事件：僅用來處理 hover 顏色（Game2 時禁止顯示）
     void OnHoverEntered(HoverEnterEventArgs _)
     {
         if (!ring) return;
 
-        if (!Game1Active)
+        if (!CanInteract)
         {
-            ring.enabled = false;       // ★ Game2/已鎖定 → 禁止藍圈
+            ring.enabled = false;
             return;
         }
 
         isHovering = true;
         ring.enabled = true;
         
-        // 如果不是當前選中的，則顯示載入動畫
         if (!IsCurrentSelected)
         {
             if (loadingCo != null) StopCoroutine(loadingCo);
@@ -278,13 +278,12 @@ public class SelectionHighlighter : MonoBehaviour
 
         isHovering = false;
         
-        if (!Game1Active)
+        if (!CanInteract)
         {
-            ring.enabled = false;       // ★ Game2/已鎖定 → 保險關閉
+            ring.enabled = false;
             return;
         }
 
-        // 停止載入動畫
         if (loadingCo != null)
         {
             StopCoroutine(loadingCo);
@@ -294,7 +293,7 @@ public class SelectionHighlighter : MonoBehaviour
         if (!IsCurrentSelected && pulseCo == null)
             ring.enabled = false;
         else if (IsCurrentSelected)
-            SetRingColor(selectColor); // 恢復選中顏色
+            SetRingColor(selectColor);
     }
 
     IEnumerator Pulse()
@@ -312,7 +311,6 @@ public class SelectionHighlighter : MonoBehaviour
         pulseCo = null;
     }
     
-    // 新增：載入動畫協程
     IEnumerator LoadingAnimation()
     {
         currentRotation = 0f;
@@ -320,18 +318,15 @@ public class SelectionHighlighter : MonoBehaviour
         
         while (isHovering && !IsCurrentSelected)
         {
-            // 更新旋轉角度
             currentRotation += rotationSpeed * Time.deltaTime;
             if (currentRotation >= 360f)
                 currentRotation -= 360f;
                 
-            // 應用漸層色環
             SetLoadingRingColors(hoverColor, currentRotation);
             
             yield return null;
         }
         
-        // 如果退出時是選中狀態，恢復為選中樣式
         if (IsCurrentSelected)
             SetRingColor(selectColor);
             
@@ -351,7 +346,6 @@ public class SelectionHighlighter : MonoBehaviour
             var mr = ring.GetComponent<MeshRenderer>();
             if (mr) mr.sortingOrder = sortingOrder;
             
-            // 限制參數範圍
             loadingSegmentSize = Mathf.Clamp01(loadingSegmentSize);
             loadingDimFactor = Mathf.Clamp01(loadingDimFactor);
         }

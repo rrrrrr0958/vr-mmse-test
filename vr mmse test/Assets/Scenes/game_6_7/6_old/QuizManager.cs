@@ -10,6 +10,8 @@ public class QuizManager : MonoBehaviour
 
     [Header("UI")]
     public TextMeshProUGUI questionText;
+    [Tooltip("完成後要顯示的面板，可空")]
+    public GameObject completionPanel;
 
     [Header("完成本關後要做的事（保留，可用也可不綁）")]
     public UnityEvent onQuestionCleared;
@@ -17,15 +19,15 @@ public class QuizManager : MonoBehaviour
     // 題庫（題目文字 與 對應正解 targetId 必須一一對齊）
     readonly List<(string prompt, string id)> pool = new()
     {
-        ("請用控制器指向右邊櫃子上的相機",           "camera"),
-        ("請用控制器指向右邊櫃子上最大的盆栽",  "bigPlant"),
-        ("請用控制器指向右邊櫃子上的檯燈",               "lamp"),
-        ("請用控制器指向右邊櫃子上的黃色小球",    "yellowBall"),
-        ("請用控制器指向右邊櫃子上的白色寶特瓶", "whiteBottle"),
+        ("請用控制器指向桌上的起司並停留5秒", "cheese"),
+        ("請用控制器指向桌上的香腸並停留5秒", "sausage"),
+        ("請用控制器指向桌上的碗並停留5秒",   "bowl"),
+        ("請用控制器指向桌上的肉排並停留5秒", "meat"),
     };
 
     int picked = -1;            // 這次抽到第幾題
     string currentAnswer = "";  // 這題正解的 targetId
+    bool isLocked = false;      // 是否鎖定互動
 
     void Start()
     {
@@ -81,11 +83,10 @@ public class QuizManager : MonoBehaviour
         return false;
     }
 
-    // ===== 遊戲一的最終提交流程：給 SelectableTarget 呼叫 =====
+    // ===== 提交流程：給 SelectableTarget 呼叫 =====
     public void Submit(string targetId)
     {
-        if (GameDirector.Instance == null || !GameDirector.Instance.CanInteractGame1())
-            return;
+        if (isLocked) return; // 已經鎖定，不再接受答案
 
         bool ok = targetId == currentAnswer;
 
@@ -93,16 +94,29 @@ public class QuizManager : MonoBehaviour
         if (feedbackUI)
         {
             if (ok)
-                feedbackUI.ShowCorrect($"答對了！");
+                feedbackUI.ShowCorrect("答對了！");
             else
-                feedbackUI.ShowWrong($"答錯了！繼續加油");
+                feedbackUI.ShowWrong("答錯了！繼續加油");
         }
 
-        // 交給 GameDirector：鎖定答案、關 UI、顯示面板、切到 Game2
-        GameDirector.Instance.LockAndAdvance(ok, targetId);
-
-        if (ok) onQuestionCleared?.Invoke();
+        if (ok)
+        {
+            LockAndComplete();
+            onQuestionCleared?.Invoke();
+        }
     }
+
+    void LockAndComplete()
+    {
+        isLocked = true;
+
+        // 顯示完成面板
+        if (completionPanel != null)
+            completionPanel.SetActive(true);
+    }
+
+    // 提供外部查詢是否可互動（取代原本的 GameDirector.Instance.CanInteractGame1）
+    public bool CanInteract() => !isLocked;
 
     // 若要外部手動切題可用
     public void SetQuestion(string prompt, string id)

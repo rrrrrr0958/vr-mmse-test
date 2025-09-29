@@ -9,13 +9,13 @@ public class DwellSelectOnHover : MonoBehaviour
 {
     [Header("停留選取")]
     public float dwellSeconds = 3f;
-    public bool  showTenths   = true;
+    public bool showTenths = true;
 
     [Header("Position / Rotation")]
     [Tooltip("DwellText 的本地座標位移 (X/Y/Z)")]
     public Vector3 localOffset = new Vector3(0f, 0.05f, 0.12f);
     [Tooltip("DwellText 的本地旋轉 (Pitch/Yaw/Roll)")]
-    public Vector3 localEuler  = Vector3.zero;
+    public Vector3 localEuler = Vector3.zero;
 
     public enum BillboardMode { None, YAxisOnly, Full }
     [Tooltip("看向相機的方式：None 不看相機、YAxisOnly 只繞 Y、Full 完全面向相機")]
@@ -24,8 +24,8 @@ public class DwellSelectOnHover : MonoBehaviour
     [Header("Scale / Render")]
     [Tooltip("文字世界尺寸（不受父縮放）")]
     public float textWorldScale = 0.90f;
-    public bool  compensateParentScale = true;
-    public int   sortingOrder = 5000;
+    public bool compensateParentScale = true;
+    public int sortingOrder = 5000;
 
     [Header("Text Style")]
     [Tooltip("TextMeshPro 字號")]
@@ -61,7 +61,7 @@ public class DwellSelectOnHover : MonoBehaviour
         TryGetDependencies();
         EnsureCountdownTextExists();   // 優先使用手動指定的
         ApplyVisualToTMP();
-        UpdateTransformNow(force:true);
+        UpdateTransformNow(force: true);
         RefreshEditorPreview();
     }
 
@@ -70,7 +70,7 @@ public class DwellSelectOnHover : MonoBehaviour
         TryGetDependencies();
         EnsureCountdownTextExists();
         ApplyVisualToTMP();
-        UpdateTransformNow(force:true);
+        UpdateTransformNow(force: true);
         RefreshEditorPreview();
 
         if (Application.isPlaying && interactable != null)
@@ -103,7 +103,8 @@ public class DwellSelectOnHover : MonoBehaviour
     // -------- 互動事件（只在播放時使用）--------
     void OnHoverEntered(HoverEnterEventArgs _)
     {
-        if (GameDirector.Instance != null && !GameDirector.Instance.CanInteractGame1())
+        // ✅ 改成問 QuizManager
+        if (FindObjectOfType<QuizManager>()?.CanInteract() == false)
         { HideText(); return; }
 
         if (highlighter != null && highlighter.IsCurrentSelected) { HideText(); return; }
@@ -131,7 +132,8 @@ public class DwellSelectOnHover : MonoBehaviour
         ShowText();
         while (t < dwellSeconds)
         {
-            if (GameDirector.Instance != null && !GameDirector.Instance.CanInteractGame1())
+            // ✅ 改成問 QuizManager
+            if (FindObjectOfType<QuizManager>()?.CanInteract() == false)
             { HideText(); yield break; }
 
             if (highlighter != null && highlighter.IsCurrentSelected) { HideText(); yield break; }
@@ -147,29 +149,25 @@ public class DwellSelectOnHover : MonoBehaviour
 
         // 正式選取
         if (highlighter) highlighter.ManualSelect();
-        if (selectable)  selectable.Submit();
+        if (selectable) selectable.Submit();
     }
 
     // -------- 建立 / 視覺 --------
     void TryGetDependencies()
     {
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
-        highlighter  = GetComponent<SelectionHighlighter>();
-        selectable   = GetComponent<SelectableTarget>();
+        highlighter = GetComponent<SelectionHighlighter>();
+        selectable = GetComponent<SelectableTarget>();
     }
 
-    // 方法A的核心：優先使用你手動建立/指定的 TMP；若沒有，播放時才臨時建立
     void EnsureCountdownTextExists()
     {
-        // 1) 你已在 Inspector 指定 -> 直接使用
         if (countdownText != null) { textTf = countdownText.transform; return; }
 
-        // 2) 沒指定就找同名子物件
         var exist = transform.Find("DwellText");
         if (exist != null) countdownText = exist.GetComponent<TMP_Text>();
         if (countdownText != null) { textTf = countdownText.transform; return; }
 
-        // 3) 以上皆無：僅在「播放時」臨時建立（停止播放會消失）
         if (!Application.isPlaying) return;
 
         var go = new GameObject("DwellText");
@@ -183,7 +181,7 @@ public class DwellSelectOnHover : MonoBehaviour
         tmp.fontSize = fontSize;
 
         var mr = tmp.GetComponent<MeshRenderer>();
-        if (mr) mr.sortingOrder = sortingOrder;
+        mr.sortingOrder = sortingOrder;
 
         countdownText = tmp;
         ApplyVisualToTMP();
@@ -206,26 +204,23 @@ public class DwellSelectOnHover : MonoBehaviour
     {
         if (!countdownText) return;
 
-        // 這些不會觸發材質實例化
-        countdownText.color    = textColor;
+        countdownText.color = textColor;
         countdownText.fontSize = fontSize;
 
 #if UNITY_EDITOR
         if (!Application.isPlaying)
         {
-            // 在編輯模式：改 shared 材質上的參數，避免 renderer.material
             var mat = countdownText.fontSharedMaterial;
             if (mat != null)
             {
                 mat.SetFloat(TMPro.ShaderUtilities.ID_OutlineWidth, outlineWidth);
-                mat.SetColor (TMPro.ShaderUtilities.ID_OutlineColor, outlineColor);
+                mat.SetColor(TMPro.ShaderUtilities.ID_OutlineColor, outlineColor);
                 UnityEditor.EditorUtility.SetDirty(mat);
             }
         }
         else
 #endif
         {
-            // 遊戲執行時：使用實例材質設定
             countdownText.outlineWidth = outlineWidth;
             countdownText.outlineColor = outlineColor;
         }
@@ -234,19 +229,17 @@ public class DwellSelectOnHover : MonoBehaviour
         if (mr) mr.sortingOrder = sortingOrder;
     }
 
-    void UpdateTransformNow(bool force=false)
+    void UpdateTransformNow(bool force = false)
     {
         if (!countdownText) return;
         if (textTf == null) textTf = countdownText.transform;
 
-        // 位置
         if (force || Application.isPlaying || lockPositionInEditor)
         {
             ApplyScaleCompensation(textTf);
             textTf.localPosition = localOffset;
         }
 
-        // 旋轉：billboard + 自訂 euler 疊加
         Quaternion finalRot = Quaternion.Euler(localEuler);
 
         var cam = Camera.main;
@@ -258,7 +251,7 @@ public class DwellSelectOnHover : MonoBehaviour
                 if (dir.sqrMagnitude > 0.0001f)
                     finalRot = Quaternion.LookRotation(dir) * Quaternion.Euler(localEuler);
             }
-            else // YAxisOnly
+            else
             {
                 Vector3 dir = cam.transform.position - textTf.position;
                 dir.y = 0f;
@@ -268,7 +261,7 @@ public class DwellSelectOnHover : MonoBehaviour
         }
 
         if (force || Application.isPlaying || lockPositionInEditor)
-            textTf.rotation = finalRot; // 用 world rotation，避免父物件奇怪縮放導致歐拉跳動
+            textTf.rotation = finalRot;
     }
 
     void ShowText() { if (countdownText) countdownText.gameObject.SetActive(true); }
@@ -282,32 +275,29 @@ public class DwellSelectOnHover : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-void OnValidate()
-{
-    EnsureCountdownTextExists();
-    ApplyVisualToTMP();
-
-    // 位置/旋轉：只有播放中或你允許時才在 OnValidate 立刻套用
-    if (Application.isPlaying || lockPositionInEditor)
-        UpdateTransformNow(force: true);
-
-    // ⚠️ 不要在 OnValidate 直接 SetActive，改成延後到下一幀（避免 SendMessage 警告）
-    if (!Application.isPlaying && countdownText)
+    void OnValidate()
     {
-        var thisRef = this; // 捕捉當前 this
-        TMPro.TMP_Text textRef = countdownText;
+        EnsureCountdownTextExists();
+        ApplyVisualToTMP();
 
-        UnityEditor.EditorApplication.delayCall += () =>
+        if (Application.isPlaying || lockPositionInEditor)
+            UpdateTransformNow(force: true);
+
+        if (!Application.isPlaying && countdownText)
         {
-            if (thisRef && textRef)  // 物件仍存在
-            {
-                textRef.gameObject.SetActive(previewInEditor);
-                if (previewInEditor) textRef.text = editorPreviewText;
-                UnityEditor.EditorUtility.SetDirty(textRef);
-            }
-        };
-    }
-}
-#endif
+            var thisRef = this;
+            TMPro.TMP_Text textRef = countdownText;
 
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (thisRef && textRef)
+                {
+                    textRef.gameObject.SetActive(previewInEditor);
+                    if (previewInEditor) textRef.text = editorPreviewText;
+                    UnityEditor.EditorUtility.SetDirty(textRef);
+                }
+            };
+        }
+    }
+#endif
 }

@@ -4,7 +4,7 @@ using UnityEngine.XR.Interaction.Toolkit;
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable))]
 public class SelectableTarget : MonoBehaviour
 {
-    [Tooltip("此物件的ID：camera / bigPlant / lamp / yellowBall / whiteBottle / ...")]
+    [Tooltip("此物件的ID：camera / cheese / sausage / bowl / meat / ...")]
     public string targetId;
 
     UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
@@ -29,26 +29,25 @@ public class SelectableTarget : MonoBehaviour
     void OnActivated(ActivateEventArgs  _)  => Submit();
 
     /// <summary>
-    /// 最終送出答案：交給 QuizManager → GameDirector.LockAndAdvance()
+    /// 最終送出答案：交給 QuizManager
     /// </summary>
     public void Submit()
     {
-        // 若已鎖定或不在 Game1，直接忽略
-        if (GameDirector.Instance != null && !GameDirector.Instance.CanInteractGame1())
-            return;
-
 #if UNITY_2022_2_OR_NEWER
         var qm = FindFirstObjectByType<QuizManager>();
 #else
         var qm = FindObjectOfType<QuizManager>();
 #endif
-        if (qm != null)
-        {
-            qm.Submit(targetId);
-        }
-        else
+        if (qm == null)
         {
             Debug.LogWarning("[SelectableTarget] 場景裡找不到 QuizManager。");
+            return;
         }
+
+        // ✅ 改成問 QuizManager 是否可互動
+        if (!qm.CanInteract())
+            return;
+
+        qm.Submit(targetId);
     }
 }
