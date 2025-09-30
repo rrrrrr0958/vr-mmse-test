@@ -13,7 +13,7 @@ public class QuestionManager : MonoBehaviour
 {
     public TextMeshPro questionText;
     public GameObject panelBackground;
-    public float delayBetweenQuestions = 3.0f;
+    public float delayBetweenQuestions = 3.5f;
 
     public AudioSource questionAudioSource;
 
@@ -44,7 +44,7 @@ public class QuestionManager : MonoBehaviour
 
     [Header("伺服器設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
-    public float recordingDuration = 3.0f;
+    public float recordingDuration = 3.5f;
 
     private AudioClip recordingClip;
 
@@ -60,7 +60,11 @@ public class QuestionManager : MonoBehaviour
     public GameObject moneyNumber5;
     public GameObject moneyBg5;
 
-    public float cameraMoveSpeed = 2.0f;
+    //public float cameraMoveSpeed = 3.0f;
+
+    // 新增這一行
+    [Header("攝影機設定")]
+    public float cameraMoveDuration = 7.0f; // 設定移動需花費 1.5 秒
 
     // VR 相關修正：新增 XR Origin 的引用
     [Header("VR 攝影機設定")]
@@ -237,8 +241,6 @@ public class QuestionManager : MonoBehaviour
 
     IEnumerator MoveCameraToTarget(Transform target)
     {
-        // 這裡必須是 xrOriginTransform
-        // 而不是 mainCamera.transform
         if (xrOriginTransform == null)
         {
             Debug.LogError("XR Origin Transform is not assigned!");
@@ -248,19 +250,30 @@ public class QuestionManager : MonoBehaviour
         float startTime = Time.time;
         Vector3 startPosition = xrOriginTransform.position;
         Quaternion startRotation = xrOriginTransform.rotation;
-        float journeyLength = Vector3.Distance(startPosition, target.position);
 
-        while (Vector3.Distance(xrOriginTransform.position, target.position) > 0.01f ||
-               Quaternion.Angle(xrOriginTransform.rotation, target.rotation) > 0.01f)
+        // 使用一個計時器來控制時間
+        float elapsedTime = 0f;
+
+        // 只要尚未達到預設的移動時間，就持續移動
+        while (elapsedTime < cameraMoveDuration)
         {
-            float distCovered = (Time.time - startTime) * cameraMoveSpeed;
-            float fractionOfJourney = journeyLength > 0 ? distCovered / journeyLength : 1f;
+            // fractionOfJourney 現在代表時間的進度 (0 到 1)
+            float fractionOfJourney = elapsedTime / cameraMoveDuration;
+
+            // 【可選平滑化】使用 Mathf.SmoothStep 讓開始和結束時移動更平滑，減少眩暈
+            // float smoothStepProgress = Mathf.SmoothStep(0f, 1f, fractionOfJourney);
 
             xrOriginTransform.position = Vector3.Lerp(startPosition, target.position, fractionOfJourney);
             xrOriginTransform.rotation = Quaternion.Lerp(startRotation, target.rotation, fractionOfJourney);
 
+            elapsedTime += Time.deltaTime; // 累積經過的時間
+
             yield return null;
         }
+
+        // 確保最終精確到達目標點
+        xrOriginTransform.position = target.position;
+        xrOriginTransform.rotation = target.rotation;
     }
 
     void GenerateRandomQuestions()

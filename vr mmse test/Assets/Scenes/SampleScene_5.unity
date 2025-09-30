@@ -771,7 +771,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   questionText: {fileID: 72027581}
   panelBackground: {fileID: 1653409140}
-  delayBetweenQuestions: 3
+  delayBetweenQuestions: 3.5
   questionAudioSource: {fileID: 1384916519}
   initialMoneyAudio: {fileID: 8300000, guid: 81aab1ea82a91da4ab81c127b373369c, type: 3}
   allQuestions:
@@ -816,12 +816,12 @@ MonoBehaviour:
     bgObject: {fileID: 830480579}
     recordingObject: {fileID: 976030805}
   serverUrl: http://localhost:5000/recognize_speech
-  recordingDuration: 3
+  recordingDuration: 3.5
   mainCamera: {fileID: 154426029}
   initialCameraPosition: {fileID: 313378414}
   moneyNumber5: {fileID: 477336781}
   moneyBg5: {fileID: 1842861528}
-  cameraMoveSpeed: 20
+  cameraMoveDuration: 7
   xrOriginTransform: {fileID: 313378414}
   hmdCamera: {fileID: 154426029}
   initialSpawnPoint: {fileID: 2037297377}
@@ -13096,7 +13096,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 987012603}
   m_LocalRotation: {x: -0.00055422203, y: -0.007821417, z: 0.0011647238, w: 0.9999686}
-  m_LocalPosition: {x: 0, y: 0, z: -3}
+  m_LocalPosition: {x: 0, y: 0, z: -2.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13104,7 +13104,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: -0.062466957, y: -0.8963528, z: 0.13396083}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 2, y: 1}
+  m_AnchoredPosition: {x: 2.1, y: 0.6}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &987012605
@@ -14016,14 +14016,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1046624813}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.037584357, y: -0.9614639, z: 0.16953202, w: 0.2131515}
+  m_LocalRotation: {x: 0.024990765, y: -0.9416142, z: 0.1651183, w: 0.29235974}
   m_LocalPosition: {x: -5.7, y: 1.68, z: -4.43}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 257000450}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 20, y: -155, z: 0}
+  m_LocalEulerAnglesHint: {x: 19, y: -145, z: 3}
 --- !u!1001 &1048539323
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20095,14 +20095,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1557285130}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.05516273, y: 0.8985542, z: -0.11829687, w: 0.41900265}
+  m_LocalRotation: {x: 0.07338688, y: 0.89253896, z: -0.15737869, w: 0.41619772}
   m_LocalPosition: {x: 2.2, y: 1.1, z: -3}
   m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 987012604}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 15, y: 130, z: 0}
+  m_LocalEulerAnglesHint: {x: 20, y: 130, z: 0}
 --- !u!1001 &1564825086
 PrefabInstance:
   m_ObjectHideFlags: 0

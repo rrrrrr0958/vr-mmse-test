@@ -33,7 +33,7 @@ public class game_start_34 : MonoBehaviour
     public float voiceQuestionBufferTime = 0.5f;
 
     [Header("點擊題設定")]
-    public float clickResponseDuration = 2.5f;
+    public float clickResponseDuration = 3.5f;
 
     [Header("攝影機移動設定")]
     public float cameraMoveSpeed = 5.0f;
@@ -565,18 +565,27 @@ public class game_start_34 : MonoBehaviour
         // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
         // >>> [修改點 4.1] 轉換第三題視角前，啟用新物件 banana_bg_4
-        if (banana_bg_4 != null)
-        {
-            banana_bg_4.SetActive(true);
-            Debug.Log("banana_bg_4 已在視角轉換前啟用。");
-        }
+        //if (banana_bg_4 != null)
+        //{
+        //    banana_bg_4.SetActive(true);
+        //    Debug.Log("banana_bg_4 已在視角轉換前啟用。");
+        //}
         // <<< [修改點 4.1]
 
+        // 1. 開始攝影機轉向/移動
         if (cameraTarget_banana_3 != null)
         {
-            Debug.Log("攝影機開始轉向第三題目標（燈光）...");
+            Debug.Log("攝影機開始轉向第三題目標（香蕉）...");
+            // 等待鏡頭平滑移動完成
             yield return StartCoroutine(SmoothCameraMove(cameraTarget_banana_3.position, cameraTarget_banana_3.rotation));
             Debug.Log("攝影機轉向完成。");
+
+            // 2. 攝影機轉向完成後，再啟用香蕉物件
+            if (banana_bg_4 != null)
+            {
+                banana_bg_4.SetActive(true);
+                Debug.Log("banana_bg_4 (香蕉物件) 已在視角轉換後啟用。");
+            }
         }
         else
         {
@@ -589,10 +598,11 @@ public class game_start_34 : MonoBehaviour
         // --- 第三個問題 ---
         currentVoiceQuestionIndex = 3; // 追蹤問題編號
         Debug.Log("Console 問題: 那個是什麼？");
-        ShowHighlightCircle(); // 這裡現在控制 banana_bg_4
+        // 這裡的 ShowHighlightCircle 內部會再次啟用 banana_bg_4，但物件已經是啟用的了，所以不會造成問題。
+        ShowHighlightCircle();
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉" }));
-        //yield return StartCoroutine(WaitForAnswer(new List<string> { "燈", "路燈", "跟", "路跟", "膯", "路膯", "入燈", "入膯", "入跟" }));
+
         HideHighlightCircle();
         // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
