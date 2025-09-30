@@ -17170,7 +17170,8 @@ MonoBehaviour:
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8c38b9620217f604d828844065296f90, type: 2}
   m_sharedMaterial: {fileID: 9097021707352035785, guid: 8c38b9620217f604d828844065296f90, type: 2}
-  m_fontSharedMaterials: []
+  m_fontSharedMaterials:
+  - {fileID: 9097021707352035785, guid: 8c38b9620217f604d828844065296f90, type: 2}
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:

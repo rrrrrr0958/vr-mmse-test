@@ -13347,6 +13347,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clickedAnimalSequence: []
+  panel1: {fileID: 0}
+  confirmPanel: {fileID: 0}
+  resultText: {fileID: 0}
+  confirmButton: {fileID: 0}
+  retryButton: {fileID: 0}
+  animalButtons: []
 --- !u!1001 &1241914551
 PrefabInstance:
   m_ObjectHideFlags: 0
