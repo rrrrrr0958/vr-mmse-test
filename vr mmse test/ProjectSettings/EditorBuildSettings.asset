@@ -8,6 +8,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/Star Reward.unity
+    guid: 2c717ebfc5f19b845ad1e45cfab92fe7
+  - enabled: 1
+    path: Assets/Scenes/Reward.unity
+    guid: 2c94ee97eb39aec42af74e54d6cb7c69
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 1b623526ae0fb1d4ebd3f0e5bf75fc51, type: 2}
