@@ -3,6 +3,10 @@ using UnityEngine;
 
 public class WhiteBoard : MonoBehaviour
 {
+    [Header("Enable/Disable")]
+    public bool drawingEnabled = true;
+    public void SetDrawingEnabled(bool v) => drawingEnabled = v;
+
     [Header("Draw Position Correction")]
     [Tooltip("調整筆跡對齊位置用")]
     public Vector2 drawOffset = Vector2.zero;   // (X, Y) 偏移量
@@ -170,6 +174,8 @@ if (r && renderTexture)
 
     void Update()
     {
+        if (!drawingEnabled) return;   // ★ 時間到或按完成，就不再處理畫筆輸入
+
         if (renderTexture == null || brushMaterial == null) return;
 
             var r = GetComponent<Renderer>();
