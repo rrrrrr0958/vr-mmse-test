@@ -12678,15 +12678,15 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1155562408}
   m_LocalRotation: {x: -0, y: 0.9999548, z: -0, w: -0.009510202}
-  m_LocalPosition: {x: 0, y: 0, z: 0.42}
-  m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
+  m_LocalPosition: {x: 0, y: 0, z: -0.1}
+  m_LocalScale: {x: 0.69230765, y: 0.6923077, z: 0.69230765}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6416773328801151900}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.75, y: 0.58}
+  m_AnchoredPosition: {x: 0.75, y: 0.44}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1155562410
@@ -12719,7 +12719,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
+  m_fontColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -27451,14 +27451,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0.75, y: 0.58, z: 0.42}
+  localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
   fontSize: 3.5
-  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
+  textColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
@@ -28435,14 +28435,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0.75, y: 0.58, z: 0.42}
+  localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
   fontSize: 3.5
-  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
+  textColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
@@ -29156,14 +29156,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0.75, y: 0.58, z: 0.42}
+  localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
   fontSize: 3.5
-  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
+  textColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
@@ -30384,14 +30384,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0.75, y: 0.58, z: 0.42}
+  localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
   fontSize: 3.5
-  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
+  textColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
