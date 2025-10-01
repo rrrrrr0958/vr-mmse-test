@@ -1,10 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using TMPro;
 
 [DisallowMultipleComponent]
-[ExecuteAlways] // 編輯模式也能看到與調位置
+[ExecuteAlways]
 public class DwellSelectOnHover : MonoBehaviour
 {
     [Header("停留選取")]
@@ -12,42 +13,31 @@ public class DwellSelectOnHover : MonoBehaviour
     public bool showTenths = true;
 
     [Header("Position / Rotation")]
-    [Tooltip("DwellText 的本地座標位移 (X/Y/Z)")]
     public Vector3 localOffset = new Vector3(0f, 0.05f, 0.12f);
-    [Tooltip("DwellText 的本地旋轉 (Pitch/Yaw/Roll)")]
     public Vector3 localEuler = Vector3.zero;
 
     public enum BillboardMode { None, YAxisOnly, Full }
-    [Tooltip("看向相機的方式：None 不看相機、YAxisOnly 只繞 Y、Full 完全面向相機")]
     public BillboardMode billboard = BillboardMode.None;
 
     [Header("Scale / Render")]
-    [Tooltip("文字世界尺寸（不受父縮放）")]
     public float textWorldScale = 0.90f;
     public bool compensateParentScale = true;
     public int sortingOrder = 5000;
 
     [Header("Text Style")]
-    [Tooltip("TextMeshPro 字號")]
     public float fontSize = 2.0f;
     public Color textColor = Color.white;
     [Range(0, 1f)] public float outlineWidth = 0.3f;
     public Color outlineColor = new Color(0, 0, 0, 0.85f);
 
-    // ------- 方法A：手動指定永久文字元件 -------
     [Header("Manual Text (方法A)")]
-    [Tooltip("把你手動建立的 TextMeshPro（命名建議 DwellText）拖進來；若留空，只有在播放時才會臨時建立")]
     [SerializeField] TMP_Text countdownText;
 
     [Header("Editor Preview / Control")]
-    [Tooltip("非播放時是否顯示預覽文字，方便對位置")]
     public bool previewInEditor = true;
-    [Tooltip("非播放時顯示的預覽內容")]
     public string editorPreviewText = "3.0";
-    [Tooltip("編輯器下是否由腳本鎖定位置與旋轉到欄位值")]
     public bool lockPositionInEditor = false;
 
-    // 依賴
     UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
     SelectionHighlighter highlighter;
     SelectableTarget selectable;
@@ -55,11 +45,14 @@ public class DwellSelectOnHover : MonoBehaviour
     Transform textTf;
     Coroutine dwellCo;
 
-    // -------- 生命週期 --------
+    // 多手容錯：記住目前有哪些 interactor 在 hover 我
+    readonly HashSet<UnityEngine.XR.Interaction.Toolkit.Interactors.IXRInteractor> _hoverers = new HashSet<UnityEngine.XR.Interaction.Toolkit.Interactors.IXRInteractor>();
+    bool iOwnHoverLock = false;
+
     void Awake()
     {
         TryGetDependencies();
-        EnsureCountdownTextExists();   // 優先使用手動指定的
+        EnsureCountdownTextExists();
         ApplyVisualToTMP();
         UpdateTransformNow(force: true);
         RefreshEditorPreview();
@@ -89,30 +82,69 @@ public class DwellSelectOnHover : MonoBehaviour
             interactable.hoverExited.RemoveListener(OnHoverExited);
             interactable.selectEntered.RemoveListener(OnAnySelected);
         }
+
+        // 保險：被停用時若持有鎖，釋放之
+        if (Application.isPlaying && iOwnHoverLock && highlighter != null)
+        {
+            SelectionHighlightRegistry.ReleaseHover(highlighter);
+            iOwnHoverLock = false;
+            if (highlighter) highlighter.EndHoverVisualsIfNotSelected();
+        }
+
+        _hoverers.Clear();
+        HideText();
+        if (dwellCo != null) { StopCoroutine(dwellCo); dwellCo = null; }
     }
 
     void LateUpdate()
     {
-        // 播放中一律套用；編輯器則依 lockPositionInEditor
         if (Application.isPlaying || lockPositionInEditor)
             UpdateTransformNow();
 
         if (!Application.isPlaying) RefreshEditorPreview();
     }
 
-    // -------- 互動事件（只在播放時使用）--------
-    void OnHoverEntered(HoverEnterEventArgs _)
+    void OnHoverEntered(HoverEnterEventArgs e)
     {
-        // ✅ 改成問 QuizManager
-        if (FindObjectOfType<QuizManager>()?.CanInteract() == false)
-        { HideText(); return; }
+        if (e != null && e.interactorObject != null)
+            _hoverers.Add(e.interactorObject);
 
-        if (highlighter != null && highlighter.IsCurrentSelected) { HideText(); return; }
-        StartDwell();
+        var qm = FindObjectOfType<QuizManager>();
+        if (qm != null && !qm.CanInteract()) { HideText(); return; }
+
+        // 只在「第一位」手進來時啟動倒數（避免多次啟動）
+        if (_hoverers.Count == 1)
+            StartDwell();
     }
 
-    void OnHoverExited(HoverExitEventArgs _) => StopDwell();
-    void OnAnySelected(SelectEnterEventArgs _) { HideText(); StopDwell(); }
+    void OnHoverExited(HoverExitEventArgs e)
+    {
+        if (e != null && e.interactorObject != null)
+            _hoverers.Remove(e.interactorObject);
+
+        // 只有當「最後一位」離開時，才真正停止倒數與釋放鎖
+        if (_hoverers.Count == 0)
+        {
+            if (iOwnHoverLock && highlighter != null)
+            {
+                SelectionHighlightRegistry.ReleaseHover(highlighter);
+                iOwnHoverLock = false;
+            }
+            StopDwell();
+            if (highlighter) highlighter.EndHoverVisualsIfNotSelected();
+        }
+        else
+        {
+            // 仍有人在上方，維持倒數
+        }
+    }
+
+    void OnAnySelected(SelectEnterEventArgs _)
+    {
+        HideText();
+        StopDwell();
+        // 選中後圈圈持續由 SelectionHighlighter 維持
+    }
 
     void StartDwell()
     {
@@ -128,15 +160,36 @@ public class DwellSelectOnHover : MonoBehaviour
 
     IEnumerator DwellRoutine()
     {
-        float t = 0f;
+        var me = highlighter;
+        if (me == null) yield break;
+
+        var qm = FindObjectOfType<QuizManager>();
+        if (qm != null && !qm.CanInteract()) yield break;
+
+        // 等待「有手在上面」且拿到全域 hover 鎖
+        while (_hoverers.Count > 0 && !SelectionHighlightRegistry.TryAcquireHover(me))
+            yield return null;
+
+        // 若此時已經沒有任何手，就不開始
+        if (_hoverers.Count == 0) yield break;
+
+        // 我持有鎖
+        iOwnHoverLock = true;
+
+        // 補啟 hover 視覺與倒數 UI
+        if (highlighter) highlighter.BeginHoverVisuals();
         ShowText();
+
+        float t = 0f;
         while (t < dwellSeconds)
         {
-            // ✅ 改成問 QuizManager
-            if (FindObjectOfType<QuizManager>()?.CanInteract() == false)
-            { HideText(); yield break; }
+            // 期間若關卡鎖互動、或沒有手在上面、或鎖被搶走，就中止
+            qm = FindObjectOfType<QuizManager>();
+            if (qm != null && !qm.CanInteract()) { HideText(); yield break; }
 
-            if (highlighter != null && highlighter.IsCurrentSelected) { HideText(); yield break; }
+            if (_hoverers.Count == 0) { HideText(); yield break; }
+
+            if (SelectionHighlightRegistry.IsHoverLockedFor(me)) { HideText(); yield break; }
 
             t += Time.deltaTime;
             float remain = Mathf.Max(0f, dwellSeconds - t);
@@ -147,17 +200,23 @@ public class DwellSelectOnHover : MonoBehaviour
         HideText();
         dwellCo = null;
 
-        // 正式選取
+        // 倒數完成 → 釋放鎖（選取後白圈會由 SelectionHighlighter 維持，不需要鎖）
+        if (iOwnHoverLock && highlighter != null)
+        {
+            SelectionHighlightRegistry.ReleaseHover(highlighter);
+            iOwnHoverLock = false;
+        }
+
+        // 送出選取
         if (highlighter) highlighter.ManualSelect();
         if (selectable) selectable.Submit();
     }
 
-    // -------- 建立 / 視覺 --------
     void TryGetDependencies()
     {
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
         highlighter = GetComponent<SelectionHighlighter>();
-        selectable = GetComponent<SelectableTarget>();
+        selectable  = GetComponent<SelectableTarget>();
     }
 
     void EnsureCountdownTextExists()
@@ -277,6 +336,7 @@ public class DwellSelectOnHover : MonoBehaviour
 #if UNITY_EDITOR
     void OnValidate()
     {
+        TryGetDependencies();
         EnsureCountdownTextExists();
         ApplyVisualToTMP();
 

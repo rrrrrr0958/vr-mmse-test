@@ -2,6 +2,7 @@ using UnityEngine;
 
 public static class SelectionHighlightRegistry
 {
+    // ① 「已被選中的唯一白圈」(你原本就有)
     public static SelectionHighlighter Current { get; private set; }
 
     public static void Take(SelectionHighlighter h)
@@ -16,7 +17,7 @@ public static class SelectionHighlightRegistry
         if (Current == h) Current = null;
     }
 
-    // ★ 新增：清掉全場所有白圈/藍圈
+    // ★ 清掉全場所有白圈/藍圈（你原本就有）
     public static void ClearAll()
     {
 #if UNITY_2022_2_OR_NEWER
@@ -26,5 +27,31 @@ public static class SelectionHighlightRegistry
 #endif
         foreach (var h in all) h.ForceDeselect();
         Current = null;
+        HoverOwner = null; // 也把 hover 鎖釋放
     }
+
+    // ② 新增：全域「Hover 鎖」
+    //    任一物件 hover 成功後，直到它 hoverExited 釋放為止，其他物件不能 hover。
+    public static SelectionHighlighter HoverOwner { get; private set; }
+
+    // 嘗試取得 Hover 鎖；取到回傳 true，否則 false
+    public static bool TryAcquireHover(SelectionHighlighter h)
+    {
+        if (HoverOwner == null || HoverOwner == h)
+        {
+            HoverOwner = h;
+            return true;
+        }
+        return false;
+    }
+
+    // 釋放 Hover 鎖（只有持有者能釋放）
+    public static void ReleaseHover(SelectionHighlighter h)
+    {
+        if (HoverOwner == h) HoverOwner = null;
+    }
+
+    // 幫助判斷：對某個 highlighter 來說，目前是否被別人鎖住
+    public static bool IsHoverLockedFor(SelectionHighlighter h)
+        => HoverOwner != null && HoverOwner != h;
 }

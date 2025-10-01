@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -10,13 +11,27 @@ public class QuizManager : MonoBehaviour
 
     [Header("UI")]
     public TextMeshProUGUI questionText;
+
     [Tooltip("完成後要顯示的面板，可空")]
     public GameObject completionPanel;
 
     [Header("完成本關後要做的事（保留，可用也可不綁）")]
     public UnityEvent onQuestionCleared;
 
-    // 題庫（題目文字 與 對應正解 targetId 必須一一對齊）
+    [Header("流程設定")]
+    [Tooltip("勾選：只要選到任何一個物件，就直接鎖關並進下一關（不管正誤）")]
+    public bool advanceOnAnySelection = true;
+
+    [Tooltip("預留：真的要換關時呼叫，之後可換成組員的轉場函式")]
+    public UnityEvent onAnySelection; // 例如：LoadNextStage() / 切場景 / 轉 180 度 等
+
+    [Header("進關延遲 / 回饋")]
+    [Tooltip("第一次選中之後，維持被圈選的回饋秒數，再進下一關")]
+    [Min(0f)] public float postSelectionHoldSeconds = 0.8f;
+
+    [Tooltip("完成面板是否在延遲之後才顯示（預設：是）。若關卡會立即切換，也可關掉避免閃一下。")]
+    public bool showCompletionPanelAfterHold = true;
+
     readonly List<(string prompt, string id)> pool = new()
     {
         ("請用控制器指向桌上的起司並停留5秒", "cheese"),
@@ -25,14 +40,12 @@ public class QuizManager : MonoBehaviour
         ("請用控制器指向桌上的肉排並停留5秒", "meat"),
     };
 
-    int picked = -1;            // 這次抽到第幾題
-    string currentAnswer = "";  // 這題正解的 targetId
-    bool isLocked = false;      // 是否鎖定互動
+    int picked = -1;
+    string currentAnswer = "";
+    bool isLocked = false;
+    Coroutine holdCo;
 
-    void Start()
-    {
-        PickOneQuestion();
-    }
+    void Start() { PickOneQuestion(); }
 
     void PickOneQuestion()
     {
@@ -54,7 +67,6 @@ public class QuizManager : MonoBehaviour
         currentAnswer = q.id;
         if (questionText) questionText.text = q.prompt;
 
-        // 抽到場景不存在目標就換題（一次嘗試）
         if (!TargetExistsInScene(currentAnswer))
         {
             for (int i = 0; i < pool.Count; i++)
@@ -90,35 +102,48 @@ public class QuizManager : MonoBehaviour
 
         bool ok = targetId == currentAnswer;
 
-        // ★ 顯示對錯到畫面 ★
-        if (feedbackUI)
-        {
-            if (ok)
-                feedbackUI.ShowCorrect("答對了！");
-            else
-                feedbackUI.ShowWrong("答錯了！繼續加油");
-        }
-
-        if (ok)
-        {
-            LockAndComplete();
-            onQuestionCleared?.Invoke();
-        }
-    }
-
-    void LockAndComplete()
-    {
+        // 立即鎖互動：避免在停留期間被再次提交
         isLocked = true;
 
-        // 顯示完成面板
-        if (completionPanel != null)
-            completionPanel.SetActive(true);
+        // 畫面回饋（此時選到的物件白圈會持續脈動，因為未 ClearAll）
+        if (feedbackUI)
+        {
+            if (ok) feedbackUI.ShowCorrect("答對了！");
+            else    feedbackUI.ShowWrong("已選取，準備進下一關…");
+        }
+
+        // 啟動「選後停留 → 進關」序列
+        if (holdCo != null) StopCoroutine(holdCo);
+        holdCo = StartCoroutine(HoldThenAdvanceCoroutine(ok));
     }
 
-    // 提供外部查詢是否可互動（取代原本的 GameDirector.Instance.CanInteractGame1）
+    IEnumerator HoldThenAdvanceCoroutine(bool isCorrect)
+    {
+        // 避免負數或極小值
+        float wait = Mathf.Max(0f, postSelectionHoldSeconds);
+        if (wait > 0f)
+            yield return new WaitForSeconds(wait);
+
+        // （可選）此時才顯示完成面板作為過場提示
+        if (showCompletionPanelAfterHold && completionPanel != null)
+            completionPanel.SetActive(true);
+
+        // 清理所有高亮/hover 鎖，避免殘留
+        SelectionHighlightRegistry.ClearAll();
+
+        // 進行你預留的換關 Hook（把組員的轉場函式綁在這裡）
+        onAnySelection?.Invoke();
+
+        // 若你還有其它需要（沿用舊事件）
+        onQuestionCleared?.Invoke();
+
+        holdCo = null;
+    }
+
+    // 提供外部查詢是否可互動
     public bool CanInteract() => !isLocked;
 
-    // 若要外部手動切題可用
+    // 外部手動切題可用
     public void SetQuestion(string prompt, string id)
     {
         if (questionText) questionText.text = prompt;
