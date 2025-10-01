@@ -12677,16 +12677,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1155562408}
-  m_LocalRotation: {x: -0, y: 0.9999548, z: -0, w: -0.009510202}
-  m_LocalPosition: {x: 0, y: 0, z: 0.42}
-  m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
+  m_LocalRotation: {x: -0, y: -0.41398007, z: -0, w: 0.910286}
+  m_LocalPosition: {x: 0, y: 0, z: 0.12}
+  m_LocalScale: {x: 0.69230765, y: 0.6923077, z: 0.69230765}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6416773328801151900}
-  m_LocalEulerAnglesHint: {x: 0, y: 208, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.75, y: 0.58}
+  m_AnchoredPosition: {x: 0, y: 0.05}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1155562410
@@ -12719,7 +12719,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
+  m_fontColor: {r: 0.7647059, g: 0.10980392, b: 0.10980392, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -12736,8 +12736,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 3
-  m_fontSizeBase: 3
+  m_fontSize: 2
+  m_fontSizeBase: 2
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -21762,7 +21762,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: -130.188, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -9.18, y: 2.418}
+  m_AnchoredPosition: {x: -9.18, y: 2.133}
   m_SizeDelta: {x: 40.1415, y: 22.0921}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1970742032
@@ -27462,7 +27462,7 @@ MonoBehaviour:
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
-  previewInEditor: 1
+  previewInEditor: 0
   editorPreviewText: 3.0
   lockPositionInEditor: 0
 --- !u!114 &6416773328197619361
@@ -27496,7 +27496,7 @@ MonoBehaviour:
   zOffset: 0.28
   segments: 64
   hoverColor: {r: 1, g: 1, b: 1, a: 1}
-  selectColor: {r: 2, g: 2, b: 2, a: 1}
+  selectColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   rotationSpeed: 180
   loadingSegmentSize: 0.3
   loadingDimFactor: 0.5
@@ -28414,7 +28414,7 @@ MonoBehaviour:
   zOffset: 0.39
   segments: 64
   hoverColor: {r: 1, g: 1, b: 1, a: 1}
-  selectColor: {r: 2, g: 2, b: 2, a: 1}
+  selectColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   rotationSpeed: 180
   loadingSegmentSize: 0.3
   loadingDimFactor: 0.5
@@ -28442,7 +28442,7 @@ MonoBehaviour:
   compensateParentScale: 1
   sortingOrder: 5000
   fontSize: 2
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  textColor: {r: 0.7647059, g: 0.10980392, b: 0.10980392, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
@@ -29201,7 +29201,7 @@ MonoBehaviour:
   zOffset: 0.27
   segments: 64
   hoverColor: {r: 1, g: 1, b: 1, a: 1}
-  selectColor: {r: 2, g: 2, b: 2, a: 1}
+  selectColor: {r: 1, g: 0.5529412, b: 0, a: 1}
   rotationSpeed: 180
   loadingSegmentSize: 0.3
   loadingDimFactor: 0.5
@@ -30291,7 +30291,7 @@ MonoBehaviour:
   zOffset: 0.18
   segments: 64
   hoverColor: {r: 1, g: 1, b: 1, a: 1}
-  selectColor: {r: 2, g: 2, b: 2, a: 1}
+  selectColor: {r: 1, g: 0.5539919, b: 0, a: 1}
   rotationSpeed: 180
   loadingSegmentSize: 0.3
   loadingDimFactor: 0.5
@@ -30395,7 +30395,7 @@ MonoBehaviour:
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
-  previewInEditor: 1
+  previewInEditor: 0
   editorPreviewText: 3.0
   lockPositionInEditor: 0
 --- !u!65 &7751909859810879138
