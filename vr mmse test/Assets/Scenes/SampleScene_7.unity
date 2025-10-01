@@ -253,7 +253,7 @@ MonoBehaviour:
   noDiamondFactor: 0.55
   showRawJson: 0
   verboseLogs: 0
-  saveUserOnJudge: 0
+  saveUserOnJudge: 1
   saveFilePrefix: user_
 --- !u!4 &12345879
 Transform:
@@ -11055,6 +11055,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24bad40cba2734d92ab20a3ba575b729, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  drawOffset: {x: 0, y: 0}
+  drawScale: {x: 1, y: 1}
   renderTexture: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
   maxDistance: 0.03
   minBrushDistance: 0.5
@@ -11064,11 +11066,24 @@ MonoBehaviour:
   hardness: 0.8
   smoothFactor: 0.5
   backGroundColor: {r: 1, g: 1, b: 1, a: 0.39215687}
-  useBoxCollider: 1
+  useBoxCollider: 0
   drawLayers:
     serializedVersion: 2
     m_Bits: 64
   autoClearOnExit: 0
+  cursorDot: {fileID: 0}
+  cursorLift: 0.001
+  autoCreateCursorDot: 1
+  cursorSize: 2
+  cursorColor: {r: 1, g: 0, b: 0, a: 1}
+  cursorHDRBoost: 1.5
+  snapCursorToRendererPlane: 1
+  rendererPlaneOffset: 0
+  brushSaturationBoost: 1.5
+  brushValueBoost: 1.1
+  strokeForceOpaque: 1
+  strokeEdgeWidthWhenOpaque: 0.06
+  cursorForceOpaque: 1
   brushes:
   - brushTransform: {fileID: 0}
     isHeld: 0
@@ -11095,7 +11110,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 0.1670394}
   m_Center: {x: 0, y: 0, z: 0.012952805}
@@ -11116,7 +11131,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30

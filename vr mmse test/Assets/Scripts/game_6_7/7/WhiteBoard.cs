@@ -3,6 +3,11 @@ using UnityEngine;
 
 public class WhiteBoard : MonoBehaviour
 {
+    [Header("Draw Position Correction")]
+    [Tooltip("調整筆跡對齊位置用")]
+    public Vector2 drawOffset = Vector2.zero;   // (X, Y) 偏移量
+    public Vector2 drawScale  = Vector2.one;    // (X, Y) 縮放比例
+
     [Tooltip("The Render Texture to draw on")]
     public RenderTexture renderTexture;
 
@@ -34,6 +39,30 @@ public class WhiteBoard : MonoBehaviour
     [Header("Lifecycle")]
     public bool autoClearOnExit = false; // 停止 Play/關閉物件時自動清空（方便開發）
 
+    // === 新增：紅點貼面視覺游標（解決側看視差） ===
+    [Header("Cursor (Red Dot)")]
+    [Tooltip("紅色點點的 Transform（可留空；若 Auto Create 開啟會自動生成）")]
+    public Transform cursorDot;
+    [Range(0f, 0.02f), Tooltip("避免Z-fighting的微量抬起距離")]
+    public float cursorLift = 0.0015f;
+    [Tooltip("是否在執行時自動生成紅點物件")]
+    public bool autoCreateCursorDot = true;
+
+    [Tooltip("紅點的世界座標尺寸（等比縮放）")]
+    public float cursorSize = 0.03f; // ← 調大/調小紅點
+
+    [Tooltip("紅點顏色（建議用高飽和紅）")]
+    public Color cursorColor = new Color(1f, 0f, 0f, 1f);
+
+    [Tooltip("紅點額外亮度/飽和加成（>1 會更醒目，類似HDR/發光效果，URP/Unlit 也可見）")]
+    public float cursorHDRBoost = 1.5f;
+
+    [Header("Cursor Plane Snap (for BoxCollider)")]
+    [Tooltip("將紅點投影到 Renderer 的可見平面（BoxCollider 仍在用時建議開）")]
+    public bool snapCursorToRendererPlane = true;
+    [Tooltip("若可見表面不在 pivot 平面，可沿 forward 微調（公尺）")]
+    public float rendererPlaneOffset = 0f;
+
     [System.Serializable]
     public class BrushSettings
     {
@@ -53,6 +82,13 @@ public class WhiteBoard : MonoBehaviour
 
     [Header("Add Brushes")]
     public List<BrushSettings> brushes = new List<BrushSettings>();
+
+    // === 新增：筆跡飽和度/亮度增益（讓顏色更「飽和、扎實」） ===
+    [Header("Brush Color Boost (HSV)")]
+    [Tooltip("對每筆顏色的飽和度做乘法增益（1=不變；1.2 建議）")]
+    public float brushSaturationBoost = 1.2f;
+    [Tooltip("對每筆顏色的亮度做乘法增益（1=不變；1.1 建議）")]
+    public float brushValueBoost = 1.1f;
 
     void Start()
     {
@@ -93,6 +129,12 @@ public class WhiteBoard : MonoBehaviour
         {
             Debug.LogWarning("[WhiteBoard] renderTexture 未指定。");
         }
+
+        // 自動生成紅點（若需要）
+        if (autoCreateCursorDot && cursorDot == null)
+            EnsureCursorDot();
+
+        if (cursorDot) cursorDot.gameObject.SetActive(false);
     }
 
     void OnDisable()
@@ -112,6 +154,8 @@ public class WhiteBoard : MonoBehaviour
         var prev = RenderTexture.active;
         RenderTexture.active = renderTexture;
 
+        bool anyHitThisFrame = false; // 用來統一控制紅點顯示/隱藏
+
         foreach (var brush in brushes)
         {
             if (!brush.isHeld) continue;
@@ -125,6 +169,49 @@ public class WhiteBoard : MonoBehaviour
                 {
                     Vector2 current = HitToTexel(hit);
                     ProcessStroke(brush, current, brush.brushTransform.rotation.eulerAngles.z);
+
+                    // === 紅點貼面：位置、朝向、尺寸、顏色 ===
+                    if (cursorDot)
+                    {
+                        Vector3 pos = hit.point;
+                        Vector3 nrm = hit.normal;
+
+                        if (snapCursorToRendererPlane)
+                        {
+                            var rend = GetComponent<Renderer>();
+                            if (rend)
+                            {
+                                Plane plane = new Plane(rend.transform.forward, rend.transform.position + rend.transform.forward * rendererPlaneOffset);
+                                float d = plane.GetDistanceToPoint(pos);
+                                pos = pos - plane.normal * d;
+                                nrm = plane.normal;
+                            }
+                        }
+
+                        cursorDot.gameObject.SetActive(true);
+                        cursorDot.position = pos + nrm * cursorLift;
+                        cursorDot.rotation = Quaternion.LookRotation(-nrm, Vector3.up);
+
+                        // 尺寸（每幀更新，方便你即時調整）
+                        cursorDot.localScale = Vector3.one * Mathf.Max(0.001f, cursorSize);
+
+                        // 顏色/亮度（支援 URP Unlit 或 Built-in Unlit）
+                        var mr = cursorDot.GetComponent<MeshRenderer>();
+                        if (mr && mr.sharedMaterial)
+                        {
+                            Color boosted = BoostHSV(cursorColor, brushSaturationBoost, Mathf.Max(1f, cursorHDRBoost));
+                            // 嘗試不同 shader 欄位
+                            if (mr.sharedMaterial.HasProperty("_BaseColor")) mr.sharedMaterial.SetColor("_BaseColor", boosted);
+                            if (mr.sharedMaterial.HasProperty("_Color"))     mr.sharedMaterial.SetColor("_Color", boosted);
+                            // 如使用 HDRP 或有 Emission，可同步推到 Emission
+                            if (mr.sharedMaterial.HasProperty("_EmissionColor"))
+                            {
+                                mr.sharedMaterial.SetColor("_EmissionColor", boosted * cursorHDRBoost);
+                                mr.sharedMaterial.EnableKeyword("_EMISSION");
+                            }
+                        }
+                    }
+                    anyHitThisFrame = true;
                 }
             }
             else
@@ -133,6 +220,9 @@ public class WhiteBoard : MonoBehaviour
                 brush.isFirstDraw = true;
             }
         }
+
+        // 若本幀沒有命中白板，就隱藏紅點
+        if (!anyHitThisFrame && cursorDot) cursorDot.gameObject.SetActive(false);
 
         RenderTexture.active = prev;
     }
@@ -154,6 +244,43 @@ public class WhiteBoard : MonoBehaviour
         ProcessStroke(brush, current, rotationZDeg);
 
         RenderTexture.active = prev;
+
+        // 外部呼叫也同步更新紅點（可選）
+        if (cursorDot)
+        {
+            Vector3 pos = hit.point;
+            Vector3 nrm = hit.normal;
+
+            if (snapCursorToRendererPlane)
+            {
+                var rend = GetComponent<Renderer>();
+                if (rend)
+                {
+                    Plane plane = new Plane(rend.transform.forward, rend.transform.position + rend.transform.forward * rendererPlaneOffset);
+                    float d = plane.GetDistanceToPoint(pos);
+                    pos = pos - plane.normal * d;
+                    nrm = plane.normal;
+                }
+            }
+
+            cursorDot.gameObject.SetActive(true);
+            cursorDot.position = pos + nrm * cursorLift;
+            cursorDot.rotation = Quaternion.LookRotation(-nrm, Vector3.up);
+            cursorDot.localScale = Vector3.one * Mathf.Max(0.001f, cursorSize);
+
+            var mr = cursorDot.GetComponent<MeshRenderer>();
+            if (mr && mr.sharedMaterial)
+            {
+                Color boosted = BoostHSV(cursorColor, brushSaturationBoost, Mathf.Max(1f, cursorHDRBoost));
+                if (mr.sharedMaterial.HasProperty("_BaseColor")) mr.sharedMaterial.SetColor("_BaseColor", boosted);
+                if (mr.sharedMaterial.HasProperty("_Color"))     mr.sharedMaterial.SetColor("_Color", boosted);
+                if (mr.sharedMaterial.HasProperty("_EmissionColor"))
+                {
+                    mr.sharedMaterial.SetColor("_EmissionColor", boosted * cursorHDRBoost);
+                    mr.sharedMaterial.EnableKeyword("_EMISSION");
+                }
+            }
+        }
     }
 
     /// <summary>結束該支筆的筆劃（扳機放開）</summary>
@@ -191,8 +318,8 @@ public class WhiteBoard : MonoBehaviour
             uv.y = 1f - uv.y;
         }
 
-        int x = Mathf.Clamp((int)(uv.x * renderTexture.width), 0, renderTexture.width - 1);
-        int y = Mathf.Clamp((int)(uv.y * renderTexture.height), 0, renderTexture.height - 1);
+        int x = Mathf.Clamp((int)((uv.x + drawOffset.x) * drawScale.x * renderTexture.width), 0, renderTexture.width - 1);
+        int y = Mathf.Clamp((int)((uv.y + drawOffset.y) * drawScale.y * renderTexture.height), 0, renderTexture.height - 1);
         return new Vector2(x, y);
     }
 
@@ -234,7 +361,8 @@ public class WhiteBoard : MonoBehaviour
     {
         if (brushMaterial == null) return;
 
-        // 同步顏色與不透明度（每筆即時）
+        // 同步顏色與不透明度（每筆即時）＋ HSV 增益讓顏色更飽和
+        color = BoostHSV(color, brushSaturationBoost, brushValueBoost);
         color.a = markerAlpha;
         brushMaterial.SetColor("_Color", color);
 
@@ -306,5 +434,51 @@ public class WhiteBoard : MonoBehaviour
         rt.filterMode = FilterMode.Bilinear;   // 放大時較不鋸齒
         rt.wrapMode   = TextureWrapMode.Clamp;
         // 不依賴 MSAA；antiAliasing=1 即可
+    }
+
+    // === 新增：自動建立紅點物件（Unlit 紅色小Quad） ===
+    void EnsureCursorDot()
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        go.name = "CursorDot (auto)";
+        go.transform.localScale = Vector3.one * Mathf.Max(0.001f, cursorSize);
+
+        // 刪除Collider避免擋到Ray
+        var col = go.GetComponent<Collider>();
+        if (col) Destroy(col);
+
+        // 指定 Unlit 紅色材質（URP 或內建）
+        var mr = go.GetComponent<MeshRenderer>();
+        Material mat = null;
+        var urp = Shader.Find("Universal Render Pipeline/Unlit");
+        if (urp != null)
+        {
+            mat = new Material(urp);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", cursorColor);
+            else if (mat.HasProperty("_Color")) mat.SetColor("_Color", cursorColor);
+        }
+        else
+        {
+            var builtIn = Shader.Find("Unlit/Color");
+            mat = new Material(builtIn);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", cursorColor);
+        }
+        mr.sharedMaterial = mat;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+
+        cursorDot = go.transform;
+        cursorDot.gameObject.SetActive(false);
+    }
+
+    // 將 RGB 顏色做 HSV 增益（S、V 乘上係數），並 clamp 到 [0,1]
+    static Color BoostHSV(Color c, float sMul, float vMul)
+    {
+        Color.RGBToHSV(new Color(c.r, c.g, c.b, 1f), out float h, out float s, out float v);
+        s = Mathf.Clamp01(s * Mathf.Max(0f, sMul));
+        v = Mathf.Clamp01(v * Mathf.Max(0f, vMul));
+        Color rgb = Color.HSVToRGB(h, s, v);
+        rgb.a = c.a; // 保留原 alpha（外層會覆蓋成 markerAlpha）
+        return rgb;
     }
 }
