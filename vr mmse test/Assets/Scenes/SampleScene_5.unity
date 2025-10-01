@@ -821,7 +821,7 @@ MonoBehaviour:
   initialCameraPosition: {fileID: 313378414}
   moneyNumber5: {fileID: 477336781}
   moneyBg5: {fileID: 1842861528}
-  cameraMoveDuration: 7
+  cameraMoveDuration: 10
   xrOriginTransform: {fileID: 313378414}
   hmdCamera: {fileID: 154426029}
   initialSpawnPoint: {fileID: 2037297377}
