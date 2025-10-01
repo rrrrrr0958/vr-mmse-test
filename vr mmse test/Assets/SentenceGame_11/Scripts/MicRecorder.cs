@@ -4,79 +4,143 @@ using UnityEngine;
 
 public class MicRecorder : MonoBehaviour
 {
-    public int sampleRate = 16000;
+    [Header("Recording Settings")]
+    public int sampleRate = 44100;         // 安全值
     public int maxRecordSeconds = 10;
-    public string selectedDevice;
-    AudioClip _clip;
-    float[] _samples;
-    bool _recording;
-    int _pos;
+    [NonSerialized] public string selectedDevice;
 
-    public event Action<float> OnLevel;         // 0..1 音量
-    public event Action OnTick;                 // 每幀回呼
-    public event Action<byte[]> OnWavReady;     // 錄完給 wav bytes
+    private AudioClip _clip;
+    private float[] _samples;
+    private bool _recording;
+    private int _pos;
+
+    public event Action<float> OnLevel;     // 0..1 音量
+    public event Action OnTick;             // 每幀回呼
+    public event Action<byte[]> OnWavReady; // 錄完給 wav bytes
 
     void Awake()
     {
         if (Microphone.devices.Length > 0)
+        {
             selectedDevice = Microphone.devices[0];
+            Debug.Log($"[MicRecorder] Using device: {selectedDevice}");
+        }
         else
-            Debug.LogWarning("No microphone found.");
+        {
+            selectedDevice = null;
+            Debug.LogWarning("[MicRecorder] No microphone detected. Will use dummy audio for demo.");
+        }
     }
 
     public void StartRecord()
     {
         if (_recording) return;
-        _clip = Microphone.Start(selectedDevice, false, maxRecordSeconds, sampleRate);
-        _recording = true;
+
+        _samples = new float[sampleRate * maxRecordSeconds];
         _pos = 0;
+        _recording = true;
+
+        if (selectedDevice != null)
+        {
+            try
+            {
+                _clip = Microphone.Start(selectedDevice, false, maxRecordSeconds, sampleRate);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[MicRecorder] Microphone.Start failed, fallback to dummy. {e.Message}");
+                _clip = CreateDummyClip();
+            }
+        }
+        else
+        {
+            _clip = CreateDummyClip();
+        }
     }
 
     public void StopRecord()
     {
         if (!_recording) return;
-        Microphone.End(selectedDevice);
         _recording = false;
 
-        // 取實際長度樣本
-        int length = _pos;
+        if (selectedDevice != null)
+            Microphone.End(selectedDevice);
+
+        int length = Mathf.Clamp(_pos, 0, _samples?.Length ?? 0);
+        if (length <= 0)
+        {
+            Debug.LogWarning("[MicRecorder] No data captured, output 1s silence.");
+            _samples = new float[sampleRate];
+            length = _samples.Length;
+        }
+
         var data = new float[length];
         Array.Copy(_samples, data, length);
 
-        // 轉 wav
         var wav = WavUtility.FromAudioFloat(data, sampleRate);
         OnWavReady?.Invoke(wav);
+        Debug.Log($"[MicRecorder] Done. {length} samples ({length/(float)sampleRate:0.00}s)");
     }
 
     void Update()
     {
         if (!_recording || _clip == null) return;
 
-        int micPos = Microphone.GetPosition(selectedDevice);
-        if (micPos < 0) return;
+        int micPos = 0;
+        if (selectedDevice != null)
+        {
+            micPos = Microphone.GetPosition(selectedDevice);
+            if (micPos < 0) return;
+        }
+        else
+        {
+            // dummy 進度
+            micPos = Mathf.Min(_pos + Mathf.RoundToInt(Time.deltaTime * sampleRate), _samples.Length);
+        }
 
         if (_samples == null || _samples.Length != sampleRate * maxRecordSeconds)
             _samples = new float[sampleRate * maxRecordSeconds];
 
-        int read = _clip.GetData(_samples, 0) ? micPos : 0;
-        _pos = Mathf.Clamp(read, 0, _samples.Length);
+        if (selectedDevice != null)
+        {
+            _clip.GetData(_samples, 0);
+        }
+        else
+        {
+            // 產生小振幅正弦波，讓音量條有變化
+            for (int i = _pos; i < micPos; i++)
+                _samples[i] = Mathf.Sin(2 * Mathf.PI * 440 * i / sampleRate) * 0.2f;
+        }
 
-        // 音量估計（RMS）
+        _pos = Mathf.Clamp(micPos, 0, _samples.Length);
+
+        // RMS 音量
         float rms = 0f;
         int count = Mathf.Min(1024, _pos);
-        for (int i = 0; i < count; i++) rms += _samples[_pos - 1 - i] * _samples[_pos - 1 - i];
+        for (int i = 0; i < count; i++)
+        {
+            float v = _samples[_pos - 1 - i];
+            rms += v * v;
+        }
         rms = Mathf.Sqrt(rms / Mathf.Max(1, count));
         OnLevel?.Invoke(Mathf.Clamp01(rms * 10f));
 
         OnTick?.Invoke();
 
-        // 自動到時停止
         if (_pos >= _samples.Length)
             StopRecord();
     }
+
+    private AudioClip CreateDummyClip()
+    {
+        int samples = sampleRate * maxRecordSeconds;
+        var clip = AudioClip.Create("DummyClip", samples, 1, sampleRate, false);
+        var data = new float[samples];
+        clip.SetData(data, 0);
+        return clip;
+    }
 }
 
-// ===== 小型 WAV 工具（PCM16）=====
 public static class WavUtility
 {
     public static byte[] FromAudioFloat(float[] samples, int sampleRate)
@@ -93,6 +157,7 @@ public static class WavUtility
         using var ms = new MemoryStream();
         using var bw = new BinaryWriter(ms);
         int byteRate = sampleRate * 2; // mono 16-bit
+
         // RIFF header
         bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
         bw.Write(36 + bytesData.Length);
