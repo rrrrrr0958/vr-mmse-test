@@ -4587,7 +4587,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -115}
   m_SizeDelta: {x: 480, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &367989596
@@ -4671,7 +4671,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 367989596}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1724580967}
+        m_TargetAssemblyTypeName: SingleTrialController, Assembly-CSharp
+        m_MethodName: OnAction
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1001 &379735414
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9168,7 +9180,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 251}
+  m_AnchoredPosition: {x: 0, y: 245.6}
   m_SizeDelta: {x: 400, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &775049898
@@ -13554,7 +13566,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -6.2, y: 154.4}
+  m_AnchoredPosition: {x: -6.2, y: 91.5}
   m_SizeDelta: {x: 300, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1266903560
@@ -15415,7 +15427,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -10.6}
   m_SizeDelta: {x: 500, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1422637713
@@ -18099,7 +18111,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 320}
-  m_SizeDelta: {x: 400, y: 50}
+  m_SizeDelta: {x: 800, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1665827087
 CanvasRenderer:
@@ -18880,16 +18892,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e21fc2dbd29cbf644a21c9fc549e2fce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mic: {fileID: 1724580969}
+  recorder: {fileID: 1724580969}
   client: {fileID: 1724580968}
   titleText: {fileID: 1665827088}
-  subText: {fileID: 775049899}
+  subtitleText: {fileID: 775049899}
   countdownFill: {fileID: 647747653}
-  levelBar: {fileID: 725208504}
-  actionButton: {fileID: 367989598}
-  actionLabel: {fileID: 1516194241}
+  levelFill: {fileID: 725208504}
   resultPanel: {fileID: 1265170097}
   resultText: {fileID: 1418667589}
+  maxSeconds: 10
 --- !u!114 &1724580968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18902,16 +18913,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3846eac7d3ce7d642b7da2238945d8a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: http://192.168.1.226:8000/score
-  demoMode: 1
-  demoTranscript: "\u6211\u5728\u8CB7\u65E9\u9910\u3002"
-  demoScore: 1
-  demoReasonsSubjectVerb: 1
-  demoReasonsUnderstandable: 1
-  demoUploadSeconds: 1
-  demoJudgeSeconds: 1
-  demoSimulateError: 0
-  demoErrorMessage: "\u4F3A\u670D\u5668\u66AB\u6642\u7121\u6CD5\u9023\u7DDA"
+  serverUrl: 'http://192.168.1.112:5000/score '
 --- !u!114 &1724580969
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18926,7 +18928,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sampleRate: 16000
   maxRecordSeconds: 10
-  selectedDevice: 
 --- !u!4 &1724580970
 Transform:
   m_ObjectHideFlags: 0
