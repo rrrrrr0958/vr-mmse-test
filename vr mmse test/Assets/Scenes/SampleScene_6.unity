@@ -11386,7 +11386,7 @@ Transform:
   m_GameObject: {fileID: 1040178366}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.4482391, z: -0, w: 0.89391375}
-  m_LocalPosition: {x: -1.136, y: 0.971, z: 0.987}
+  m_LocalPosition: {x: -1.284, y: 0.971, z: 1.035}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12677,16 +12677,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1155562408}
-  m_LocalRotation: {x: -0, y: -0.41398007, z: -0, w: 0.910286}
-  m_LocalPosition: {x: 0, y: 0, z: 0.12}
-  m_LocalScale: {x: 0.69230765, y: 0.6923077, z: 0.69230765}
+  m_LocalRotation: {x: -0, y: 0.9999548, z: -0, w: -0.009510202}
+  m_LocalPosition: {x: 0, y: 0, z: 0.42}
+  m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6416773328801151900}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0.05}
+  m_AnchoredPosition: {x: 0.75, y: 0.58}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1155562410
@@ -12719,7 +12719,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.7647059, g: 0.10980392, b: 0.10980392, a: 1}
+  m_fontColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -12736,8 +12736,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 2
-  m_fontSizeBase: 2
+  m_fontSize: 3.5
+  m_fontSizeBase: 3.5
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -16517,13 +16517,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1538852285}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.12036422, y: 0.116922274, z: 0.70711726, w: 0.68689656}
-  m_LocalPosition: {x: -1.601, y: 1, z: 0.908}
+  m_LocalRotation: {x: -0.02604052, y: 0.022168158, z: -0.7142574, w: 0.69904715}
+  m_LocalPosition: {x: -2.087, y: 1.001, z: 0.992}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6416773329424511609}
-  m_LocalEulerAnglesHint: {x: 0, y: 36.491, z: 91.662}
+  m_LocalEulerAnglesHint: {x: -0.272, y: 3.91, z: -91.242}
 --- !u!23 &1538852287
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -21753,7 +21753,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1959120028}
   m_LocalRotation: {x: -0, y: -0.90700096, z: -0, w: 0.42112854}
-  m_LocalPosition: {x: 0, y: 0, z: 2.623}
+  m_LocalPosition: {x: 0, y: 0, z: 2.761}
   m_LocalScale: {x: 0.050000004, y: 0.050000004, z: 0.050000004}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -21762,7 +21762,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: -130.188, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -9.18, y: 2.133}
+  m_AnchoredPosition: {x: -9.297, y: 1.859}
   m_SizeDelta: {x: 40.1415, y: 22.0921}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1970742032
@@ -27451,14 +27451,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0, y: 0.05, z: 0.12}
-  localEuler: {x: 0, y: 0, z: 0}
+  localOffset: {x: 0.75, y: 0.58, z: 0.42}
+  localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
-  fontSize: 2
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  fontSize: 3.5
+  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
@@ -28435,14 +28435,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0, y: 0.17, z: 0.42}
+  localOffset: {x: 0.75, y: 0.58, z: 0.42}
   localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
-  fontSize: 2
-  textColor: {r: 0.7647059, g: 0.10980392, b: 0.10980392, a: 1}
+  fontSize: 3.5
+  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
@@ -29162,7 +29162,7 @@ MonoBehaviour:
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
-  fontSize: 3
+  fontSize: 3.5
   textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
@@ -30134,7 +30134,7 @@ Transform:
   m_GameObject: {fileID: 4094103017682325791}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.42651695, z: -0, w: 0.9044796}
-  m_LocalPosition: {x: -9.892, y: 0, z: 2.132}
+  m_LocalPosition: {x: -9.95, y: 0, z: 2.202}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -30384,14 +30384,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dwellSeconds: 5
   showTenths: 1
-  localOffset: {x: 0, y: 0.05, z: 0.12}
-  localEuler: {x: 0, y: 0, z: 0}
+  localOffset: {x: 0.75, y: 0.58, z: 0.42}
+  localEuler: {x: 0, y: 230, z: 0}
   billboard: 0
   textWorldScale: 0.9
   compensateParentScale: 1
   sortingOrder: 5000
-  fontSize: 2
-  textColor: {r: 1, g: 1, b: 1, a: 1}
+  fontSize: 3.5
+  textColor: {r: 0.764151, g: 0.111739054, b: 0.111739054, a: 1}
   outlineWidth: 0.3
   outlineColor: {r: 0, g: 0, b: 0, a: 0.85}
   countdownText: {fileID: 1155562410}
