@@ -15383,7 +15383,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1175530879}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0.000021175}
   m_LocalScale: {x: 1.4977864, y: 1.6941369, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -15391,8 +15391,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 95.99, y: 11.41}
-  m_SizeDelta: {x: 375.09, y: 167.84}
+  m_AnchoredPosition: {x: -0.70617, y: 11.41}
+  m_SizeDelta: {x: 245.97, y: 167.84}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1175530881
 MonoBehaviour:
@@ -24687,7 +24687,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 7.5, y: 75}
+  m_AnchoredPosition: {x: 7.5, y: 89}
   m_SizeDelta: {x: 384.8406, y: 75.859}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1802939219
@@ -27842,16 +27842,16 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2028268219}
-  m_LocalRotation: {x: -0, y: 0.12622851, z: -0, w: 0.9920012}
-  m_LocalPosition: {x: 0, y: 0, z: -5}
+  m_LocalRotation: {x: -0, y: -0.01777899, z: -0, w: 0.9998419}
+  m_LocalPosition: {x: 0, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 799858766}
-  m_LocalEulerAnglesHint: {x: 0, y: 14.503, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -2.037, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 266, y: 24.000002}
+  m_AnchoredPosition: {x: -6, y: 49}
   m_SizeDelta: {x: 301.48, y: 52.324}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2028268221
@@ -27876,10 +27876,10 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 24
+    m_FontSize: 16
     m_FontStyle: 0
     m_BestFit: 0
-    m_MinSize: 10
+    m_MinSize: 0
     m_MaxSize: 40
     m_Alignment: 4
     m_AlignByGeometry: 0
