@@ -101,7 +101,7 @@ public class SceneFlowManager : MonoBehaviour
                 scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
                 break;
             case "SampleScene_2":
-                scriptToRun = "app_2.py";
+                scriptToRun = "audio_5.py";
                 break;
             // 其他場景再依需求加 case
         }
