@@ -105,139 +105,102 @@ public class SimpleTestManager : MonoBehaviour
 
     #region Options Generation & Helpers
     
-    // ----- 新增：輔助函式，將 24 小時制轉為 12 小時制文字 -----
-    private string FormatHourTo12(int hour)
+    // ----- 修改：GenerateDayOptions 方法以符合「均勻分佈」的規則 -----
+    List<string> GenerateDayOptions()
     {
-        if (hour == 0) return "午夜 12:00";
-        if (hour < 12) return $"上午 {hour}:00";
-        if (hour == 12) return "中午 12:00";
-        return $"下午 {hour - 12}:00";
+        DateTime now = DateTime.Now;
+        int correctDay = now.Day;
+        int daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+
+        // 1. 將月份大致分為四個「週」區塊
+        List<List<int>> weeklyBuckets = new List<List<int>>
+        {
+            Enumerable.Range(1, 7).ToList(),                                  // 第1週 (1-7號)
+            Enumerable.Range(8, 7).ToList(),                                  // 第2週 (8-14號)
+            Enumerable.Range(15, 7).ToList(),                                 // 第3週 (15-21號)
+            Enumerable.Range(22, daysInMonth - 21).Where(d => d <= daysInMonth).ToList() // 第4週及之後 (22號到月底)
+        };
+
+        // 2. 找出正確答案在哪一週
+        int correctBucketIndex = -1;
+        for (int i = 0; i < weeklyBuckets.Count; i++)
+        {
+            if (weeklyBuckets[i].Contains(correctDay))
+            {
+                correctBucketIndex = i;
+                break;
+            }
+        }
+
+        // 3. 建立選項列表，先加入正確答案
+        List<string> options = new List<string> { correctDay.ToString() };
+
+        // 4. 從「其他三週」中，各隨機挑選一個號碼作為錯誤答案
+        for (int i = 0; i < weeklyBuckets.Count; i++)
+        {
+            if (i == correctBucketIndex) continue; // 跳過正確答案所在的那一週
+
+            // 確保該週有日期可選 (例如2月最後一週可能很短)
+            if (weeklyBuckets[i].Count > 0)
+            {
+                int randomDay = weeklyBuckets[i][UnityEngine.Random.Range(0, weeklyBuckets[i].Count)];
+                options.Add(randomDay.ToString());
+            }
+        }
+
+        // 5. 為防止意外情況 (例如月份太短導致選項不足4個)，進行補齊
+        List<int> allDaysPool = Enumerable.Range(1, daysInMonth).Where(d => !options.Contains(d.ToString())).ToList();
+        while (options.Count < 4 && allDaysPool.Count > 0)
+        {
+            int randomIndex = UnityEngine.Random.Range(0, allDaysPool.Count);
+            options.Add(allDaysPool[randomIndex].ToString());
+            allDaysPool.RemoveAt(randomIndex);
+        }
+
+        ShuffleList(options);
+        return options;
     }
 
-    // ----- 新增：輔助函式，將 12 小時制文字解析回 24 小時制數字 -----
-    private int Parse12HourFormat(string timeString)
-    {
-        try
-        {
-            string[] parts = timeString.Split(' ');
-            string period = parts[0];
-            int hour = int.Parse(parts[1].Split(':')[0]);
 
-            if (period == "午夜" && hour == 12) return 0;
-            if (period == "中午" && hour == 12) return 12;
-            if (period == "上午") return hour;
-            if (period == "下午") return hour + 12;
-            
-            return hour; // Fallback
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"解析時間字串 '{timeString}' 失敗: {e.Message}");
-            return -1; // 回傳一個錯誤值
-        }
-    }
-    
-    // ----- 修改：GenerateHourOptions 方法以符合新的優化建議 -----
     List<string> GenerateHourOptions()
     {
         int currentHour = DateTime.Now.Hour;
         List<string> options = new List<string>();
 
-        // 1. 固定將「當前整點」作為選項之一，並使用12小時制格式化
-        options.Add(FormatHourTo12(currentHour));
-
-        // 2. 產生三個確定在 ±2 小時範圍外的「錯誤」答案
         List<int> forbiddenHours = new List<int>();
-        for (int i = -2; i <= 2; i++)
-        {
-            forbiddenHours.Add((currentHour + i + 24) % 24);
-        }
+        for (int i = -2; i <= 2; i++) { forbiddenHours.Add((currentHour + i + 24) % 24); }
 
-        // 找出所有可用的錯誤小時選項
-        List<int> availableHours = Enumerable.Range(0, 24).Where(h => !forbiddenHours.Contains(h)).ToList();
+        List<int> incorrectAmPool = Enumerable.Range(0, 12).Where(h => !forbiddenHours.Contains(h)).ToList();
+        List<int> incorrectPmPool = Enumerable.Range(12, 12).Where(h => !forbiddenHours.Contains(h)).ToList();
 
-        for (int i = 0; i < 3; i++)
+        bool isCurrentHourAm = currentHour < 12;
+
+        if (isCurrentHourAm)
         {
-            if (availableHours.Count == 0) break;
-            int randomIndex = UnityEngine.Random.Range(0, availableHours.Count);
-            int randomHour = availableHours[randomIndex];
-            options.Add(FormatHourTo12(randomHour));
-            availableHours.RemoveAt(randomIndex);
+            options.Add(FormatHourTo12(currentHour));
+            if (incorrectAmPool.Count > 0) { int r = UnityEngine.Random.Range(0, incorrectAmPool.Count); options.Add(FormatHourTo12(incorrectAmPool[r])); incorrectAmPool.RemoveAt(r); }
+            for (int i = 0; i < 2; i++) { if (incorrectPmPool.Count > 0) { int r = UnityEngine.Random.Range(0, incorrectPmPool.Count); options.Add(FormatHourTo12(incorrectPmPool[r])); incorrectPmPool.RemoveAt(r); } }
         }
+        else
+        {
+            options.Add(FormatHourTo12(currentHour));
+            if (incorrectPmPool.Count > 0) { int r = UnityEngine.Random.Range(0, incorrectPmPool.Count); options.Add(FormatHourTo12(incorrectPmPool[r])); incorrectPmPool.RemoveAt(r); }
+            for (int i = 0; i < 2; i++) { if (incorrectAmPool.Count > 0) { int r = UnityEngine.Random.Range(0, incorrectAmPool.Count); options.Add(FormatHourTo12(incorrectAmPool[r])); incorrectAmPool.RemoveAt(r); } }
+        }
+        
+        while (options.Count < 4) { int rH = UnityEngine.Random.Range(0, 24); string fH = FormatHourTo12(rH); if (!options.Contains(fH)) { options.Add(fH); } }
 
         ShuffleList(options);
         return options;
     }
 
-    // --- 其他選項生成方法保持不變 ---
-    List<string> GenerateYearOptions()
-    {
-        int currentYear = DateTime.Now.Year;
-        List<string> options = new List<string> { currentYear.ToString(), (currentYear - 1).ToString(), (currentYear + 1).ToString(), (currentYear - 2).ToString() };
-        ShuffleList(options);
-        return options;
-    }
-
-    List<string> GenerateDayOptions()
-    {
-        DateTime now = DateTime.Now;
-        int correctDay = now.Day;
-        List<string> options = new List<string> { correctDay.ToString() };
-        int daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
-        List<int> otherDays = Enumerable.Range(1, daysInMonth).Where(d => d != correctDay).ToList();
-        for (int i = 0; i < 3; i++)
-        {
-            if (otherDays.Count == 0) break;
-            int randomIndex = UnityEngine.Random.Range(0, otherDays.Count);
-            options.Add(otherDays[randomIndex].ToString());
-            otherDays.RemoveAt(randomIndex);
-        }
-        ShuffleList(options);
-        return options;
-    }
-
-    List<string> GenerateMonthOptions()
-    {
-        string[] monthNames = { "", "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月" };
-        int currentMonth = DateTime.Now.Month;
-        List<string> options = new List<string> { monthNames[currentMonth] };
-        List<int> otherMonthIndices = Enumerable.Range(1, 12).Where(m => m != currentMonth).ToList();
-        for (int i = 0; i < 3; i++)
-        {
-            int randomIndex = UnityEngine.Random.Range(0, otherMonthIndices.Count);
-            options.Add(monthNames[otherMonthIndices[randomIndex]]);
-            otherMonthIndices.RemoveAt(randomIndex);
-        }
-        ShuffleList(options);
-        return options;
-    }
-
-    List<string> GenerateDayOfWeekOptions()
-    {
-        string[] dayNames = { "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六" };
-        int correctDayIndex = (int)DateTime.Now.DayOfWeek;
-        List<string> options = new List<string> { dayNames[correctDayIndex] };
-        List<int> otherDayIndices = Enumerable.Range(0, 7).Where(d => d != correctDayIndex).ToList();
-        for (int i = 0; i < 3; i++)
-        {
-            int randomIndex = UnityEngine.Random.Range(0, otherDayIndices.Count);
-            options.Add(dayNames[otherDayIndices[randomIndex]]);
-            otherDayIndices.RemoveAt(randomIndex);
-        }
-        ShuffleList(options);
-        return options;
-    }
-    
-    void ShuffleList<T>(List<T> list)
-    {
-        for (int i = 0; i < list.Count; i++)
-        {
-            T temp = list[i];
-            int randomIndex = UnityEngine.Random.Range(i, list.Count);
-            list[i] = list[randomIndex];
-            list[randomIndex] = temp;
-        }
-    }
+    // --- 其他選項生成方法與輔助函式保持不變 ---
+    private string FormatHourTo12(int hour) { if (hour == 0) return "午夜 12:00"; if (hour < 10) return $"上午  {hour}:00"; if (hour < 12) return $"上午 {hour}:00"; if (hour == 12) return "中午 12:00"; int pmHour = hour - 12; if (pmHour < 10) return $"下午  {pmHour}:00"; return $"下午 {pmHour}:00"; }
+    private int Parse12HourFormat(string timeString) { try { string[] parts = timeString.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); string period = parts[0]; int hour = int.Parse(parts[1].Split(':')[0]); if (period == "午夜" && hour == 12) return 0; if (period == "中午" && hour == 12) return 12; if (period == "上午") return hour; if (period == "下午") return (hour == 12) ? 12 : hour + 12; return hour; } catch { return -1; } }
+    List<string> GenerateYearOptions() { int y = DateTime.Now.Year; var l = new List<string> {y.ToString(),(y-1).ToString(),(y+1).ToString(),(y-2).ToString()}; ShuffleList(l); return l; }
+    List<string> GenerateMonthOptions() { string[] m={"","1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"}; int cur=DateTime.Now.Month; var o=new List<string>{m[cur]}; var p=Enumerable.Range(1,12).Where(i=>i!=cur).ToList(); for(int i=0;i<3;i++){ if(p.Count==0)break; int r=UnityEngine.Random.Range(0,p.Count); o.Add(m[p[r]]); p.RemoveAt(r); } ShuffleList(o); return o; }
+    List<string> GenerateDayOfWeekOptions() { string[] d={"星期日","星期一","星期二","星期三","星期四","星期五","星期六"}; int cur=(int)DateTime.Now.DayOfWeek; var o=new List<string>{d[cur]}; var p=Enumerable.Range(0,7).Where(i=>i!=cur).ToList(); for(int i=0;i<3;i++){ if(p.Count==0)break; int r=UnityEngine.Random.Range(0,p.Count); o.Add(d[p[r]]); p.RemoveAt(r); } ShuffleList(o); return o; }
+    void ShuffleList<T>(List<T> list) { for (int i = 0; i < list.Count; i++) { T temp = list[i]; int randomIndex = UnityEngine.Random.Range(i, list.Count); list[i] = list[randomIndex]; list[randomIndex] = temp; } }
     #endregion
 
     void UpdateButtonsForQuestion(string questionType, List<string> options)
@@ -285,27 +248,11 @@ public class SimpleTestManager : MonoBehaviour
         
         switch(currentQuestionKey)
         {
-            case "Year":
-                options = GenerateYearOptions();
-                if (titleText != null) titleText.text = "請問今年是哪一年？";
-                break;
-            case "Month":
-                options = GenerateMonthOptions();
-                if (titleText != null) titleText.text = "現在是幾月呢？";
-                break;
-            case "Day": 
-                options = GenerateDayOptions();
-                if (titleText != null) titleText.text = "今天幾號？";
-                break;
-            case "DayOfWeek":
-                options = GenerateDayOfWeekOptions();
-                if (titleText != null) titleText.text = "那今天是星期幾？";
-                break;
-            case "Hour":
-                options = GenerateHourOptions();
-                // ----- 修改：調整問題文字 -----
-                if (titleText != null) titleText.text = "現在大概是什麼時候了？";
-                break;
+            case "Year": options = GenerateYearOptions(); if (titleText != null) titleText.text = "請問今年是哪一年？"; break;
+            case "Month": options = GenerateMonthOptions(); if (titleText != null) titleText.text = "現在是幾月呢？"; break;
+            case "Day": options = GenerateDayOptions(); if (titleText != null) titleText.text = "今天幾號？"; break;
+            case "DayOfWeek": options = GenerateDayOfWeekOptions(); if (titleText != null) titleText.text = "那今天是星期幾？"; break;
+            case "Hour": options = GenerateHourOptions(); if (titleText != null) titleText.text = "現在大概是什麼時候了？"; break;
         }
         
         if (options != null) UpdateButtonsForQuestion(currentQuestionKey, options);
@@ -326,7 +273,6 @@ public class SimpleTestManager : MonoBehaviour
         if (confirmButton != null) confirmButton.interactable = true;
     }
 
-    // ----- 修改：ConfirmAnswer 以便能解析 12 小時制文字 -----
     public void ConfirmAnswer()
     {
         if (string.IsNullOrEmpty(selectedAnswer)) return;
@@ -336,18 +282,14 @@ public class SimpleTestManager : MonoBehaviour
 
         if (currentQuestionKey == "Hour")
         {
-            int selectedHour = Parse12HourFormat(selectedAnswer); // 使用新的解析函式
+            int selectedHour = Parse12HourFormat(selectedAnswer);
             int currentHour = DateTime.Now.Hour;
             
-            if (selectedHour != -1) // 確保解析成功
+            if (selectedHour != -1)
             {
                 int diff = Math.Abs(selectedHour - currentHour);
                 int distance = Math.Min(diff, 24 - diff);
-
-                if (distance <= 2)
-                {
-                    isCorrect = true;
-                }
+                if (distance <= 2) isCorrect = true;
             }
         }
         else
@@ -363,7 +305,7 @@ public class SimpleTestManager : MonoBehaviour
         }
         else
         {
-            if (feedbackText != null) { feedbackText.text = "再想想看喔。"; feedbackText.color = Color.red; }
+            if (feedbackText != null) { feedbackText.text = "再想想看喔."; feedbackText.color = Color.red; }
             if (incorrectSFX != null && audioSource != null) { audioSource.PlayOneShot(incorrectSFX); }
         }
 
