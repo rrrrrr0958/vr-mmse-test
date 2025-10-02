@@ -16130,6 +16130,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5172894714416467773, guid: ac936ad7ddc749a41a651adf7537ca96, type: 3}
   m_PrefabInstance: {fileID: 1481430146}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1481550018 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1178791450436251564, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 237878323}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1488067317
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16581,6 +16592,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf567183448453a44b702fe6bbf719ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  xrOrigin: {fileID: 1481550018}
+  vrCameraTransform: {fileID: 237878324}
   RuleText_rule: {fileID: 1250203569}
   treasurebg_rule: {fileID: 968366470}
   voiceAudioSource: {fileID: 1543986642}
