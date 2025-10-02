@@ -6,8 +6,10 @@ using System.IO;
 
 public class RecordingState2 : MonoBehaviour
 {
+    // 顯示錄音階段的狀態
     public TextMeshProUGUI statusText;
-    // ⚠️ 將 HostFlask2 替換為新的類別名稱
+    
+    // ⚠️ 確保在 Inspector 中將 AudioToServerSender 組件拖曳到此處
     public AudioToServerSender audioSender; 
     
     public int currentQuestionIndex = 0; 
@@ -83,6 +85,7 @@ public class RecordingState2 : MonoBehaviour
         yield return new WaitForSeconds(duration); 
 
         Microphone.End(micName); 
+        // 這裡的狀態會在 AudioToServerSender 開始傳送後立即被覆蓋，這是預期的。
         statusText.text = "錄音完成，正在傳送..."; 
         
         // 關鍵變更：不存檔，直接轉 byte[]
@@ -95,6 +98,7 @@ public class RecordingState2 : MonoBehaviour
         if (audioSender != null)
         {
             // 這裡傳遞 wavData 和當前問題索引
+            // audioSender 會負責將數據打包成 multipart/form-data
             audioSender.SendAudioForRecognition(wavData, currentQuestionIndex);
         }
         else

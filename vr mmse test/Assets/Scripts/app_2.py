@@ -15,6 +15,9 @@ r = sr.Recognizer()
 @app.route('/recognize_speech', methods=['POST'])
 def recognize_speech():
     print("⚡ /recognize_speech 路由被呼叫")
+    
+    # 由於 C# 客戶端現在會以 multipart/form-data 發送數據，
+    # 這裡的 request.files['file'] 將能夠正確找到音訊檔案。
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
 
@@ -31,7 +34,7 @@ def recognize_speech():
     audio_source_path = filepath 
 
     try:
-        # 確保格式為 WAV
+        # 確保格式為 WAV（雖然 Unity 已經發送 WAV，但 pydub 的 from_file 可以增加穩定性）
         audio = pydub.AudioSegment.from_file(audio_source_path)
         audio.export(audio_source_path, format="wav")
         print(f"[DEBUG] 音訊已轉換並儲存為 WAV: {audio_source_path}")
@@ -44,10 +47,12 @@ def recognize_speech():
             text = r.recognize_google(audio_data, language='zh-TW')
             print(f"[DEBUG] 辨識結果: {text}")
 
+        # 在響應中包含辨識結果
         return jsonify({"transcription": text}), 200
 
     except sr.UnknownValueError:
         print("[ERROR] Speech recognition could not understand audio")
+        # 應答給 Unity 客戶端一個結構化的錯誤訊息
         return jsonify({"error": "Speech recognition could not understand audio"}), 400
     except sr.RequestError as e:
         print(f"[ERROR] Could not request results from service; {e}")
@@ -62,4 +67,6 @@ def recognize_speech():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+    # 為了在 Canvas 環境下運行，確保 host/port 設定正確。
+    # 如果您在本地測試，可以使用 host="127.0.0.1"
+    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False, threaded=True)

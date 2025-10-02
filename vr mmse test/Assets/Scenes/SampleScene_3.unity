@@ -5957,7 +5957,7 @@ MonoBehaviour:
   meatStallAudioClip: {fileID: 8300000, guid: 8fb3e216a33954b44bce7c3a01738d82, type: 3}
   whatIsSellingAudioClip: {fileID: 8300000, guid: a74c6f198b7149e45b839d7ffec1f20a, type: 3}
   fishColorAudioClip: {fileID: 8300000, guid: 28beae60842bca643931e664533bc22c, type: 3}
-  whatIsThatAudioClip: {fileID: 8300000, guid: bb05ab6c95a922d4290e9afc20d5643a, type: 3}
+  whatIsThatAudioClip: {fileID: 8300000, guid: 52105fe3b0d3be849bbbb11bdba47eb5, type: 3}
   serverUrl: http://localhost:5000/recognize_speech
   recordingDuration: 3.5
   rightController: {fileID: 1565867036}
