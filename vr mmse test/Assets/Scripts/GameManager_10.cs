@@ -209,7 +209,7 @@ public class GameManager : MonoBehaviour
         if (confirmPanel) confirmPanel.SetActive(selectedSet.Count == 3);
     }
 
-    public void OnConfirm()
+    public void OnConfirm() //這裡有改(手部控制)
     {
         endTime = Time.time;
         float timeUsed = endTime - startTime;
@@ -238,12 +238,24 @@ public class GameManager : MonoBehaviour
         // 保留：其他腳本要用的 JSON 字串
         ConvertGameDataToJson("Player001", accuracy, timeUsed);
 
+        // ★★★ 新增：呼叫 VRTracker 存軌跡
+        VRTracker tracker = FindFirstObjectByType<VRTracker>();
+        if (tracker != null)
+        {
+            tracker.SaveAndUploadTrajectory("Session1");
+        }
+        else
+        {
+            Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
+        }
+
         // 若 SceneFlowManager 沒掛，避免 NRE
         if (SceneFlowManager.instance != null)
             SceneFlowManager.instance.LoadNextScene();
         else
             Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
     }
+
 
     public void OnRetry()
     {
