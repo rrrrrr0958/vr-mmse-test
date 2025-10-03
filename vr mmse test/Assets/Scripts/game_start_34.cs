@@ -35,6 +35,11 @@ public class game_start_34 : MonoBehaviour
     [Header("點擊題設定")]
     public float clickResponseDuration = 2.5f;
 
+    // 【新增】點擊音效設定
+    [Header("點擊音效")]
+    public AudioSource clickAudioSource; // 播放點擊音效的 AudioSource
+    public AudioClip clickSoundEffect;   // 實際的點擊音效檔案
+
     [Header("攝影機移動設定")]
     public float cameraMoveSpeed = 5.0f;
 
@@ -55,6 +60,13 @@ public class game_start_34 : MonoBehaviour
      public AudioClip fishColorAudioClip; // <-- 這是被移除的語音，但程式碼中暫時保留以避免 Inspector 報錯
     public AudioClip whatIsThatAudioClip; // <-- 新的第二題語音 (原來的 Q3)
     public AudioClip bananaColorAudioClip; // <-- 【新增】新的第三題語音（請在 Unity Inspector 中設定此 AudioClip！）
+
+    // >>> 【新增】第二輪點擊音檔 (接下來，請點選 XX 攤)
+    [Header("第二輪點擊音檔 (接下來...)")]
+    public AudioClip nextFruitStallAudioClip;
+    public AudioClip nextWeaponStallAudioClip;
+    public AudioClip nextBreadStallAudioClip;
+    public AudioClip nextMeatStallAudioClip;
 
 
     [Header("語音辨識設定")]
@@ -331,6 +343,13 @@ public class game_start_34 : MonoBehaviour
         {
             if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
             {
+                // >>> 【新增】點擊音效播放邏輯
+                if (clickAudioSource != null && clickSoundEffect != null)
+                {
+                    clickAudioSource.PlayOneShot(clickSoundEffect);
+                }
+                // <<<
+
                 string clickedObjectName = hit.collider.gameObject.name;
                 string clickedStallName = "";
 
@@ -367,6 +386,17 @@ public class game_start_34 : MonoBehaviour
                             rend.material.color = Color.yellow;
 
                         lockedClickedObjects.Add(clickedStallObject);
+
+                        // >>> 【新增】隱藏所有其他攤位物件
+                        foreach (GameObject stallObject in clickableStallObjects)
+                        {
+                            // 判斷：如果這個攤位不是當前點擊的攤位，就隱藏它
+                            if (stallObject != clickedStallObject)
+                            {
+                                stallObject.SetActive(false);
+                            }
+                        }
+                        // <<< 【新增結束】
                     }
 
                     if (clickedStallName == currentTargetStallName)
@@ -427,6 +457,19 @@ public class game_start_34 : MonoBehaviour
         Debug.Log("所有攤位物件的顏色已重置。");
     }
 
+    //來確保在下一回合開始時，所有攤位物件都會被重新顯示。
+    void ShowAllStallObjects()
+    {
+        foreach (GameObject stallObject in clickableStallObjects)
+        {
+            if (stallObject != null && !stallObject.activeSelf)
+            {
+                stallObject.SetActive(true);
+            }
+        }
+        Debug.Log("所有攤位物件已重新啟用。");
+    }
+
 
     IEnumerator MainClickSequence()
     {
@@ -438,6 +481,7 @@ public class game_start_34 : MonoBehaviour
 
         for (int i = 0; i < 2; i++)
         {
+            ShowAllStallObjects(); // 確保所有物件在回合開始時顯示
             ResetAllStallColors();
 
             if (tempNonFishStallNames.Count == 0)
@@ -449,15 +493,19 @@ public class game_start_34 : MonoBehaviour
             int randomIndex = Random.Range(0, tempNonFishStallNames.Count);
             currentTargetStallName = tempNonFishStallNames[randomIndex];
 
+            // --- 傳遞輪次資訊給語音播放函式 ---
             string initialQuestion = $"請點選 {currentTargetStallName} 攤位！";
             Debug.Log($"Console 問題 (第 {i + 1} 次): {initialQuestion}");
-            PlayInitialVoiceQuestion(currentTargetStallName);
+
+            int currentRound = i + 1; // 當前輪次 (1 或 2)
+            PlayInitialVoiceQuestion(currentTargetStallName, currentRound);
 
             tempNonFishStallNames.RemoveAt(randomIndex);
 
             isWaitingForClickInput = true;
 
-            AudioClip currentClip = GetAudioClipForStall(currentTargetStallName);
+            // 【修正點 1】計算等待時間時，必須傳入 questionRound 參數
+            AudioClip currentClip = GetAudioClipForStall(currentTargetStallName, currentRound);
             float totalWaitTime = (currentClip != null ? currentClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
 
             yield return new WaitForSeconds(totalWaitTime);
@@ -468,16 +516,22 @@ public class game_start_34 : MonoBehaviour
             yield return new WaitForSeconds(timeBetweenQuestions);
         }
 
+        ShowAllStallObjects();
         ResetAllStallColors();
 
         currentTargetStallName = "魚攤";
         string finalQuestion = $"請點選 {currentTargetStallName} 攤位！";
         Debug.Log($"Console 問題 (第 3 次，固定魚攤): {finalQuestion}");
-        PlayInitialVoiceQuestion(currentTargetStallName);
+
+        // 傳遞輪次資訊 (第 3 輪)
+        int fishStallRound = 3;
+        PlayInitialVoiceQuestion(currentTargetStallName, fishStallRound);
+
 
         isWaitingForClickInput = true;
 
-        AudioClip fishStallClip = GetAudioClipForStall("魚攤");
+        // 【修正點 2】計算魚攤等待時間時，必須傳入 questionRound 參數
+        AudioClip fishStallClip = GetAudioClipForStall("魚攤", fishStallRound);
         float fishStallTotalWaitTime = (fishStallClip != null ? fishStallClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
         yield return new WaitForSeconds(fishStallTotalWaitTime);
 
@@ -726,25 +780,48 @@ public class game_start_34 : MonoBehaviour
         // <<< [修改點 3.2]
     }
 
-    void PlayInitialVoiceQuestion(string stallName)
+    // >>> 【修改】函式定義，新增 int questionRound 參數
+    void PlayInitialVoiceQuestion(string stallName, int questionRound)
     {
-        Debug.Log($"嘗試播放語音給攤位: '{stallName}' (長度: {stallName.Length})");
-        AudioClip clipToPlay = GetAudioClipForStall(stallName);
+        Debug.Log($"嘗試播放語音給攤位: '{stallName}' (第 {questionRound} 輪)");
+
+        // 傳遞 questionRound 參數給 GetAudioClipForStall
+        AudioClip clipToPlay = GetAudioClipForStall(stallName, questionRound);
+
         PlayVoiceClip(clipToPlay, stallName);
     }
+    // <<<
 
-    private AudioClip GetAudioClipForStall(string stallName)
+    // >>> 【修改】函式定義，新增 int questionRound 參數
+    private AudioClip GetAudioClipForStall(string stallName, int questionRound)
     {
+        // 對於 Q3（魚攤），使用您固定的魚攤音效
+        if (questionRound == 3)
+        {
+            // 由於您要自己替換魚攤音檔，我們假設 fishStallAudioClip 會是您想替換的那個音檔。
+            // 如果您希望 Q3 有專屬變數，建議在 public 變數中新增。
+            // 目前先用原有的 fishStallAudioClip 
+            return fishStallAudioClip;
+        }
+
+        // 處理 Q1 和 Q2 的邏輯
         switch (stallName)
         {
-            case "魚攤": return fishStallAudioClip;
-            case "蔬果": return fruitStallAudioClip;
-            case "武器": return weaponStallAudioClip;
-            case "麵包": return breadStallAudioClip;
-            case "肉攤": return meatStallAudioClip;
+            case "蔬果":
+                return (questionRound == 1) ? fruitStallAudioClip : nextFruitStallAudioClip;
+            case "武器":
+                return (questionRound == 1) ? weaponStallAudioClip : nextWeaponStallAudioClip;
+            case "麵包":
+                return (questionRound == 1) ? breadStallAudioClip : nextBreadStallAudioClip;
+            case "肉攤":
+                return (questionRound == 1) ? meatStallAudioClip : nextMeatStallAudioClip;
+            // 如果 Q1/Q2 誤傳魚攤，則返回魚攤預設音效
+            case "魚攤":
+                return fishStallAudioClip;
             default: return null;
         }
     }
+    // <<<
 
     private void PlayVoiceClip(AudioClip clip, string debugMessageContext)
     {

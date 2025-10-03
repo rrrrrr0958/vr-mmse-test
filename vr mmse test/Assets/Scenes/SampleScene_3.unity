@@ -5946,6 +5946,8 @@ MonoBehaviour:
   timeBetweenQuestions: 1
   voiceQuestionBufferTime: 0
   clickResponseDuration: 2.5
+  clickAudioSource: {fileID: 1340103562}
+  clickSoundEffect: {fileID: 8300000, guid: 846db7e47f0b5014486df0f2b5d4922e, type: 3}
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 1424894083}
   highlightCircleImage: {fileID: 2018152758}
@@ -5959,6 +5961,10 @@ MonoBehaviour:
   fishColorAudioClip: {fileID: 8300000, guid: 28beae60842bca643931e664533bc22c, type: 3}
   whatIsThatAudioClip: {fileID: 8300000, guid: 25212e41d207a124ba59f1a6a9ce3f63, type: 3}
   bananaColorAudioClip: {fileID: 8300000, guid: c4d93650783b6ea4aa802597e4e8178d, type: 3}
+  nextFruitStallAudioClip: {fileID: 8300000, guid: ac5c910a75f82984d8a1db36aeeac18f, type: 3}
+  nextWeaponStallAudioClip: {fileID: 8300000, guid: 733aa7eb21a716849803e10bf8bcf9d9, type: 3}
+  nextBreadStallAudioClip: {fileID: 8300000, guid: 075b0adf072ee0b4cbdea63b3b294bab, type: 3}
+  nextMeatStallAudioClip: {fileID: 8300000, guid: d4f20460897a1224b9bf6ffb81df0bfe, type: 3}
   serverUrl: http://localhost:5000/recognize_speech
   recordingDuration: 4
   rightController: {fileID: 1565867036}
