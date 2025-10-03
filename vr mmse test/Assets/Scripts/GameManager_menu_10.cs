@@ -162,18 +162,18 @@ public class GameManagerMenu : MonoBehaviour
 
     public void OnConfirm()
     {
-        endTime = Time.time;
-        float timeUsed = endTime - startTime;
+        // endTime = Time.time;
+        // float timeUsed = endTime - startTime;
 
-        if (resultText)
-        {
-            resultText.gameObject.SetActive(true);
-            resultText.text =
-                $"你選擇的水果：{string.Join("、", clickedAnimalSequence)}\n" +
-                $"選擇數量：{clickedAnimalSequence.Count} 個\n" +
-                $"用時：{timeUsed:F2} 秒\n" +
-                $"選擇完成！";
-        }
+        // // if (resultText)
+        // // {
+        // //     // resultText.gameObject.SetActive(true);
+        // //     // resultText.text =
+        // //     //     // $"你選擇的水果：{string.Join("、", clickedAnimalSequence)}\n" +
+        // //     //     // $"選擇數量：{clickedAnimalSequence.Count} 個\n" +
+        // //     //     // $"用時：{timeUsed:F2} 秒\n" +
+        // //     //     $" ";
+        // // }
 
         if (confirmPanel) confirmPanel.SetActive(false);
         if (panel1) panel1.SetActive(false);
