@@ -5944,7 +5944,7 @@ MonoBehaviour:
   initialTextDelay: 0.5
   questionBroadcastDelay: 1
   timeBetweenQuestions: 1
-  voiceQuestionBufferTime: 0.5
+  voiceQuestionBufferTime: 0
   clickResponseDuration: 2.5
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 1424894083}
@@ -5957,9 +5957,10 @@ MonoBehaviour:
   meatStallAudioClip: {fileID: 8300000, guid: 8fb3e216a33954b44bce7c3a01738d82, type: 3}
   whatIsSellingAudioClip: {fileID: 8300000, guid: a74c6f198b7149e45b839d7ffec1f20a, type: 3}
   fishColorAudioClip: {fileID: 8300000, guid: 28beae60842bca643931e664533bc22c, type: 3}
-  whatIsThatAudioClip: {fileID: 8300000, guid: 52105fe3b0d3be849bbbb11bdba47eb5, type: 3}
+  whatIsThatAudioClip: {fileID: 8300000, guid: 25212e41d207a124ba59f1a6a9ce3f63, type: 3}
+  bananaColorAudioClip: {fileID: 8300000, guid: c4d93650783b6ea4aa802597e4e8178d, type: 3}
   serverUrl: http://localhost:5000/recognize_speech
-  recordingDuration: 3.5
+  recordingDuration: 4
   rightController: {fileID: 1565867036}
   useOVRInput: 0
   useNewInputSystem: 1

@@ -16611,7 +16611,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f4c799f94564c2447b31e797363f8704, type: 3}
   - {fileID: 8300000, guid: 28043da89df477e47ac28311bf128ac1, type: 3}
   initialDelaySeconds: 1
-  treasureDisplaySeconds: 3
+  treasureDisplaySeconds: 2
 --- !u!4 &1543986641
 Transform:
   m_ObjectHideFlags: 0
