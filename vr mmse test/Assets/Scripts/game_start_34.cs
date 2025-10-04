@@ -30,10 +30,15 @@ public class game_start_34 : MonoBehaviour
     public float questionBroadcastDelay = 1f;
     public float timeBetweenQuestions = 1f;
     [Tooltip("語音問題結束後，到開始錄音前的緩衝時間。調低這個值可以更快開始錄音。")]
-    public float voiceQuestionBufferTime = 0.5f;
+    public float voiceQuestionBufferTime = 0.0f;
 
     [Header("點擊題設定")]
-    public float clickResponseDuration = 3.5f;
+    public float clickResponseDuration = 2.5f;
+
+    // 【新增】點擊音效設定
+    [Header("點擊音效")]
+    public AudioSource clickAudioSource; // 播放點擊音效的 AudioSource
+    public AudioClip clickSoundEffect;   // 實際的點擊音效檔案
 
     [Header("攝影機移動設定")]
     public float cameraMoveSpeed = 5.0f;
@@ -52,12 +57,21 @@ public class game_start_34 : MonoBehaviour
 
     [Header("魚攤問題語音設定")]
     public AudioClip whatIsSellingAudioClip;
-    public AudioClip fishColorAudioClip;
-    public AudioClip whatIsThatAudioClip;
+     public AudioClip fishColorAudioClip; // <-- 這是被移除的語音，但程式碼中暫時保留以避免 Inspector 報錯
+    public AudioClip whatIsThatAudioClip; // <-- 新的第二題語音 (原來的 Q3)
+    public AudioClip bananaColorAudioClip; // <-- 【新增】新的第三題語音（請在 Unity Inspector 中設定此 AudioClip！）
+
+    // >>> 【新增】第二輪點擊音檔 (接下來，請點選 XX 攤)
+    [Header("第二輪點擊音檔 (接下來...)")]
+    public AudioClip nextFruitStallAudioClip;
+    public AudioClip nextWeaponStallAudioClip;
+    public AudioClip nextBreadStallAudioClip;
+    public AudioClip nextMeatStallAudioClip;
+
 
     [Header("語音辨識設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
-    public float recordingDuration = 3.5f;
+    public float recordingDuration = 4f;
 
     // ===== 新增：VR 控制器 & Ray 設定 =====
     [Header("VR 控制器設定（方案A）")]
@@ -329,6 +343,13 @@ public class game_start_34 : MonoBehaviour
         {
             if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
             {
+                // >>> 【新增】點擊音效播放邏輯
+                if (clickAudioSource != null && clickSoundEffect != null)
+                {
+                    clickAudioSource.PlayOneShot(clickSoundEffect);
+                }
+                // <<<
+
                 string clickedObjectName = hit.collider.gameObject.name;
                 string clickedStallName = "";
 
@@ -365,6 +386,17 @@ public class game_start_34 : MonoBehaviour
                             rend.material.color = Color.yellow;
 
                         lockedClickedObjects.Add(clickedStallObject);
+
+                        // >>> 【新增】隱藏所有其他攤位物件
+                        foreach (GameObject stallObject in clickableStallObjects)
+                        {
+                            // 判斷：如果這個攤位不是當前點擊的攤位，就隱藏它
+                            if (stallObject != clickedStallObject)
+                            {
+                                stallObject.SetActive(false);
+                            }
+                        }
+                        // <<< 【新增結束】
                     }
 
                     if (clickedStallName == currentTargetStallName)
@@ -425,6 +457,19 @@ public class game_start_34 : MonoBehaviour
         Debug.Log("所有攤位物件的顏色已重置。");
     }
 
+    //來確保在下一回合開始時，所有攤位物件都會被重新顯示。
+    void ShowAllStallObjects()
+    {
+        foreach (GameObject stallObject in clickableStallObjects)
+        {
+            if (stallObject != null && !stallObject.activeSelf)
+            {
+                stallObject.SetActive(true);
+            }
+        }
+        Debug.Log("所有攤位物件已重新啟用。");
+    }
+
 
     IEnumerator MainClickSequence()
     {
@@ -436,6 +481,7 @@ public class game_start_34 : MonoBehaviour
 
         for (int i = 0; i < 2; i++)
         {
+            ShowAllStallObjects(); // 確保所有物件在回合開始時顯示
             ResetAllStallColors();
 
             if (tempNonFishStallNames.Count == 0)
@@ -447,15 +493,19 @@ public class game_start_34 : MonoBehaviour
             int randomIndex = Random.Range(0, tempNonFishStallNames.Count);
             currentTargetStallName = tempNonFishStallNames[randomIndex];
 
+            // --- 傳遞輪次資訊給語音播放函式 ---
             string initialQuestion = $"請點選 {currentTargetStallName} 攤位！";
             Debug.Log($"Console 問題 (第 {i + 1} 次): {initialQuestion}");
-            PlayInitialVoiceQuestion(currentTargetStallName);
+
+            int currentRound = i + 1; // 當前輪次 (1 或 2)
+            PlayInitialVoiceQuestion(currentTargetStallName, currentRound);
 
             tempNonFishStallNames.RemoveAt(randomIndex);
 
             isWaitingForClickInput = true;
 
-            AudioClip currentClip = GetAudioClipForStall(currentTargetStallName);
+            // 【修正點 1】計算等待時間時，必須傳入 questionRound 參數
+            AudioClip currentClip = GetAudioClipForStall(currentTargetStallName, currentRound);
             float totalWaitTime = (currentClip != null ? currentClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
 
             yield return new WaitForSeconds(totalWaitTime);
@@ -466,16 +516,22 @@ public class game_start_34 : MonoBehaviour
             yield return new WaitForSeconds(timeBetweenQuestions);
         }
 
+        ShowAllStallObjects();
         ResetAllStallColors();
 
         currentTargetStallName = "魚攤";
         string finalQuestion = $"請點選 {currentTargetStallName} 攤位！";
         Debug.Log($"Console 問題 (第 3 次，固定魚攤): {finalQuestion}");
-        PlayInitialVoiceQuestion(currentTargetStallName);
+
+        // 傳遞輪次資訊 (第 3 輪)
+        int fishStallRound = 3;
+        PlayInitialVoiceQuestion(currentTargetStallName, fishStallRound);
+
 
         isWaitingForClickInput = true;
 
-        AudioClip fishStallClip = GetAudioClipForStall("魚攤");
+        // 【修正點 2】計算魚攤等待時間時，必須傳入 questionRound 參數
+        AudioClip fishStallClip = GetAudioClipForStall("魚攤", fishStallRound);
         float fishStallTotalWaitTime = (fishStallClip != null ? fishStallClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
         yield return new WaitForSeconds(fishStallTotalWaitTime);
 
@@ -546,65 +602,90 @@ public class game_start_34 : MonoBehaviour
 
     IEnumerator FishStallQuestionSequence()
     {
+        // ... (Q1 保持不變) ...
+        currentVoiceQuestionIndex = 0;
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        // --- 第一個問題 ---
-        Debug.Log("Console 問題: 這個攤位在賣什麼？");
-        currentVoiceQuestionIndex = 1; // 追蹤問題編號
+        // --- 第一個問題 (Q1) ---
+        // ... (Q1 邏輯不變) ...
+        currentVoiceQuestionIndex = 1;
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤", "祈雨" }));
-        // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
-        yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
+        yield return new WaitForSeconds(timeBetweenQuestions);
 
-        // --- 第二個問題 ---
-        Debug.Log("Console 問題: 魚的顏色是什麼？");
-        currentVoiceQuestionIndex = 2; // 追蹤問題編號
-        yield return StartCoroutine(PlayAudioClipAndThenWait(fishColorAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "藍色", "藍", "藍白", "藍白色", "白藍", "白藍色", "淺藍", "淺藍色" }));
-        // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
+        // ----------------------------------------------------
+        // --- 第二個問題 (Q2: 問香蕉是什麼) ---
+        // ----------------------------------------------------
 
-        // >>> [修改點 4.1] 轉換第三題視角前，啟用新物件 banana_bg_4
-        //if (banana_bg_4 != null)
-        //{
-        //    banana_bg_4.SetActive(true);
-        //    Debug.Log("banana_bg_4 已在視角轉換前啟用。");
-        //}
-        // <<< [修改點 4.1]
-
-        // 1. 開始攝影機轉向/移動
+        // ... (轉向鏡頭邏輯保持不變) ...
         if (cameraTarget_banana_3 != null)
         {
-            Debug.Log("攝影機開始轉向第三題目標（香蕉）...");
-            // 等待鏡頭平滑移動完成
+            Debug.Log("攝影機開始轉向第二、三題目標（香蕉）...");
             yield return StartCoroutine(SmoothCameraMove(cameraTarget_banana_3.position, cameraTarget_banana_3.rotation));
-            Debug.Log("攝影機轉向完成。");
-
-            // 2. 攝影機轉向完成後，再啟用香蕉物件
             if (banana_bg_4 != null)
             {
                 banana_bg_4.SetActive(true);
                 Debug.Log("banana_bg_4 (香蕉物件) 已在視角轉換後啟用。");
             }
         }
-        else
-        {
-            Debug.LogError("cameraTarget_banana_3 未設定！攝影機將維持原位。");
-        }
-
-        yield return new WaitForSeconds(timeBetweenQuestions); // 等待時間，再開始下個問題
+        yield return new WaitForSeconds(timeBetweenQuestions);
 
 
-        // --- 第三個問題 ---
-        currentVoiceQuestionIndex = 3; // 追蹤問題編號
-        Debug.Log("Console 問題: 那個是什麼？");
-        // 這裡的 ShowHighlightCircle 內部會再次啟用 banana_bg_4，但物件已經是啟用的了，所以不會造成問題。
+        // --- 執行第二個問題 ---
+        currentVoiceQuestionIndex = 2;
+        Debug.Log("Console 問題 2: 那個是什麼？ (原來的 Q3)");
         ShowHighlightCircle();
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
         yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉" }));
+        HideHighlightCircle();
+
+
+        // >>> 【新增】 Q2 結束時，手動隱藏錄音提示字板，為 Q3 語音做準備
+        if (question3_VoiceText != null)
+        {
+            question3_VoiceText.gameObject.SetActive(false);
+            Debug.Log("Q2 回答後，錄音提示字板已隱藏。");
+        }
+        // <<<
+
+        yield return new WaitForSeconds(timeBetweenQuestions);
+
+
+        // ----------------------------------------------------
+        // --- 第三個問題 (Q3: 問香蕉的顏色) ---
+        // ----------------------------------------------------
+
+        if (banana_bg_4 != null)
+        {
+            banana_bg_4.SetActive(true);
+            Debug.Log("banana_bg_4 (香蕉物件) 已再次啟用，準備第三題。");
+        }
+
+        // 此處不等待，直接開始播放語音
+
+        // --- 執行第三個問題 ---
+        currentVoiceQuestionIndex = 3;
+        Debug.Log("Console 問題 3: 香蕉的顏色是什麼？");
+        ShowHighlightCircle();
+
+        // 【重點】語音播放時，錄音提示字板保持隱藏
+        if (bananaColorAudioClip != null)
+        {
+            yield return StartCoroutine(PlayAudioClipAndThenWait(bananaColorAudioClip));
+            // PlayAudioClipAndThenWait 結束後，流程進入 WaitForAnswer
+            // WaitForAnswer 會判斷 currentVoiceQuestionIndex = 3，並開啟 question3_VoiceText
+            yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
+        }
+        else
+        {
+            // ... (錯誤處理邏輯不變) ...
+            yield return new WaitForSeconds(1.0f);
+            yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
+        }
+
 
         HideHighlightCircle();
-        // 移除： if (questionBroadcastTextMeshPro != null) { questionBroadcastTextMeshPro.gameObject.SetActive(false); }
 
         // ==========================================================
 
@@ -616,6 +697,9 @@ public class game_start_34 : MonoBehaviour
         UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
     }
+
+
+    //"黃色", "黃", "王色", "王"
 
     IEnumerator PlayAudioClipAndThenWait(AudioClip clip)
     {
@@ -696,25 +780,48 @@ public class game_start_34 : MonoBehaviour
         // <<< [修改點 3.2]
     }
 
-    void PlayInitialVoiceQuestion(string stallName)
+    // >>> 【修改】函式定義，新增 int questionRound 參數
+    void PlayInitialVoiceQuestion(string stallName, int questionRound)
     {
-        Debug.Log($"嘗試播放語音給攤位: '{stallName}' (長度: {stallName.Length})");
-        AudioClip clipToPlay = GetAudioClipForStall(stallName);
+        Debug.Log($"嘗試播放語音給攤位: '{stallName}' (第 {questionRound} 輪)");
+
+        // 傳遞 questionRound 參數給 GetAudioClipForStall
+        AudioClip clipToPlay = GetAudioClipForStall(stallName, questionRound);
+
         PlayVoiceClip(clipToPlay, stallName);
     }
+    // <<<
 
-    private AudioClip GetAudioClipForStall(string stallName)
+    // >>> 【修改】函式定義，新增 int questionRound 參數
+    private AudioClip GetAudioClipForStall(string stallName, int questionRound)
     {
+        // 對於 Q3（魚攤），使用您固定的魚攤音效
+        if (questionRound == 3)
+        {
+            // 由於您要自己替換魚攤音檔，我們假設 fishStallAudioClip 會是您想替換的那個音檔。
+            // 如果您希望 Q3 有專屬變數，建議在 public 變數中新增。
+            // 目前先用原有的 fishStallAudioClip 
+            return fishStallAudioClip;
+        }
+
+        // 處理 Q1 和 Q2 的邏輯
         switch (stallName)
         {
-            case "魚攤": return fishStallAudioClip;
-            case "蔬果": return fruitStallAudioClip;
-            case "武器": return weaponStallAudioClip;
-            case "麵包": return breadStallAudioClip;
-            case "肉攤": return meatStallAudioClip;
+            case "蔬果":
+                return (questionRound == 1) ? fruitStallAudioClip : nextFruitStallAudioClip;
+            case "武器":
+                return (questionRound == 1) ? weaponStallAudioClip : nextWeaponStallAudioClip;
+            case "麵包":
+                return (questionRound == 1) ? breadStallAudioClip : nextBreadStallAudioClip;
+            case "肉攤":
+                return (questionRound == 1) ? meatStallAudioClip : nextMeatStallAudioClip;
+            // 如果 Q1/Q2 誤傳魚攤，則返回魚攤預設音效
+            case "魚攤":
+                return fishStallAudioClip;
             default: return null;
         }
     }
+    // <<<
 
     private void PlayVoiceClip(AudioClip clip, string debugMessageContext)
     {
@@ -788,11 +895,11 @@ public class game_start_34 : MonoBehaviour
     {
         TMPro.TextMeshPro textDisplay = null;
 
-        // >>> [修改點 5.1] 判斷是否為第三題，並使用專屬的文字板
-        if (currentVoiceQuestionIndex == 3 && question3_VoiceText != null)
+        // >>> 【核心修正】檢查問題編號是否大於等於 2（即 Q2 和 Q3）
+        if (currentVoiceQuestionIndex >= 2 && question3_VoiceText != null)
         {
             textDisplay = question3_VoiceText;
-            // 確保主文字板在 Q3 是關閉的
+            // 確保主文字板在 Q2/Q3 是關閉的
             if (questionBroadcastTextMeshPro != null && questionBroadcastTextMeshPro.gameObject.activeSelf)
             {
                 questionBroadcastTextMeshPro.gameObject.SetActive(false);
@@ -800,21 +907,24 @@ public class game_start_34 : MonoBehaviour
         }
         else
         {
+            // Q1 (currentVoiceQuestionIndex == 1) 使用主文字板
             textDisplay = questionBroadcastTextMeshPro;
         }
 
         if (textDisplay != null)
         {
+            // 確保選定的文字板是啟用的
             textDisplay.gameObject.SetActive(true);
         }
-        // <<< [修改點 5.1]
+        // <<< 核心修正區域結束
 
         if (Microphone.devices.Length > 0)
         {
             Debug.Log("開始錄音...");
             if (textDisplay != null)
             {
-                textDisplay.text = "請說出答案"; // 使用選定的文字板
+                // 此時文字板應該已經啟用，顯示 "請說出答案"
+                textDisplay.text = "請說出答案";
             }
 
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
@@ -825,13 +935,11 @@ public class game_start_34 : MonoBehaviour
 
             if (textDisplay != null)
             {
-                textDisplay.text = "語音處理中"; // 使用選定的文字板
+                textDisplay.text = "語音處理中"; // 顯示 "語音處理中"
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
-            // 流程：SendAudioToServer -> CheckAnswer -> ShowResultAndContinue
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
-            // 備註：這裡不需要額外呼叫 ShowResultAndContinue，因為它會被 CheckAnswer 呼叫。
         }
         else
         {
@@ -840,10 +948,7 @@ public class game_start_34 : MonoBehaviour
             {
                 textDisplay.gameObject.SetActive(false);
             }
-
-            // >>> 【修正點】如果沒有麥克風，必須呼叫 ShowResultAndContinue 來結束流程。
             yield return StartCoroutine(ShowResultAndContinue(false));
-            // <<< 【修正點】
         }
     }
 
@@ -921,12 +1026,13 @@ public class game_start_34 : MonoBehaviour
 
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        // >>> 隱藏對應的文字板
-        if (currentVoiceQuestionIndex == 3 && question3_VoiceText != null)
+        // >>> 【修正】如果不是在處理最後一題（Q3），則不要自動隱藏文字板，讓主流程控制。
+        // 隱藏對應的文字板 (只有在 Q3 結束時，或是 Q1 結束時才需要隱藏)
+        if (currentVoiceQuestionIndex == 3 && question3_VoiceText != null) // Q3 結束
         {
             question3_VoiceText.gameObject.SetActive(false);
         }
-        else if (questionBroadcastTextMeshPro != null)
+        else if (currentVoiceQuestionIndex == 1 && questionBroadcastTextMeshPro != null) // Q1 結束
         {
             questionBroadcastTextMeshPro.gameObject.SetActive(false);
         }
