@@ -16608,7 +16608,7 @@ MonoBehaviour:
   ruleClips:
   - {fileID: 8300000, guid: 9b13a45a960c49c4393da88461fc8050, type: 3}
   - {fileID: 8300000, guid: d221fc9afbd77f94992033a31c0844b8, type: 3}
-  - {fileID: 8300000, guid: f4c799f94564c2447b31e797363f8704, type: 3}
+  - {fileID: 8300000, guid: a74ee6a51c6b30d4095f81dcfbd0b520, type: 3}
   - {fileID: 8300000, guid: 28043da89df477e47ac28311bf128ac1, type: 3}
   initialDelaySeconds: 1
   treasureDisplaySeconds: 2
