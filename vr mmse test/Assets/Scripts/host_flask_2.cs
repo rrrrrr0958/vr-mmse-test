@@ -7,7 +7,7 @@ using System;
 public class AudioToServerSender : MonoBehaviour
 {
     // ⚠️ 請確保在 Inspector 中連結這些變數
-    public string serverUrl = "http://127.0.0.1:5000/recognize_speech";
+    public string serverUrl = "http://localhost:5000/recognize_speech";
     public TextMeshProUGUI statusText;
     public AnswerLogicManager answerManager; // 這是確保比對邏輯能執行的關鍵！
     

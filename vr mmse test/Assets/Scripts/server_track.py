@@ -11,8 +11,8 @@ app = Flask(__name__)
 SAVE_FOLDER = "results"
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
-shutdown_flag = False
-child_processes = []
+# shutdown_flag = False
+# child_processes = []
 
 # === 儲存並處理 CSV 的 endpoint ===
 @app.route("/upload_csv", methods=["POST"])
@@ -69,12 +69,12 @@ def upload_csv():
 
     return {"message":"CSV received and trimmed animation saved","file":video_path}
 
-# === 優雅關閉 endpoint ===
-@app.route("/shutdown", methods=["POST"])
-def shutdown():
-    global shutdown_flag
-    shutdown_flag = True
-    return {"message": "Shutdown flag set"}, 200
+# # === 優雅關閉 endpoint ===
+# @app.route("/shutdown", methods=["POST"])
+# def shutdown():
+#     global shutdown_flag
+#     shutdown_flag = True
+#     return {"message": "Shutdown flag set"}, 200
 
 # === 主 loop 監控 shutdown_flag ===
 def run_flask():
@@ -84,15 +84,15 @@ if __name__=="__main__":
     server_thread = threading.Thread(target=run_flask)
     server_thread.start()
 
-    try:
-        while not shutdown_flag:
-            threading.Event().wait(0.5)
-    finally:
-        print("Shutdown flag detected, terminating child processes...")
-        for p in child_processes:
-            try:
-                p.terminate()
-            except:
-                pass
-        print("Exiting server...")
-        os._exit(0)
+    # try:
+    #     while not shutdown_flag:
+    #         threading.Event().wait(0.5)
+    # finally:
+    #     print("Shutdown flag detected, terminating child processes...")
+    #     for p in child_processes:
+    #         try:
+    #             p.terminate()
+    #         except:
+    #             pass
+    #     print("Exiting server...")
+    #     os._exit(0)

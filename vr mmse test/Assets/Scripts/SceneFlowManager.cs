@@ -3,8 +3,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;   // Process
+using System.Diagnostics;   // Process
 using System.IO;
+using System.Linq; // 為了使用 List<Process> 的 LINQ 方法 (例如 Add)
 
 public class SceneFlowManager : MonoBehaviour
 {
@@ -26,9 +27,8 @@ public class SceneFlowManager : MonoBehaviour
     public Image fadeImage;
     public float fadeDuration = 3f;
 
-    // === 追蹤目前啟動中的 Python 伺服器 ===
-    private Process currentServerProcess = null;
-    private string currentServerKey = null; // 可用來記錄是哪支腳本（debug用）
+    // === 追蹤所有啟動中的 Python 伺服器 (常駐模式) ===
+    private readonly List<Process> allServerProcesses = new List<Process>();
 
     void Awake()
     {
@@ -36,6 +36,9 @@ public class SceneFlowManager : MonoBehaviour
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // **應用程式啟動時，一次性啟動所有需要的伺服器（分批啟動）**
+            StartCoroutine(StartPersistentServers());
         }
         else
         {
@@ -43,63 +46,25 @@ public class SceneFlowManager : MonoBehaviour
         }
     }
 
-    public void LoadNextScene()
+    // --- 修改：分批啟動常駐伺服器的方法 ---
+    private IEnumerator StartPersistentServers()
     {
-        currentIndex++;
-        if (currentIndex >= sceneOrder.Count)
-        {
-            UnityEngine.Debug.Log("流程結束，回到第一個場景");
-            currentIndex = 0;
-        }
+        // 先啟動 audio_5.py (Port 5000)
+        StartPythonScript("audio_5.py");
 
-        string nextScene = sceneOrder[currentIndex];
-        StartCoroutine(LoadSceneRoutine(nextScene));
+        // 等待 2 秒
+        yield return new WaitForSeconds(2f);
+
+        // 再啟動 server_track.py (Port 5001)
+        StartPythonScript("server_track.py");
     }
 
-    public IEnumerator LoadSceneRoutine(string nextScene)
-    {
-        yield return StartCoroutine(Fade(0f, 1f));
 
-        StopCurrentServer();
-
-        AsyncOperation op = SceneManager.LoadSceneAsync(nextScene, LoadSceneMode.Single);
-        op.allowSceneActivation = false;
-
-        while (op.progress < 0.9f) yield return null;
-        op.allowSceneActivation = true;
-
-        yield return null;
-        yield return new WaitForSeconds(3f);
-
-        StartServerForScene(nextScene);
-
-        yield return StartCoroutine(Fade(1f, 0f));
-    }
-
-    public void StartServerForScene(string sceneName)
+    // --- 將原有的 StartServerForScene 邏輯改為通用的啟動腳本方法 ---
+    public void StartPythonScript(string scriptToRun)
     {
         string pythonExe = "python";
         string workingDir = Path.Combine(Application.dataPath, "Scripts");
-
-        string scriptToRun = "";
-
-        switch (sceneName)
-        {
-            case "SampleScene_5":
-            case "SampleScene_3":
-            case "SampleScene_2":
-                scriptToRun = "audio_5.py";
-                break;
-            case "SampleScene_11":
-                scriptToRun = "server_track.py";
-                break;
-        }
-
-        if (string.IsNullOrEmpty(scriptToRun))
-        {
-            UnityEngine.Debug.Log($"[SceneFlow] 場景 {sceneName} 不需啟動伺服器。");
-            return;
-        }
 
         try
         {
@@ -117,6 +82,7 @@ public class SceneFlowManager : MonoBehaviour
             var p = new Process();
             p.StartInfo = psi;
 
+            // 設置日誌輸出 (保持原樣)
             p.OutputDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -149,13 +115,13 @@ public class SceneFlowManager : MonoBehaviour
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
 
-                currentServerProcess = p;
-                currentServerKey = scriptToRun;
-                UnityEngine.Debug.Log($"[SceneFlow] 已啟動伺服器：{scriptToRun}（PID={p.Id}）");
+                // 追蹤所有啟動的程序
+                allServerProcesses.Add(p);
+                UnityEngine.Debug.Log($"[SceneFlow] 已啟動常駐伺服器：{scriptToRun}（PID={p.Id}）");
             }
             else
             {
-                UnityEngine.Debug.LogError($"[SceneFlow] 無法啟動伺服器：{scriptToRun}");
+                UnityEngine.Debug.LogError($"[SceneFlow] 無法啟動常駐伺服器：{scriptToRun}");
             }
         }
         catch (System.Exception ex)
@@ -163,83 +129,67 @@ public class SceneFlowManager : MonoBehaviour
             UnityEngine.Debug.LogError($"[SceneFlow] 啟動伺服器失敗：{scriptToRun}，錯誤：{ex.Message}");
         }
     }
+    // ---
 
-    // ========================= 新增關伺服器方法 =========================
-    private void StopCurrentServer()
+    public void LoadNextScene()
     {
-        if (currentServerProcess == null) return;
-
-        string shutdownUrl = GetShutdownUrlForCurrentServer();
-        if (!string.IsNullOrEmpty(shutdownUrl))
-            StartCoroutine(ShutdownAndFallback(shutdownUrl));
-        else
-            TryKillCurrentProcess();
-    }
-
-    private string GetShutdownUrlForCurrentServer()
-    {
-        if (currentServerKey == "server_track.py") return "http://127.0.0.1:5001/shutdown";
-        if (currentServerKey == "audio_5.py") return "http://127.0.0.1:5000/shutdown";
-        return null;
-    }
-
-    private IEnumerator ShutdownAndFallback(string url)
-    {
-        bool completed = false;
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes("");
-
-        using (var req = new UnityEngine.Networking.UnityWebRequest(url, "POST"))
+        currentIndex++;
+        if (currentIndex >= sceneOrder.Count)
         {
-            req.uploadHandler = new UnityEngine.Networking.UploadHandlerRaw(bodyRaw);
-            req.downloadHandler = new UnityEngine.Networking.DownloadHandlerBuffer();
-            req.SetRequestHeader("Content-Type", "application/json");
-
-            float timer = 0f;
-            float timeout = 5f;
-
-            var operation = req.SendWebRequest();
-            while (!operation.isDone && timer < timeout)
-            {
-                timer += Time.deltaTime;
-                yield return null;
-            }
-
-            if (req.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
-            {
-                UnityEngine.Debug.Log("[SceneFlow] Shutdown request success.");
-                completed = true;
-            }
-            else
-            {
-                UnityEngine.Debug.LogWarning($"[SceneFlow] Shutdown request failed: {req.error}");
-            }
+            UnityEngine.Debug.Log("流程結束，回到第一個場景");
+            currentIndex = 0;
         }
 
-        if (!completed)
-            TryKillCurrentProcess();
+        string nextScene = sceneOrder[currentIndex];
+        StartCoroutine(LoadSceneRoutine(nextScene));
     }
 
-    private void TryKillCurrentProcess()
+    public IEnumerator LoadSceneRoutine(string nextScene)
     {
-        try
+        yield return StartCoroutine(Fade(0f, 1f));
+
+        // ⚠️ 移除 StopCurrentServer(); - 不再需要在場景切換時關閉伺服器
+
+        AsyncOperation op = SceneManager.LoadSceneAsync(nextScene, LoadSceneMode.Single);
+        op.allowSceneActivation = false;
+
+        while (op.progress < 0.9f) yield return null;
+        op.allowSceneActivation = true;
+
+        yield return null;
+        yield return new WaitForSeconds(3f);
+
+        // ⚠️ 移除 StartServerForScene(nextScene); - 不再需要在場景切換時啟動伺服器
+
+        yield return StartCoroutine(Fade(1f, 0f));
+    }
+
+    // ⚠️ 移除 StartServerForScene 方法 (已替換為 StartPythonScript)
+
+    // ⚠️ 移除所有關閉相關的方法：StopCurrentServer, GetShutdownUrlForCurrentServer, 
+    // ShutdownAndFallback, TryKillCurrentProcess
+
+    // --- 新增：應用程式退出時關閉所有伺服器的方法 ---
+    private void StopAllPersistentServers()
+    {
+        foreach (var p in allServerProcesses)
         {
-            if (currentServerProcess != null && !currentServerProcess.HasExited)
+            try
             {
-                currentServerProcess.Kill();
-                UnityEngine.Debug.Log("[SceneFlow] Fallback: process killed.");
+                if (p != null && !p.HasExited)
+                {
+                    p.Kill(); // 強制終止程序樹，這是最可靠的方式
+                    UnityEngine.Debug.Log($"[SceneFlow] 應用程式退出時強制關閉程序 PID={p.Id}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogWarning($"[SceneFlow] 關閉程序 PID={p.Id} 失敗: {ex.Message}");
             }
         }
-        catch (System.Exception ex)
-        {
-            UnityEngine.Debug.LogWarning($"[SceneFlow] Kill process failed: {ex.Message}");
-        }
-        finally
-        {
-            currentServerProcess = null;
-            currentServerKey = null;
-        }
+        allServerProcesses.Clear();
     }
-    // ===============================================================
+    // ---
 
     private IEnumerator Fade(float from, float to)
     {
@@ -261,11 +211,13 @@ public class SceneFlowManager : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        StopCurrentServer();
+        // 退出時，關閉所有常駐伺服器
+        StopAllPersistentServers();
     }
 
     private void OnDestroy()
     {
-        StopCurrentServer();
+        // 銷毀時，關閉所有常駐伺服器
+        StopAllPersistentServers();
     }
 }

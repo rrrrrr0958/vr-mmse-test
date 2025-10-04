@@ -69,7 +69,7 @@ public class QuestionManager : MonoBehaviour
     // VR 相關修正：新增 XR Origin 的引用
     [Header("VR 攝影機設定")]
     public Transform xrOriginTransform;
-    public Camera hmdCamera;   // 新增：XR Origin 裡的相機
+    public Camera hmdCamera;   // 新增：XR Origin 裡的相機
     public Transform initialSpawnPoint; // 新增：你希望玩家開始站的位置
 
 
@@ -123,7 +123,11 @@ public class QuestionManager : MonoBehaviour
         HideAllRecordingObjects();
 
         StartCoroutine(StartGameSequence());
-        SceneFlowManager.instance.StartServerForScene("SampleScene_5");
+        
+        // **【修正點】**
+        // 由於 SceneFlowManager 已改為啟動常駐伺服器，
+        // 且 StartServerForScene 方法已被移除，此處無需再呼叫。
+        // SceneFlowManager.instance.StartServerForScene("SampleScene_5"); 
     }
 
     void HideAllQuestionObjects()

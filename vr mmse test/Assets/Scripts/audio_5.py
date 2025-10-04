@@ -59,29 +59,29 @@ def recognize_speech():
         return jsonify({"error": f"An error occurred: {e}"}), 500
 
 
-# === 新增優雅關閉路由 ===
-@app.route("/shutdown", methods=['POST'])
-def shutdown():
-    global shutdown_flag
-    shutdown_flag = True
-    return {"message":"Shutdown flag set"}, 200
+# # === 新增優雅關閉路由 ===
+# @app.route("/shutdown", methods=['POST'])
+# def shutdown():
+#     global shutdown_flag
+#     shutdown_flag = True
+#     return {"message":"Shutdown flag set"}, 200
 
 def run_flask():
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False, threaded=True)
 
 if __name__=="__main__":
     server_thread = threading.Thread(target=run_flask)
     server_thread.start()
 
-    try:
-        while not shutdown_flag:
-            threading.Event().wait(0.5)
-    finally:
-        print("Shutdown flag detected, terminating child processes...")
-        for p in child_processes:
-            try:
-                p.terminate()
-            except:
-                pass
-        print("Exiting server...")
-        os._exit(0)
+    # try:
+    #     while not shutdown_flag:
+    #         threading.Event().wait(0.5)
+    # finally:
+    #     print("Shutdown flag detected, terminating child processes...")
+    #     for p in child_processes:
+    #         try:
+    #             p.terminate()
+    #         except:
+    #             pass
+    #     print("Exiting server...")
+    #     os._exit(0)
