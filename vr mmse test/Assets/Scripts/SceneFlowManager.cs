@@ -58,36 +58,27 @@ public class SceneFlowManager : MonoBehaviour
 
     public IEnumerator LoadSceneRoutine(string nextScene)
     {
-        // 1) 黑幕淡入
         yield return StartCoroutine(Fade(0f, 1f));
 
-        // 2) 在離開目前場景前，先關掉舊伺服器
         StopCurrentServer();
 
-        // 3) 非阻塞載入新場景
         AsyncOperation op = SceneManager.LoadSceneAsync(nextScene, LoadSceneMode.Single);
         op.allowSceneActivation = false;
 
         while (op.progress < 0.9f) yield return null;
         op.allowSceneActivation = true;
 
-        // 4) 等一幀讓場景物件初始化
         yield return null;
-
-        // 4.5) 額外等 XR Origin 初始化（避免視角卡住）
         yield return new WaitForSeconds(3f);
 
-        // 5) 依新場景啟動對應 Python 伺服器
         StartServerForScene(nextScene);
 
-        // 6) 黑幕淡出
         yield return StartCoroutine(Fade(1f, 0f));
     }
 
-    // 依場景名稱啟動對應 Python 伺服器（會記錄到 currentServerProcess）
     public void StartServerForScene(string sceneName)
     {
-        string pythonExe = "python";  // 若需要，可改成絕對路徑或 "py"、"python3"
+        string pythonExe = "python";
         string workingDir = Path.Combine(Application.dataPath, "Scripts");
 
         string scriptToRun = "";
@@ -95,15 +86,13 @@ public class SceneFlowManager : MonoBehaviour
         switch (sceneName)
         {
             case "SampleScene_5":
-                scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
-                break;
             case "SampleScene_3":
-                scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
-                break;
             case "SampleScene_2":
-                scriptToRun = "app_2.py";
+                scriptToRun = "audio_5.py";
                 break;
-            // 其他場景再依需求加 case
+            case "SampleScene_11":
+                scriptToRun = "server_track.py";
+                break;
         }
 
         if (string.IsNullOrEmpty(scriptToRun))
@@ -137,10 +126,7 @@ public class SceneFlowManager : MonoBehaviour
             p.ErrorDataReceived += (sender, e) =>
             {
                 if (string.IsNullOrEmpty(e.Data)) return;
-
                 string line = e.Data;
-
-                // 常見無害訊息（依實際情況可再補關鍵字）
                 if (
                     line.Contains("Running on http://") ||
                     line.Contains("Running on all addresses (0.0.0.0)") ||
@@ -178,30 +164,82 @@ public class SceneFlowManager : MonoBehaviour
         }
     }
 
-    // 關掉當前伺服器
+    // ========================= 新增關伺服器方法 =========================
     private void StopCurrentServer()
     {
         if (currentServerProcess == null) return;
 
+        string shutdownUrl = GetShutdownUrlForCurrentServer();
+        if (!string.IsNullOrEmpty(shutdownUrl))
+            StartCoroutine(ShutdownAndFallback(shutdownUrl));
+        else
+            TryKillCurrentProcess();
+    }
+
+    private string GetShutdownUrlForCurrentServer()
+    {
+        if (currentServerKey == "server_track.py") return "http://127.0.0.1:5001/shutdown";
+        if (currentServerKey == "audio_5.py") return "http://127.0.0.1:5000/shutdown";
+        return null;
+    }
+
+    private IEnumerator ShutdownAndFallback(string url)
+    {
+        bool completed = false;
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes("");
+
+        using (var req = new UnityEngine.Networking.UnityWebRequest(url, "POST"))
+        {
+            req.uploadHandler = new UnityEngine.Networking.UploadHandlerRaw(bodyRaw);
+            req.downloadHandler = new UnityEngine.Networking.DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            float timer = 0f;
+            float timeout = 5f;
+
+            var operation = req.SendWebRequest();
+            while (!operation.isDone && timer < timeout)
+            {
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            if (req.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+            {
+                UnityEngine.Debug.Log("[SceneFlow] Shutdown request success.");
+                completed = true;
+            }
+            else
+            {
+                UnityEngine.Debug.LogWarning($"[SceneFlow] Shutdown request failed: {req.error}");
+            }
+        }
+
+        if (!completed)
+            TryKillCurrentProcess();
+    }
+
+    private void TryKillCurrentProcess()
+    {
         try
         {
-            if (!currentServerProcess.HasExited)
+            if (currentServerProcess != null && !currentServerProcess.HasExited)
             {
-                currentServerProcess.Kill(); // 不要帶參數
-                UnityEngine.Debug.Log($"[SceneFlow] 已關閉伺服器：{currentServerKey}（PID={currentServerProcess.Id}）");
+                currentServerProcess.Kill();
+                UnityEngine.Debug.Log("[SceneFlow] Fallback: process killed.");
             }
         }
         catch (System.Exception ex)
         {
-            UnityEngine.Debug.LogWarning($"[SceneFlow] 關閉伺服器發生例外：{ex.Message}");
+            UnityEngine.Debug.LogWarning($"[SceneFlow] Kill process failed: {ex.Message}");
         }
         finally
         {
-            currentServerProcess.Dispose();
             currentServerProcess = null;
             currentServerKey = null;
         }
     }
+    // ===============================================================
 
     private IEnumerator Fade(float from, float to)
     {
@@ -221,7 +259,6 @@ public class SceneFlowManager : MonoBehaviour
         fadeImage.color = new Color(c.r, c.g, c.b, to);
     }
 
-    // 遊戲退出/物件被銷毀時確保關閉伺服器
     private void OnApplicationQuit()
     {
         StopCurrentServer();

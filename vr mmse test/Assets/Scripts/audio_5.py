@@ -3,16 +3,22 @@ from flask_cors import CORS
 import speech_recognition as sr
 import os
 import pydub
+import threading
+import subprocess
+import signal
 
 app = Flask(__name__)
-CORS(app) # 允許來自 Unity 的跨域請求
+CORS(app)  # 允許來自 Unity 的跨域請求
+
+# 加上全域 shutdown_flag 與 child_processes
+shutdown_flag = False
+child_processes = []
 
 # 初始化語音辨識器
 r = sr.Recognizer()
 
 @app.route('/recognize_speech', methods=['POST'])
 def recognize_speech():
-    # 檢查請求中是否包含音訊檔案
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
 
@@ -26,22 +32,18 @@ def recognize_speech():
     file.save(filepath)
 
     try:
-        # 轉換為 .wav 格式 (因為一些辨識庫可能需要)
+        # 轉換為 .wav 格式
         audio = pydub.AudioSegment.from_file(filepath)
         audio.export(filepath, format="wav")
 
         # 使用語音辨識庫進行辨識
         with sr.AudioFile(filepath) as source:
-            audio_data = r.record(source)  # 讀取整個音訊檔案
+            audio_data = r.record(source)
 
-            # *** 選擇你的辨識引擎 ***
-            # 你可以切換成你想要的引擎。這裡我們使用 Google Web Speech API，
-            # 但你也可以用離線的 Vosk (需另外安裝 Vosk 庫並下載模型)。
-            #
             # 方案 1: Google Web Speech (需連網)
             text = r.recognize_google(audio_data, language='zh-TW')
 
-            # 方案 2: Vosk (離線，需另外設定)
+            # 方案 2: Vosk (離線)
             # text = r.recognize_vosk(audio_data, language='zh-TW')
 
         # 刪除暫存檔案
@@ -56,5 +58,30 @@ def recognize_speech():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {e}"}), 500
 
-if __name__ == '__main__':
+
+# === 新增優雅關閉路由 ===
+@app.route("/shutdown", methods=['POST'])
+def shutdown():
+    global shutdown_flag
+    shutdown_flag = True
+    return {"message":"Shutdown flag set"}, 200
+
+def run_flask():
     app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+
+if __name__=="__main__":
+    server_thread = threading.Thread(target=run_flask)
+    server_thread.start()
+
+    try:
+        while not shutdown_flag:
+            threading.Event().wait(0.5)
+    finally:
+        print("Shutdown flag detected, terminating child processes...")
+        for p in child_processes:
+            try:
+                p.terminate()
+            except:
+                pass
+        print("Exiting server...")
+        os._exit(0)
