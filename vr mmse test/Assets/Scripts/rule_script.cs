@@ -1,166 +1,285 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using TMPro;
-using Unity.XR.CoreUtils; // ¥²¶·¤Ş¤J¦¹©R¦WªÅ¶¡¤~¯à¨Ï¥Î XR Origin ¤¸¥ó
+using Unity.XR.CoreUtils;
+using UnityEngine.XR.Interaction.Toolkit; // å¿…é ˆå¼•å…¥æ­¤å‘½åç©ºé–“æ‰èƒ½ä½¿ç”¨ XRController
 
 public class Rule_script : MonoBehaviour
 {
     // =================================================================
-    // VR ¬yµ{ & XR ¨t²Î³]©w (»İ­n¦b Inspector ¤¤©ì¦²³]©w)
+    // VR æµç¨‹ & XR ç³»çµ±è¨­å®š (éœ€è¦åœ¨ Inspector ä¸­æ‹–æ›³è¨­å®š)
     // =================================================================
 
-    [Header("VR Äá¼v¾÷»P XR Origin")]
-    [Tooltip("³õ´º¤¤ªº XR Origin ®Úª«¥ó")]
+    [Header("VR æ”å½±æ©Ÿèˆ‡ XR Origin")]
+    [Tooltip("å ´æ™¯ä¸­çš„ XR Origin æ ¹ç‰©ä»¶")]
     public XROrigin xrOrigin;
 
-    [Tooltip("VR Camera/Head ªº Transform ¤¸¥ó (¥Î©ó§ì¨úª±®a·í«e¤è¦V)")]
+    [Tooltip("VR Camera/Head çš„ Transform å…ƒä»¶ (ç”¨æ–¼æŠ“å–ç©å®¶ç•¶å‰æ–¹å‘)")]
     public Transform vrCameraTransform;
 
+    [Header("VR è¼¸å…¥è¨­å®š")]
+    [Tooltip("å³æ‰‹æ§åˆ¶å™¨ (RightHand Controller) çš„ XRController å…ƒä»¶")]
+    public Transform rightHandController; // å·²ä¿®æ­£ç‚º XRController é¡å‹
+
     // =================================================================
-    // UI & »y­µ³]©w
+    // UI & èªéŸ³è¨­å®š
     // =================================================================
 
-    [Header("UI & 3D ª«¥ó")]
-    [Tooltip("¥Î©óÅã¥Ü³W«h¤å¦rªº TextMeshPro ¤¸¥ó (3D ©Î World Space Canvas)")]
+    [Header("UI & 3D ç‰©ä»¶")]
+    [Tooltip("ç”¨æ–¼é¡¯ç¤ºè¦å‰‡æ–‡å­—çš„ TextMeshPro å…ƒä»¶ (3D æˆ– World Space Canvas)")]
     public TextMeshPro RuleText_rule;
 
-    [Tooltip("¦b³W«h¤¤¶¡¶¥¬q­nÅã¥Üªº­I´º/´£¥Üª«¥ó")]
+    [Tooltip("åœ¨è¦å‰‡ä¸­é–“éšæ®µè¦é¡¯ç¤ºçš„èƒŒæ™¯/æç¤ºç‰©ä»¶")]
     public GameObject treasurebg_rule;
 
-    [Header("»y­µ³]©w")]
-    [Tooltip("¼½©ñ»y­µ¥Îªº AudioSource ¤¸¥ó")]
+    [Header("èªéŸ³è¨­å®š")]
+    [Tooltip("æ’­æ”¾èªéŸ³ç”¨çš„ AudioSource å…ƒä»¶")]
     public AudioSource voiceAudioSource;
 
-    [Tooltip("¨C¬q»y­µÀÉªº Clip (½Ğ·Ó¶¶§Ç©ì¦²)")]
+    [Tooltip("æ¯æ®µèªéŸ³æª”çš„ Clip (è«‹ç…§é †åºæ‹–æ›³ï¼Œå…±éœ€ 9 å€‹éŸ³æª”)")]
     public AudioClip[] ruleClips;
 
     // =================================================================
-    // ®É¶¡³]©w
+    // æ™‚é–“è¨­å®š
     // =================================================================
 
-    [Header("®É¶¡³]©w")]
-    [Tooltip("¹CÀ¸¶}©l®Éªºªì©l©µ¿ğ¬í¼Æ")]
+    [Header("æ™‚é–“è¨­å®š")]
+    [Tooltip("éŠæˆ²é–‹å§‹æ™‚çš„åˆå§‹å»¶é²ç§’æ•¸")]
     public float initialDelaySeconds = 3f;
 
-    [Tooltip("¦b 'treasurebg_rule' Åã¥Ü«áµ¥«İªº¬í¼Æ")]
+    [Tooltip("åœ¨ 'treasurebg_rule' é¡¯ç¤ºå¾Œç­‰å¾…çš„ç§’æ•¸")]
     public float treasureDisplaySeconds = 3f;
 
+    // æ¯ä¸€æ®µèªéŸ³æ’­æ”¾å®Œç•¢å¾Œï¼Œå¦‚æœæ–‡å­—è¢«æ‹†è§£ï¼Œæ¯æ®µæ–‡å­—ä¹‹é–“ç­‰å¾…çš„æ™‚é–“
+    [Tooltip("æ‹†åˆ†æ–‡å­—æ®µè½é–“çš„å»¶é²æ™‚é–“")]
+    public float textSegmentDelay = 0.5f;
+
     // =================================================================
-    // ¤º³¡¸ê®Æ
+    // å…§éƒ¨è³‡æ–™ï¼šå®Œæ•´çš„æµç¨‹æ–‡å­— (å…± 9 æ®µèªéŸ³å°æ‡‰ 9 çµ„æ–‡å­—æˆ–æ–‡å­—é™£åˆ—)
     // =================================================================
 
-    private string[] ruleTexts = new string[]
+    // é€™å€‹é™£åˆ—å°‡ç”¨æ–¼ PlayVoiceAndTextSegmented å‡½å¼
+    private string[][] ruleTextSegments = new string[][]
     {
-        "Åwªï¨Ó¨ìVR¼Ö¶é",
-        "§Ú­Ì·Ç³Æ¤F¤@¨t¦Cªº¬D¾Ô¥ô°È",
-        "©Ò¦³¥ô°È§¹¦¨«á¥i¥H¶}±ÒÄ_½c",
-        "²{¦b¥ı¨Óª¾¹D¬D¾Ôªº³W«h"
+        // Index 0: æ­¡è¿ä¾†åˆ°VRæ¨‚åœ’ (ä¸æ‹†åˆ†)
+        new string[] { "æ­¡è¿ä¾†åˆ°VRæ¨‚åœ’" },
+        
+        // Index 1: æˆ‘å€‘æº–å‚™äº†ä¸€ç³»åˆ—çš„æŒ‘æˆ°ä»»å‹™ (ä¸æ‹†åˆ†)
+        new string[] { "æˆ‘å€‘æº–å‚™äº†ä¸€ç³»åˆ—çš„æŒ‘æˆ°ä»»å‹™" },
+        
+        // Index 2: æ‰€æœ‰ä»»å‹™å®Œæˆå¾Œå¯ä»¥é–‹å•Ÿå¯¶ç®± (ä¸æ‹†åˆ†)
+        new string[] { "æ‰€æœ‰ä»»å‹™å®Œæˆå¾Œå¯ä»¥é–‹å•Ÿå¯¶ç®±" },
+        
+        // Index 3: ç¾åœ¨å…ˆä¾†çŸ¥é“æŒ‘æˆ°çš„è¦å‰‡ (ä¸æ‹†åˆ†)
+        new string[] { "ç¾åœ¨å…ˆä¾†çŸ¥é“æŒ‘æˆ°çš„è¦å‰‡" },
+        
+        // Index 4: è¦å‰‡ 1: ç¬¬ä¸€ï¼Œè«‹å‹¿ç§»å‹•å’Œå¤§å¹…åº¦è½‰é ­ã€‚ -> æ‹†åˆ†æˆ 2 æ®µ
+        new string[] { "ç¬¬ä¸€ï¼š", "è«‹å‹¿ç§»å‹•å’Œå¤§å¹…åº¦è½‰é ­" }, 
+        
+        // Index 5: è¦å‰‡ 2: ç¬¬äºŒï¼Œè‹¥åœ¨éŠæˆ²éç¨‹ä¸­æ„Ÿåˆ°ä»»ä½•ä¸é©ï¼Œè«‹ç«‹å³å‘ŠçŸ¥èº«æ—çš„è­·ç†äººå“¡ã€‚ -> æ‹†åˆ†æˆ 2 æ®µ
+        new string[] { "ç¬¬äºŒï¼š", "è‹¥åœ¨éŠæˆ²éç¨‹ä¸­æ„Ÿåˆ°ä»»ä½•ä¸é©", "è«‹ç«‹å³å‘ŠçŸ¥èº«æ—çš„è­·ç†äººå“¡" }, 
+        
+        // Index 6: è¦å‰‡ 3 (éœ€ç­‰å¾…è¼¸å…¥): ç¬¬ä¸‰ï¼ŒéŠæˆ²ä»»å‹™å¦‚æœéœ€è¦é»é¸ç‰©å“ï¼Œè«‹ä½¿ç”¨å³æ‰‹é£ŸæŒ‡æŒ‰ä¸‹æ¿æ©Ÿéµã€‚ç¾åœ¨ï¼Œè«‹å°‡å³æ‰‹é£ŸæŒ‡å°æº–æŒ‰éˆ•ä¸¦æŒ‰ä¸‹ã€‚ -> æ‹†åˆ†æˆ 3 æ®µ
+        new string[] { "ç¬¬ä¸‰ï¼š", "éŠæˆ²ä»»å‹™å¦‚æœéœ€è¦é»é¸ç‰©å“", "è«‹ä½¿ç”¨å³æ‰‹é£ŸæŒ‡æŒ‰ä¸‹æ¿æ©Ÿéµ", "ç¾åœ¨è«‹å°‡å³æ‰‹é£ŸæŒ‡å°æº–æŒ‰éˆ•ä¸¦æŒ‰ä¸‹" }, 
+        
+        // Index 7: è¦å‰‡ 4 (éœ€ç­‰å¾…èªéŸ³è¼¸å…¥): ç¬¬å››ï¼Œè‹¥éŠæˆ²ä»»å‹™éœ€è¦ä½œç­”ï¼Œè«‹åœ¨é¡Œç›®æ’­æ”¾å®Œç•¢å¾Œç›´æ¥èªªå‡ºç­”æ¡ˆï¼Œæˆ–æ˜¯ä¾ç…§é¡Œç›®æŒ‡ä»¤èªªå‡ºç­”æ¡ˆã€‚ç¾åœ¨ï¼Œè«‹å›ç­”ï¼šã€Œæˆ‘çŸ¥é“äº†ã€ã€‚ -> æ‹†åˆ†æˆ 3 æ®µ
+        new string[] { "ç¬¬å››ï¼š", "è‹¥éŠæˆ²ä»»å‹™éœ€è¦ä½œç­”", "è«‹åœ¨é¡Œç›®æ’­æ”¾å®Œç•¢å¾Œç›´æ¥èªªå‡ºç­”æ¡ˆ", "æˆ–æ˜¯ä¾ç…§é¡Œç›®æŒ‡ä»¤èªªå‡ºç­”æ¡ˆã€‚", "ç¾åœ¨è«‹å›ç­”ï¼šã€Œæˆ‘çŸ¥é“äº†ã€" }, 
+        
+        // Index 8: çµå°¾: æ¥ä¸‹ä¾†é–‹å§‹éŠæˆ²å§ï¼ (ä¸æ‹†åˆ†)
+        new string[] { "æ¥ä¸‹ä¾†é–‹å§‹éŠæˆ²å§ï¼" }
     };
 
     // =================================================================
-    // Unity ¥Í©R¶g´Á¤èªk
+    // Unity ç”Ÿå‘½é€±æœŸæ–¹æ³•
     // =================================================================
 
     void Start()
     {
-        // ªì©l¤Æ¡G½T«O UI ¤¸¯À©M­I´º¬OÁôÂÃªº
+        // åˆå§‹åŒ–ï¼šç¢ºä¿ UI å…ƒç´ å’ŒèƒŒæ™¯æ˜¯éš±è—çš„
         if (RuleText_rule != null) RuleText_rule.gameObject.SetActive(false);
         if (treasurebg_rule != null) treasurebg_rule.SetActive(false);
 
-        // ÀË¬dÃöÁä³]©w
-        if (voiceAudioSource == null || RuleText_rule == null || xrOrigin == null || vrCameraTransform == null)
+        // æª¢æŸ¥é—œéµè¨­å®š
+        if (voiceAudioSource == null || RuleText_rule == null || xrOrigin == null || vrCameraTransform == null || rightHandController == null)
         {
-            Debug.LogError("VR/UI ³]©w¤£§¹¾ã¡A½ĞÀË¬d Inspector ¤¤ªº AudioSource, RuleText, XR Origin, ©Î VR Camera Transform ¬O§_¤w³]©w¡I");
+            // rightHandController å¿…é ˆæª¢æŸ¥ XRController æ˜¯å¦å­˜åœ¨
+            Debug.LogError("VR/UI è¨­å®šä¸å®Œæ•´ï¼Œè«‹æª¢æŸ¥ Inspector ä¸­çš„æ‰€æœ‰å…ƒä»¶æ˜¯å¦å·²è¨­å®šï¼(ç‰¹åˆ¥æ˜¯ rightHandController å¿…é ˆæ˜¯ XRController å…ƒä»¶)");
             return;
         }
 
-        // ½T«O¥@¬É¤è¦V»Pª±®a HMD ¤è¦V¦P¨B¡]¦b¹CÀ¸¬yµ{¶}©l«e°õ¦æ¡^
+        // ç¢ºä¿ä¸–ç•Œæ–¹å‘èˆ‡ç©å®¶ HMD æ–¹å‘åŒæ­¥
         ApplyCameraRotationToOrigin();
 
-        // ±Ò°Ê¥D­nªº¹CÀ¸¬yµ{¨óµ{
+        // å•Ÿå‹•ä¸»è¦çš„éŠæˆ²æµç¨‹å”ç¨‹
         StartCoroutine(StartGameFlow());
     }
 
     // =================================================================
-    // ®Ö¤ß¥\¯à¤èªk
+    // æ ¸å¿ƒåŠŸèƒ½æ–¹æ³•
     // =================================================================
 
-    /// <summary>
-    /// ±N VR Äá¼v¾÷ªº Y ¶b±ÛÂàÀ³¥Î¨ì XR Origin¡A¥H¹ï»ô¥@¬É°_©l¤è¦V¡C
-    /// </summary>
     public void ApplyCameraRotationToOrigin()
     {
-        // 1. Àò¨úÄá¼v¾÷ªº±ÛÂà
         Quaternion cameraRotation = vrCameraTransform.rotation;
-
-        // 2. ¶È´£¨ú Y ¶b (Yaw) ªº¨¤«×¡A©¿²¤­Á¥õ (Pitch) ©M°¼¶É (Roll)
         Vector3 euler = cameraRotation.eulerAngles;
 
-        // 3. ³Ğ«Ø¤@­Ó¥u¥]§t Y ¶b±ÛÂàªº·s¥|¤¸¼Æ
         Quaternion targetRotation = Quaternion.Euler(0f, euler.y, 0f);
 
-        // 4. ±N¦¹ Y ¶b±ÛÂàÀ³¥Î¨ì XR Origin¡A³o·|±ÛÂà¾ã­Ó VR ¥@¬É
         xrOrigin.transform.rotation = targetRotation;
 
-        Debug.Log($"VR ªÅ¶¡¤è¦V¤wÂê©w¡CXR Origin ±ÛÂà Y ¶b¨¤«×¬°: {targetRotation.eulerAngles.y}");
+        Debug.Log($"VR ç©ºé–“æ–¹å‘å·²é–å®šã€‚XR Origin æ—‹è½‰ Y è»¸è§’åº¦ç‚º: {targetRotation.eulerAngles.y}");
     }
 
     /// <summary>
-    /// ¹CÀ¸¶}³õ©M±Ğ¾Ç¬yµ{ªº±±¨î¨óµ{¡C
+    /// éŠæˆ²è¦å‰‡ä¾åºæ’­æ”¾æ§åˆ¶å”ç¨‹ã€‚
     /// </summary>
     IEnumerator StartGameFlow()
     {
-        // 1. ¹CÀ¸¤@¶}©l¥ı°± initialDelaySeconds ¬í
+        // 1. éŠæˆ²ä¸€é–‹å§‹å…ˆåœ initialDelaySeconds ç§’
         yield return new WaitForSeconds(initialDelaySeconds);
 
-        // Åã¥Ü³W«h¤å¦rª«¥ó
+        // é¡¯ç¤ºè¦å‰‡æ–‡å­—ç‰©ä»¶
         RuleText_rule.gameObject.SetActive(true);
 
-        // 2. ¼½©ñ²Ä¤@¶¥¬q»y­µ©M¤å¦r (¯Á¤Ş 0, 1, 2)
-        // »y­µ: "Åwªï¨Ó¨ìVR¼Ö¶é"
-        // »y­µ: "§Ú­Ì·Ç³Æ¤F¤@¨t¦Cªº¬D¾Ô¥ô°È"
-        // »y­µ: "¥ô°È¦¨¥\«á¥i¥HÀò±oÄ_½cªºÆ_°Í"
-        for (int i = 0; i < 3; i++)
+        // ç¢ºä¿éŸ³æª”æ•¸é‡è¶³å¤ 
+        if (ruleClips.Length < ruleTextSegments.Length)
         {
-            if (i < ruleClips.Length)
-            {
-                yield return StartCoroutine(PlayVoiceAndText(ruleTexts[i], ruleClips[i]));
-            }
+            Debug.LogError($"éŸ³æª”æ•¸é‡ä¸è¶³ï¼éœ€è¦ {ruleTextSegments.Length} å€‹éŸ³æª”ï¼Œä½†åªæ‹–æ›³äº† {ruleClips.Length} å€‹ã€‚è«‹æª¢æŸ¥ ruleClips é™£åˆ—ã€‚");
+            RuleText_rule.gameObject.SetActive(false);
+            yield break;
         }
 
-        // 3. »y­µ¼·§¹"¥ô°È¦¨¥\«á¥i¥HÀò±oÄ_½cªºÆ_°Í"«á¡AÁôÂÃ RuleText_rule¡AÅã¥Ü treasurebg_rule
-        RuleText_rule.gameObject.SetActive(false);
+        // =====================================================
+        // PART A: é–‹å ´æµç¨‹ (Index 0, 1, 2, 3)
+        // =====================================================
+
+        // Index 0: æ­¡è¿ä¾†åˆ°VRæ¨‚åœ’
+        yield return StartCoroutine(PlayVoiceAndTextSegmented(0));
+
+        // Index 1: æˆ‘å€‘æº–å‚™äº†ä¸€ç³»åˆ—çš„æŒ‘æˆ°ä»»å‹™
+        yield return StartCoroutine(PlayVoiceAndTextSegmented(1));
+
+        // Index 2: æ‰€æœ‰ä»»å‹™å®Œæˆå¾Œå¯ä»¥é–‹å•Ÿå¯¶ç®± (æ­¤æ™‚é¡¯ç¤ºå¯¶ç®±)
+        yield return StartCoroutine(PlayVoiceAndTextSegmented(2));
+
+        // é¡¯ç¤º treasurebg_rule (å¯¶ç®±èƒŒæ™¯/æç¤º)
         treasurebg_rule.SetActive(true);
 
-        // 4. µ¥«İ treasureDisplaySeconds ¬í
+        // ç­‰å¾… treasureDisplaySeconds ç§’ (RuleText_rule å’Œ treasurebg_rule ä¸€èµ·é¡¯ç¤º)
         yield return new WaitForSeconds(treasureDisplaySeconds);
 
-        // 5. ÁôÂÃ treasurebg_rule¡AÅã¥Ü RuleText_rule
+        // éš±è— treasurebg_rule
         treasurebg_rule.SetActive(false);
-        RuleText_rule.gameObject.SetActive(true);
 
-        // 6. Ä~Äò¼·©ñ«áÄò»y­µ©M¤å¦r (¯Á¤Ş 3)
-        // »y­µ: "²{¦b¥ı¨Óª¾¹D¬D¾Ôªº³W«h"
-        if (ruleClips.Length > 3)
+        // Index 3: ç¾åœ¨å…ˆä¾†çŸ¥é“æŒ‘æˆ°çš„è¦å‰‡
+        yield return StartCoroutine(PlayVoiceAndTextSegmented(3));
+
+
+        // =====================================================
+        // PART B: å››å€‹æ–°è¦å‰‡ (Index 4, 5, 6, 7)
+        // =====================================================
+
+        for (int i = 4; i <= 7; i++)
         {
-            yield return StartCoroutine(PlayVoiceAndText(ruleTexts[3], ruleClips[3]));
+            // æ’­æ”¾èªéŸ³å’Œæ–‡å­—æ®µè½
+            yield return StartCoroutine(PlayVoiceAndTextSegmented(i));
+
+            // === è¦å‰‡ 3: ç­‰å¾…å³æ‰‹æ¿æ©Ÿéµè¼¸å…¥ (i == 6) ===
+            //if (i == 6)
+            //{
+            //    RuleText_rule.text = "è«‹æŒ‰ä¸‹å³æ‰‹æ¿æ©Ÿéµ..."; // æç¤ºç©å®¶
+            //    yield return StartCoroutine(WaitForRightTriggerPress());
+            //    RuleText_rule.text = "";
+            //}
+
+            // === è¦å‰‡ 4: ç­‰å¾…èªéŸ³è¼¸å…¥ (i == 7) ===
+            //if (i == 7)
+            //{
+            //    RuleText_rule.text = "è«‹å›ç­”ã€Œæˆ‘çŸ¥é“äº†ã€..."; // æç¤ºç©å®¶
+            //    yield return StartCoroutine(SimulateSpeechInput("æˆ‘çŸ¥é“äº†"));
+            //    RuleText_rule.text = "";
+            //}
         }
 
-        Debug.Log("¶}³õ¬yµ{µ²§ô¡A¹CÀ¸¥¿¦¡¶}©l¡I");
+        // =====================================================
+        // PART C: çµå°¾ (Index 8)
+        // =====================================================
+
+        // Index 8: æ¥ä¸‹ä¾†é–‹å§‹éŠæˆ²å§ï¼
+        yield return StartCoroutine(PlayVoiceAndTextSegmented(8));
+
+        // æµç¨‹çµæŸå¾Œï¼Œéš±è—æ–‡å­—
+        RuleText_rule.gameObject.SetActive(false);
+        Debug.Log("è¦å‰‡æ•™å­¸æµç¨‹çµæŸï¼ŒéŠæˆ²æ­£å¼é–‹å§‹ï¼");
     }
 
     /// <summary>
-    /// »²§U¤èªk¡G¦P¨B¼½©ñ³æ¬q»y­µ©MÅã¥Ü¤å¦r¡C
+    /// è¼”åŠ©æ–¹æ³•ï¼šæ’­æ”¾å–®æ®µèªéŸ³ï¼Œä¸¦ä¾åºé¡¯ç¤ºå¤šå€‹æ–‡å­—æ®µè½ã€‚
     /// </summary>
-    IEnumerator PlayVoiceAndText(string text, AudioClip clip)
+    IEnumerator PlayVoiceAndTextSegmented(int index)
     {
-        // ¼g¤J¤å¦r
-        RuleText_rule.text = text;
+        AudioClip clip = ruleClips[index];
+        string[] segments = ruleTextSegments[index];
 
-        // ¼½©ñ»y­µ
+        // æ’­æ”¾èªéŸ³ (åªæ’­æ”¾ä¸€æ¬¡)
         voiceAudioSource.PlayOneShot(clip);
 
-        // µ¥«İ»y­µ¼½©ñ§¹²¦
-        yield return new WaitForSeconds(clip.length);
+        // åŒæ™‚é–‹å§‹è¨ˆæ™‚èªéŸ³æ’­æ”¾æ™‚é–“
+        float startTime = Time.time;
+        float clipDuration = clip.length;
+
+        // ä¾åºé¡¯ç¤ºæ–‡å­—æ®µè½
+        for (int i = 0; i < segments.Length; i++)
+        {
+            RuleText_rule.text = segments[i];
+
+            // å¦‚æœä¸æ˜¯æœ€å¾Œä¸€æ®µæ–‡å­—ï¼Œå°±ç­‰å¾…ä¸€æ®µæ™‚é–“
+            if (i < segments.Length - 1)
+            {
+                yield return new WaitForSeconds(textSegmentDelay);
+            }
+        }
+
+        // ç­‰å¾…èªéŸ³æ’­æ”¾å®Œç•¢ (ç¢ºä¿èªéŸ³æ¯”æ–‡å­—é¡¯ç¤ºæ™‚é–“é•·)
+        float remainingTime = clipDuration - (Time.time - startTime);
+        if (remainingTime > 0)
+        {
+            yield return new WaitForSeconds(remainingTime);
+        }
+    }
+
+    // =================================================================
+    // è¼¸å…¥ç­‰å¾…å”ç¨‹
+    // =================================================================
+
+    /// <summary>
+    /// ç­‰å¾…å³æ‰‹æ§åˆ¶å™¨çš„æ¿æ©Ÿéµè¢«æŒ‰ä¸‹ã€‚
+    /// </summary>
+    IEnumerator WaitForRightTriggerPress()
+    {
+        Debug.Log("ç­‰å¾…å³æ‰‹æ¿æ©Ÿéµè¼¸å…¥...");
+
+        bool triggerPressed = false;
+
+        while (!triggerPressed)
+        {
+          
+            yield return null; // ç­‰å¾…ä¸‹ä¸€å¹€
+        }
+
+        Debug.Log("å³æ‰‹æ¿æ©Ÿéµå·²æŒ‰ä¸‹ï¼Œç¹¼çºŒæµç¨‹ã€‚");
+    }
+
+    /// <summary>
+    /// æ¨¡æ“¬èªéŸ³è¼¸å…¥ç­‰å¾…ã€‚
+    /// </summary>
+    IEnumerator SimulateSpeechInput(string targetPhrase)
+    {
+        Debug.Log($"ç­‰å¾…èªéŸ³è¼¸å…¥: {targetPhrase}");
+
+        // æ¨¡æ“¬èªéŸ³è¼¸å…¥ç­‰å¾… 3 ç§’
+        yield return new WaitForSeconds(3.0f);
+
+        Debug.Log($"èªéŸ³è¼¸å…¥ '{targetPhrase}' å·²æ¨¡æ“¬ï¼Œç¹¼çºŒæµç¨‹ã€‚");
     }
 }
