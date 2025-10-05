@@ -2,284 +2,312 @@
 using System.Collections;
 using TMPro;
 using Unity.XR.CoreUtils;
-using UnityEngine.XR.Interaction.Toolkit; // 必須引入此命名空間才能使用 XRController
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.UI;
+using UnityEngine.Networking; // 🌟 新增
 
 public class Rule_script : MonoBehaviour
 {
-    // =================================================================
-    // VR 流程 & XR 系統設定 (需要在 Inspector 中拖曳設定)
-    // =================================================================
-
     [Header("VR 攝影機與 XR Origin")]
-    [Tooltip("場景中的 XR Origin 根物件")]
     public XROrigin xrOrigin;
-
-    [Tooltip("VR Camera/Head 的 Transform 元件 (用於抓取玩家當前方向)")]
     public Transform vrCameraTransform;
 
     [Header("VR 輸入設定")]
-    [Tooltip("右手控制器 (RightHand Controller) 的 XRController 元件")]
-    public Transform rightHandController; // 已修正為 XRController 類型
-
-    // =================================================================
-    // UI & 語音設定
-    // =================================================================
+    private ActionBasedController rightHandController;
 
     [Header("UI & 3D 物件")]
-    [Tooltip("用於顯示規則文字的 TextMeshPro 元件 (3D 或 World Space Canvas)")]
     public TextMeshPro RuleText_rule;
-
-    [Tooltip("在規則中間階段要顯示的背景/提示物件")]
     public GameObject treasurebg_rule;
+    public GameObject confirmationButton;
+
+    // 🌟 語音辨識相關設定
+    [Header("語音辨識設定")]
+    public string recognitionServerURL = "http://localhost:5000/recognize_speech";
+    public float maxRecordingTime = 5.0f; // 最大錄音時間 (秒)
+    private const int SAMPLE_RATE = 16000; // 錄音取樣率 (語音辨識常用 16000)
 
     [Header("語音設定")]
-    [Tooltip("播放語音用的 AudioSource 元件")]
     public AudioSource voiceAudioSource;
-
-    [Tooltip("每段語音檔的 Clip (請照順序拖曳，共需 9 個音檔)")]
     public AudioClip[] ruleClips;
 
-    // =================================================================
-    // 時間設定
-    // =================================================================
-
     [Header("時間設定")]
-    [Tooltip("遊戲開始時的初始延遲秒數")]
     public float initialDelaySeconds = 3f;
-
-    [Tooltip("在 'treasurebg_rule' 顯示後等待的秒數")]
     public float treasureDisplaySeconds = 3f;
+    public float textSegmentDelay = 0.0f;
 
-    // 每一段語音播放完畢後，如果文字被拆解，每段文字之間等待的時間
-    [Tooltip("拆分文字段落間的延遲時間")]
-    public float textSegmentDelay = 0.5f;
-
-    // =================================================================
-    // 內部資料：完整的流程文字 (共 9 段語音對應 9 組文字或文字陣列)
-    // =================================================================
-
-    // 這個陣列將用於 PlayVoiceAndTextSegmented 函式
-    private string[][] ruleTextSegments = new string[][]
+    private string[] ruleTexts_Final = new string[]
     {
-        // Index 0: 歡迎來到VR樂園 (不拆分)
-        new string[] { "歡迎來到VR樂園" },
-        
-        // Index 1: 我們準備了一系列的挑戰任務 (不拆分)
-        new string[] { "我們準備了一系列的挑戰任務" },
-        
-        // Index 2: 所有任務完成後可以開啟寶箱 (不拆分)
-        new string[] { "所有任務完成後可以開啟寶箱" },
-        
-        // Index 3: 現在先來知道挑戰的規則 (不拆分)
-        new string[] { "現在先來知道挑戰的規則" },
-        
-        // Index 4: 規則 1: 第一，請勿移動和大幅度轉頭。 -> 拆分成 2 段
-        new string[] { "第一：", "請勿移動和大幅度轉頭" }, 
-        
-        // Index 5: 規則 2: 第二，若在遊戲過程中感到任何不適，請立即告知身旁的護理人員。 -> 拆分成 2 段
-        new string[] { "第二：", "若在遊戲過程中感到任何不適", "請立即告知身旁的護理人員" }, 
-        
-        // Index 6: 規則 3 (需等待輸入): 第三，遊戲任務如果需要點選物品，請使用右手食指按下板機鍵。現在，請將右手食指對準按鈕並按下。 -> 拆分成 3 段
-        new string[] { "第三：", "遊戲任務如果需要點選物品", "請使用右手食指按下板機鍵", "現在請將右手食指對準按鈕並按下" }, 
-        
-        // Index 7: 規則 4 (需等待語音輸入): 第四，若遊戲任務需要作答，請在題目播放完畢後直接說出答案，或是依照題目指令說出答案。現在，請回答：「我知道了」。 -> 拆分成 3 段
-        new string[] { "第四：", "若遊戲任務需要作答", "請在題目播放完畢後直接說出答案", "或是依照題目指令說出答案。", "現在請回答：「我知道了」" }, 
-        
-        // Index 8: 結尾: 接下來開始遊戲吧！ (不拆分)
-        new string[] { "接下來開始遊戲吧！" }
+        "歡迎來到VR樂園",
+        "我們準備了一系列的挑戰任務",
+        "所有任務完成後可以開啟寶箱",
+        "現在先來知道挑戰的規則",
+        "第一：請勿移動和大幅度轉頭",
+        "第二：若在遊戲過程中感到任何不適",
+        "請立即告知身旁的護理人員",
+        "第三：遊戲任務如果需要點選物品",
+        "請使用食指按下扳機鍵",
+        "現在請使用扳機鍵對準按鈕並按下",
+        "第四：若遊戲任務需要作答",
+        "請在題目播放完畢後直接說出答案",
+        "或是依照題目指令回答",
+        "現在請說出：      「我知道了」", // Index 13
+        "接下來開始遊戲吧！"     // Index 14
     };
 
-    // =================================================================
-    // Unity 生命週期方法
-    // =================================================================
+    private bool buttonWasPressed = false;
 
     void Start()
     {
-        // 初始化：確保 UI 元素和背景是隱藏的
-        if (RuleText_rule != null) RuleText_rule.gameObject.SetActive(false);
-        if (treasurebg_rule != null) treasurebg_rule.SetActive(false);
+        // 自動尋找控制器
+        rightHandController = FindObjectOfType<ActionBasedController>();
+        if (rightHandController == null)
+            Debug.LogWarning("⚠️ 未找到 RightHand Controller，請確保 Action-Based Controller 存在於場景中。");
 
-        // 檢查關鍵設定
-        if (voiceAudioSource == null || RuleText_rule == null || xrOrigin == null || vrCameraTransform == null || rightHandController == null)
+        // 初始化 UI 狀態
+        RuleText_rule?.gameObject.SetActive(false);
+        treasurebg_rule?.SetActive(false);
+        confirmationButton?.SetActive(false);
+
+        if (voiceAudioSource == null || RuleText_rule == null || xrOrigin == null || vrCameraTransform == null || confirmationButton == null)
         {
-            // rightHandController 必須檢查 XRController 是否存在
-            Debug.LogError("VR/UI 設定不完整，請檢查 Inspector 中的所有元件是否已設定！(特別是 rightHandController 必須是 XRController 元件)");
+            Debug.LogError("⚠️ 必要的 UI 或 XR 元件未設定！");
             return;
         }
 
-        // 確保世界方向與玩家 HMD 方向同步
         ApplyCameraRotationToOrigin();
-
-        // 啟動主要的遊戲流程協程
         StartCoroutine(StartGameFlow());
     }
-
-    // =================================================================
-    // 核心功能方法
-    // =================================================================
 
     public void ApplyCameraRotationToOrigin()
     {
         Quaternion cameraRotation = vrCameraTransform.rotation;
-        Vector3 euler = cameraRotation.eulerAngles;
-
-        Quaternion targetRotation = Quaternion.Euler(0f, euler.y, 0f);
-
-        xrOrigin.transform.rotation = targetRotation;
-
-        Debug.Log($"VR 空間方向已鎖定。XR Origin 旋轉 Y 軸角度為: {targetRotation.eulerAngles.y}");
+        xrOrigin.transform.rotation = Quaternion.Euler(0f, cameraRotation.eulerAngles.y, 0f);
     }
 
-    /// <summary>
-    /// 遊戲規則依序播放控制協程。
-    /// </summary>
+    public void ConfirmButtonClick()
+    {
+        buttonWasPressed = true;
+        Debug.Log("🟢 按鈕被點擊。");
+    }
+
     IEnumerator StartGameFlow()
     {
-        // 1. 遊戲一開始先停 initialDelaySeconds 秒
         yield return new WaitForSeconds(initialDelaySeconds);
-
-        // 顯示規則文字物件
         RuleText_rule.gameObject.SetActive(true);
 
-        // 確保音檔數量足夠
-        if (ruleClips.Length < ruleTextSegments.Length)
+        for (int i = 0; i < ruleTexts_Final.Length; i++)
         {
-            Debug.LogError($"音檔數量不足！需要 {ruleTextSegments.Length} 個音檔，但只拖曳了 {ruleClips.Length} 個。請檢查 ruleClips 陣列。");
-            RuleText_rule.gameObject.SetActive(false);
-            yield break;
-        }
-
-        // =====================================================
-        // PART A: 開場流程 (Index 0, 1, 2, 3)
-        // =====================================================
-
-        // Index 0: 歡迎來到VR樂園
-        yield return StartCoroutine(PlayVoiceAndTextSegmented(0));
-
-        // Index 1: 我們準備了一系列的挑戰任務
-        yield return StartCoroutine(PlayVoiceAndTextSegmented(1));
-
-        // Index 2: 所有任務完成後可以開啟寶箱 (此時顯示寶箱)
-        yield return StartCoroutine(PlayVoiceAndTextSegmented(2));
-
-        // 顯示 treasurebg_rule (寶箱背景/提示)
-        treasurebg_rule.SetActive(true);
-
-        // 等待 treasureDisplaySeconds 秒 (RuleText_rule 和 treasurebg_rule 一起顯示)
-        yield return new WaitForSeconds(treasureDisplaySeconds);
-
-        // 隱藏 treasurebg_rule
-        treasurebg_rule.SetActive(false);
-
-        // Index 3: 現在先來知道挑戰的規則
-        yield return StartCoroutine(PlayVoiceAndTextSegmented(3));
-
-
-        // =====================================================
-        // PART B: 四個新規則 (Index 4, 5, 6, 7)
-        // =====================================================
-
-        for (int i = 4; i <= 7; i++)
-        {
-            // 播放語音和文字段落
-            yield return StartCoroutine(PlayVoiceAndTextSegmented(i));
-
-            // === 規則 3: 等待右手板機鍵輸入 (i == 6) ===
-            //if (i == 6)
-            //{
-            //    RuleText_rule.text = "請按下右手板機鍵..."; // 提示玩家
-            //    yield return StartCoroutine(WaitForRightTriggerPress());
-            //    RuleText_rule.text = "";
-            //}
-
-            // === 規則 4: 等待語音輸入 (i == 7) ===
-            //if (i == 7)
-            //{
-            //    RuleText_rule.text = "請回答「我知道了」..."; // 提示玩家
-            //    yield return StartCoroutine(SimulateSpeechInput("我知道了"));
-            //    RuleText_rule.text = "";
-            //}
-        }
-
-        // =====================================================
-        // PART C: 結尾 (Index 8)
-        // =====================================================
-
-        // Index 8: 接下來開始遊戲吧！
-        yield return StartCoroutine(PlayVoiceAndTextSegmented(8));
-
-        // 流程結束後，隱藏文字
-        RuleText_rule.gameObject.SetActive(false);
-        Debug.Log("規則教學流程結束，遊戲正式開始！");
-    }
-
-    /// <summary>
-    /// 輔助方法：播放單段語音，並依序顯示多個文字段落。
-    /// </summary>
-    IEnumerator PlayVoiceAndTextSegmented(int index)
-    {
-        AudioClip clip = ruleClips[index];
-        string[] segments = ruleTextSegments[index];
-
-        // 播放語音 (只播放一次)
-        voiceAudioSource.PlayOneShot(clip);
-
-        // 同時開始計時語音播放時間
-        float startTime = Time.time;
-        float clipDuration = clip.length;
-
-        // 依序顯示文字段落
-        for (int i = 0; i < segments.Length; i++)
-        {
-            RuleText_rule.text = segments[i];
-
-            // 如果不是最後一段文字，就等待一段時間
-            if (i < segments.Length - 1)
+            if (i == 2)
             {
-                yield return new WaitForSeconds(textSegmentDelay);
+                // 寶箱展示 (文字、語音、背景同步)
+                treasurebg_rule.SetActive(true);
+                yield return StartCoroutine(PlayVoiceAndText(i));
+                treasurebg_rule.SetActive(false);
+            }
+            else if (i == 9)
+            {
+                // 按鈕測試
+                yield return StartCoroutine(PlayVoiceAndText(i));
+
+                RuleText_rule.text = "";
+                confirmationButton.SetActive(true);
+                yield return StartCoroutine(WaitForButtonPress());
+                confirmationButton.SetActive(false);
+            }
+            else if (i == 13)
+            {
+                // 語音輸入指令 (Index 13: "現在請說出：「我知道了」")
+                yield return StartCoroutine(PlayVoiceAndText(i));
+
+                // 🌟 新增: 錄音並傳送到伺服器
+                yield return StartCoroutine(StartRecordingAndRecognize());
+
+                // 錄音結束後，繼續播放下一個語音
+            }
+            else
+            {
+                // 其他段落照常播放
+                yield return StartCoroutine(PlayVoiceAndText(i));
             }
         }
 
-        // 等待語音播放完畢 (確保語音比文字顯示時間長)
-        float remainingTime = clipDuration - (Time.time - startTime);
-        if (remainingTime > 0)
+        RuleText_rule.gameObject.SetActive(false);
+        Debug.Log("🎯 規則播放完畢，流程結束。");
+    }
+
+    IEnumerator PlayVoiceAndText(int index)
+    {
+        var clip = ruleClips[index];
+        RuleText_rule.text = ruleTexts_Final[index];
+        voiceAudioSource.PlayOneShot(clip);
+        yield return new WaitForSeconds(clip.length + textSegmentDelay);
+    }
+
+    IEnumerator WaitForButtonPress()
+    {
+        buttonWasPressed = false;
+        Debug.Log("🕹️ 等待玩家按下 VR 板機鍵...");
+
+        Button btn = confirmationButton.GetComponent<Button>();
+        if (btn != null)
         {
-            yield return new WaitForSeconds(remainingTime);
+            btn.onClick.AddListener(ConfirmButtonClick);
+        }
+
+        bool triggerWasHeld = false;
+
+        while (!buttonWasPressed)
+        {
+            // --- VR 板機鍵讀值 ---
+            if (rightHandController != null)
+            {
+                float triggerValue = rightHandController.activateAction.action.ReadValue<float>();
+                if (triggerValue > 0.1f)
+                {
+                    if (!triggerWasHeld)
+                    {
+                        buttonWasPressed = true;
+                        Debug.Log("🎮 VR 板機鍵按下偵測到。");
+                    }
+                    triggerWasHeld = true;
+                }
+                else
+                {
+                    triggerWasHeld = false;
+                }
+            }
+
+            yield return null;
+        }
+
+        if (btn != null) btn.onClick.RemoveListener(ConfirmButtonClick);
+    }
+
+    // ===============================================
+    // 🌟 新增: 語音錄製與辨識邏輯
+    // ===============================================
+
+    IEnumerator StartRecordingAndRecognize()
+    {
+        // 1. 檢查是否有麥克風
+        if (Microphone.devices.Length == 0)
+        {
+            Debug.LogError("🔴 找不到麥克風設備！無法進行錄音。");
+            RuleText_rule.text = "找不到麥克風！";
+            yield return new WaitForSeconds(2f);
+            yield break; // 結束錄音流程
+        }
+
+        string deviceName = Microphone.devices[0];
+        Debug.Log($"🎙️ 開始錄音，使用設備: {deviceName}");
+
+        // 2. 開始錄音
+        // 顯示 "錄音中"
+        RuleText_rule.text = "錄音中";
+
+        // 啟動錄音，長度為 maxRecordingTime，使用 SAMPLE_RATE
+        AudioClip recordingClip = Microphone.Start(deviceName, false, (int)maxRecordingTime, SAMPLE_RATE);
+        float startTime = Time.time;
+
+        // 3. 等待錄音結束 (達到最大時間)
+        // ⚠️ 備註: 若需按鍵停止錄音，這裡需要一個 while 迴圈等待按鍵事件
+        while (Microphone.IsRecording(deviceName) && (Time.time - startTime < maxRecordingTime))
+        {
+            yield return null;
+        }
+
+        // 4. 停止錄音
+        Microphone.End(deviceName);
+        Debug.Log($"✅ 錄音停止，錄音長度: {Time.time - startTime:F2} 秒");
+
+        // 5. 處理錄製的音訊 (只取有效的長度)
+        float clipLength = Time.time - startTime;
+        if (clipLength > 0.1f) // 避免錄到空檔
+        {
+            // 從 AudioClip 截取出有效的錄音部分
+            AudioClip finalClip = TrimAudioClip(recordingClip, clipLength);
+
+            // 6. 將音訊上傳並等待辨識結果
+            //RuleText_rule.text = "處理中...";
+            yield return StartCoroutine(UploadAudio(finalClip));
+
+            // 釋放記憶體
+            Destroy(finalClip);
+        }
+        else
+        {
+            //RuleText_rule.text = "未錄到聲音，繼續。";
+            Debug.Log("⚠️ 錄音時間過短，未上傳。");
+            yield return new WaitForSeconds(1f);
         }
     }
 
-    // =================================================================
-    // 輸入等待協程
-    // =================================================================
-
-    /// <summary>
-    /// 等待右手控制器的板機鍵被按下。
-    /// </summary>
-    IEnumerator WaitForRightTriggerPress()
+    // 協助函式: 截取錄音片段
+    private AudioClip TrimAudioClip(AudioClip originalClip, float clipLength)
     {
-        Debug.Log("等待右手板機鍵輸入...");
+        int samples = (int)(clipLength * originalClip.frequency);
+        float[] data = new float[samples];
+        originalClip.GetData(data, 0);
 
-        bool triggerPressed = false;
+        AudioClip newClip = AudioClip.Create("TrimmedClip", samples, originalClip.channels, originalClip.frequency, false);
+        newClip.SetData(data, 0);
+        return newClip;
+    }
 
-        while (!triggerPressed)
+    // 協助函式: 執行上傳及語音辨識
+    // 協助函式: 執行上傳及語音辨識
+    IEnumerator UploadAudio(AudioClip clip)
+    {
+        // 將 AudioClip 轉換為 WAV 格式的 Byte 陣列
+        byte[] wavData = WavUtility.FromAudioClip(clip);
+
+        // 使用 UnityWebRequestMultiPartForm 來發送檔案
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("file", wavData, "temp_audio.wav", "audio/wav");
+
+        using (UnityWebRequest www = UnityWebRequest.Post(recognitionServerURL, form))
         {
-          
-            yield return null; // 等待下一幀
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+            {
+                // 伺服器連線或協議錯誤
+                Debug.LogError($"🔴 語音辨識伺服器錯誤: {www.error}");
+                //RuleText_rule.text = "伺服器連線錯誤！";
+            }
+            else
+            {
+                // 成功接收回應
+                try
+                {
+                    string jsonResponse = www.downloadHandler.text;
+                    RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
+
+                    if (response.transcription != null)
+                    {
+                        // 成功辨識
+                        Debug.Log($"🗣️ 辨識結果 (Transcription): {response.transcription}");
+                        //RuleText_rule.text = $"你說：「{response.transcription}」";
+                    }
+                    else if (response.error != null)
+                    {
+                        // 辨識失敗，但伺服器有回傳錯誤 (例如：辨識不到聲音)
+                        Debug.LogWarning($"⚠️ 語音辨識錯誤: {response.error}");
+                        //RuleText_rule.text = "辨識失敗或無回應。";
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    // 🔴 錯誤修正：從 try-catch 區塊中移除了 yield return
+                    Debug.LogError($"🔴 解析伺服器回應失敗: {e.Message}");
+                    //RuleText_rule.text = "處理回應失敗！";
+                }
+            }
         }
 
-        Debug.Log("右手板機鍵已按下，繼續流程。");
+        // 🌟 修正：將等待時間移到 try-catch 區塊外面
+        // 根據你的需求，無論結果如何，都讓文字停留 2 秒後再繼續流程
+        yield return new WaitForSeconds(2f);
     }
 
-    /// <summary>
-    /// 模擬語音輸入等待。
-    /// </summary>
-    IEnumerator SimulateSpeechInput(string targetPhrase)
-    {
-        Debug.Log($"等待語音輸入: {targetPhrase}");
-
-        // 模擬語音輸入等待 3 秒
-        yield return new WaitForSeconds(3.0f);
-
-        Debug.Log($"語音輸入 '{targetPhrase}' 已模擬，繼續流程。");
-    }
 }
