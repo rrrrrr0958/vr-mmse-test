@@ -5947,7 +5947,7 @@ MonoBehaviour:
   voiceQuestionBufferTime: 0
   clickResponseDuration: 2.5
   clickAudioSource: {fileID: 1340103562}
-  clickSoundEffect: {fileID: 8300000, guid: 846db7e47f0b5014486df0f2b5d4922e, type: 3}
+  clickSoundEffect: {fileID: 8300000, guid: 7ff3023c454d1cf4cbf4f76dced3caa1, type: 3}
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 1424894083}
   highlightCircleImage: {fileID: 2018152758}
