@@ -49,7 +49,7 @@ def upload_csv():
     ax.set_ylabel("Y (up, down)")
     ax.set_title("Hand Trajectory (Trimmed)")
     ax.set_xlim(-0.5, 0.5)
-    ax.set_ylim(0, 1.0)
+    ax.set_ylim(-0.2, 0.8)
 
     # 根據有的手建立線物件
     lines = {}

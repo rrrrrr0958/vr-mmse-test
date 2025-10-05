@@ -104,7 +104,7 @@ public class RecordingState2 : MonoBehaviour
         else
         {
             Debug.LogError("[RecordingState2] AudioToServerSender 未連結！");
-            statusText.text = "錯誤：發送器未設定";
+            // statusText.text = "錯誤：發送器未設定";
         }
     }
 }
