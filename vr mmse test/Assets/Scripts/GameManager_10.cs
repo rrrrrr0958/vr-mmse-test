@@ -242,7 +242,7 @@ public class GameManager : MonoBehaviour
         VRTracker tracker = FindFirstObjectByType<VRTracker>();
         if (tracker != null)
         {
-            tracker.SaveAndUploadTrajectory("Session1");
+            tracker.SaveAndUploadTrajectory();
         }
         else
         {

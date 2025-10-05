@@ -4,15 +4,19 @@ using UnityEngine.Networking;
 using System.Collections;
 using UnityEngine.XR;
 using UnityEngine.SceneManagement;
+using System;
 
 public class VRTracker : MonoBehaviour
 {
-    [Header("Tracking Target")]
+    [Header("Tracking Targets")]
     public Transform rightHand;
+    public Transform leftHand;
 
     private List<Vector3> rightHandPositions = new List<Vector3>();
+    private List<Vector3> leftHandPositions = new List<Vector3>();
     private List<float> timestamps = new List<float>();
-    private List<int> triggerPressed = new List<int>();
+    private List<int> rightTriggerPressed = new List<int>();
+    private List<int> leftTriggerPressed = new List<int>();
 
     [Header("Server Settings")]
     public string serverUrl = "http://127.0.0.1:5001/upload_csv";
@@ -22,7 +26,6 @@ public class VRTracker : MonoBehaviour
 
     void Awake()
     {
-        // 訂閱場景加載完成事件
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
@@ -33,7 +36,6 @@ public class VRTracker : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // 場景加載完成自動開始紀錄
         StartRecording();
     }
 
@@ -41,56 +43,80 @@ public class VRTracker : MonoBehaviour
     {
         if (!isRecording) return;
 
-        TrackRightHand(rightHand);
+        // 記錄右手
+        TrackHand(rightHand, rightHandPositions, rightTriggerPressed, XRNode.RightHand);
+
+        // 記錄左手
+        TrackHand(leftHand, leftHandPositions, leftTriggerPressed, XRNode.LeftHand);
 
         timestamps.Add(Time.time - startTime);
-        triggerPressed.Add(CheckTriggerPressed() ? 1 : 0);
     }
 
     public void StartRecording()
     {
         if (isRecording) return;
-
         isRecording = true;
         startTime = Time.time;
-        Debug.Log("Right hand tracking started.");
+        Debug.Log("Hand tracking started.");
     }
 
-    private void TrackRightHand(Transform target)
+    private void TrackHand(Transform hand, List<Vector3> positions, List<int> triggers, XRNode node)
     {
-        if (target == null) return;
+        if (hand == null) return;
 
-        Vector3 pos = target.position;
+        Vector3 pos = hand.position;
 
-        // 玩家正面視角，rotation=(0,180,0)
-        // 可以加微偏移讓頭部/手部小動作更明顯
+        // 可選：根據頭部前方向微調
         Vector3 forward = Camera.main.transform.forward;
         forward.y = 0;
         pos += forward.normalized * 0.05f;
 
-        rightHandPositions.Add(pos);
+        positions.Add(pos);
+
+        // 觸發器狀態
+        bool pressed = false;
+        InputDevice device = InputDevices.GetDeviceAtXRNode(node);
+        if (device.isValid)
+            device.TryGetFeatureValue(CommonUsages.triggerButton, out pressed);
+
+        triggers.Add(pressed ? 1 : 0);
     }
 
-    private bool CheckTriggerPressed()
+    /// <summary>
+    /// 儲存並上傳 CSV，檔名自動時間戳記
+    /// </summary>
+    public void SaveAndUploadTrajectory()
     {
-        bool rightTrigger = false;
-        InputDevice rightDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-        if (rightDevice.isValid)
-            rightDevice.TryGetFeatureValue(CommonUsages.triggerButton, out rightTrigger);
-        return rightTrigger;
-    }
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string fileName = $"session_{timestamp}.csv";
 
-    public void SaveAndUploadTrajectory(string fileName)
-    {
         string csvData = "Type,X,Y,Z,Time,TriggerPressed\n";
 
-        for (int i = 0; i < rightHandPositions.Count; i++)
+        int count = timestamps.Count;
+        for (int i = 0; i < count; i++)
         {
-            var pos = rightHandPositions[i];
-            csvData += $"RightHand,{pos.x},{pos.y},{pos.z},{timestamps[i]},{triggerPressed[i]}\n";
+            if (i < rightHandPositions.Count)
+            {
+                var pos = rightHandPositions[i];
+                csvData += $"RightHand,{pos.x},{pos.y},{pos.z},{timestamps[i]},{rightTriggerPressed[i]}\n";
+            }
+
+            if (i < leftHandPositions.Count)
+            {
+                var pos = leftHandPositions[i];
+                csvData += $"LeftHand,{pos.x},{pos.y},{pos.z},{timestamps[i]},{leftTriggerPressed[i]}\n";
+            }
         }
 
         StartCoroutine(UploadCSV(csvData, fileName));
+
+        // 清空緩存，準備下一次紀錄
+        rightHandPositions.Clear();
+        leftHandPositions.Clear();
+        rightTriggerPressed.Clear();
+        leftTriggerPressed.Clear();
+        timestamps.Clear();
+        isRecording = false;
     }
 
     private IEnumerator UploadCSV(string csvContent, string fileName)
@@ -100,12 +126,12 @@ public class VRTracker : MonoBehaviour
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "text/csv");
-        request.SetRequestHeader("File-Name", fileName + ".csv");
+        request.SetRequestHeader("File-Name", fileName);
 
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
-            Debug.Log("CSV uploaded successfully!");
+            Debug.Log($"CSV uploaded successfully! File: {fileName}");
         else
             Debug.LogError("Upload failed: " + request.error);
     }
