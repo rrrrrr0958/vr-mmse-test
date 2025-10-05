@@ -5944,8 +5944,10 @@ MonoBehaviour:
   initialTextDelay: 0.5
   questionBroadcastDelay: 1
   timeBetweenQuestions: 1
-  voiceQuestionBufferTime: 0.5
+  voiceQuestionBufferTime: 0
   clickResponseDuration: 2.5
+  clickAudioSource: {fileID: 1340103562}
+  clickSoundEffect: {fileID: 8300000, guid: 846db7e47f0b5014486df0f2b5d4922e, type: 3}
   cameraMoveSpeed: 5
   questionBroadcastTextMeshPro: {fileID: 1424894083}
   highlightCircleImage: {fileID: 2018152758}
@@ -5957,9 +5959,14 @@ MonoBehaviour:
   meatStallAudioClip: {fileID: 8300000, guid: 8fb3e216a33954b44bce7c3a01738d82, type: 3}
   whatIsSellingAudioClip: {fileID: 8300000, guid: a74c6f198b7149e45b839d7ffec1f20a, type: 3}
   fishColorAudioClip: {fileID: 8300000, guid: 28beae60842bca643931e664533bc22c, type: 3}
-  whatIsThatAudioClip: {fileID: 8300000, guid: 52105fe3b0d3be849bbbb11bdba47eb5, type: 3}
+  whatIsThatAudioClip: {fileID: 8300000, guid: 25212e41d207a124ba59f1a6a9ce3f63, type: 3}
+  bananaColorAudioClip: {fileID: 8300000, guid: c4d93650783b6ea4aa802597e4e8178d, type: 3}
+  nextFruitStallAudioClip: {fileID: 8300000, guid: ac5c910a75f82984d8a1db36aeeac18f, type: 3}
+  nextWeaponStallAudioClip: {fileID: 8300000, guid: 733aa7eb21a716849803e10bf8bcf9d9, type: 3}
+  nextBreadStallAudioClip: {fileID: 8300000, guid: 075b0adf072ee0b4cbdea63b3b294bab, type: 3}
+  nextMeatStallAudioClip: {fileID: 8300000, guid: d4f20460897a1224b9bf6ffb81df0bfe, type: 3}
   serverUrl: http://localhost:5000/recognize_speech
-  recordingDuration: 3.5
+  recordingDuration: 4
   rightController: {fileID: 1565867036}
   useOVRInput: 0
   useNewInputSystem: 1
@@ -23365,14 +23372,14 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1866694701}
-  m_LocalRotation: {x: 0.0058955764, y: 0.67556447, z: 0.0064338935, w: 0.7372494}
+  m_LocalRotation: {x: 0.0055507724, y: 0.636054, z: 0.0067336257, w: 0.7715953}
   m_LocalPosition: {x: 0, y: 0, z: 6.51}
   m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 155758081}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 85, z: 1}
+  m_LocalEulerAnglesHint: {x: 0, y: 79, z: 1}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 6, y: 2.8}
