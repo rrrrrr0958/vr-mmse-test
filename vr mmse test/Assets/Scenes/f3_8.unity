@@ -14263,12 +14263,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: f3_8
-  forwardVP: {fileID: 0}
-  leftVP: {fileID: 1133657670}
-  rightVP: {fileID: 1042275354}
-  upScene: 
-  downScene: f2_8
+  vpForward: {fileID: 0}
+  vpLeft: {fileID: 1133657670}
+  vpRight: {fileID: 1042275354}
+  sceneUp: 
+  sceneDown: f2_8
+  rotateMoveDuration: 0.6
+  fadeOut: 0.4
+  fadeIn: 0.4
 --- !u!4 &1230523545
 Transform:
   m_ObjectHideFlags: 0
@@ -18237,12 +18239,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: f3_8
-  forwardVP: {fileID: 0}
-  leftVP: {fileID: 1133657670}
-  rightVP: {fileID: 1042275354}
-  upScene: 
-  downScene: f2_8
+  vpForward: {fileID: 0}
+  vpLeft: {fileID: 0}
+  vpRight: {fileID: 0}
+  sceneUp: 
+  sceneDown: 
+  rotateMoveDuration: 0.6
+  fadeOut: 0.4
+  fadeIn: 0.4
 --- !u!1 &1510127367
 GameObject:
   m_ObjectHideFlags: 0
@@ -24337,6 +24341,7 @@ GameObject:
   - component: {fileID: 1972650940}
   - component: {fileID: 1972650939}
   - component: {fileID: 1972650944}
+  - component: {fileID: 1972650945}
   m_Layer: 5
   m_Name: NavPanel_8
   m_TagString: Untagged
@@ -24462,6 +24467,28 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
+--- !u!114 &1972650945
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1972650938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f91c8a204894749b7e4ee17fcafc19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ButtonLeft: {fileID: 458759338}
+  ButtonRight: {fileID: 1194446726}
+  ButtonUp: {fileID: 0}
+  ButtonDown: {fileID: 319168046}
+  ButtonForward: {fileID: 0}
+  ViewLeft: {fileID: 1133657670}
+  ViewRight: {fileID: 1042275354}
+  ViewForward: {fileID: 0}
+  NextFloorScene: 
+  PrevFloorScene: f2_8
 --- !u!1001 &1974472523
 PrefabInstance:
   m_ObjectHideFlags: 0

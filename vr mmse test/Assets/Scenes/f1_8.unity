@@ -3372,12 +3372,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: f1_8
-  forwardVP: {fileID: 0}
-  leftVP: {fileID: 486053262}
-  rightVP: {fileID: 311289142}
-  upScene: f2_8
-  downScene: 
+  vpForward: {fileID: 0}
+  vpLeft: {fileID: 0}
+  vpRight: {fileID: 0}
+  sceneUp: 
+  sceneDown: 
+  rotateMoveDuration: 0.6
+  fadeOut: 0.4
+  fadeIn: 0.4
 --- !u!1001 &238789916
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5578,12 +5580,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: f1_8
-  forwardVP: {fileID: 0}
-  leftVP: {fileID: 486053262}
-  rightVP: {fileID: 311289142}
-  upScene: f2_8
-  downScene: 
+  vpForward: {fileID: 0}
+  vpLeft: {fileID: 486053262}
+  vpRight: {fileID: 311289142}
+  sceneUp: f2_8
+  sceneDown: 
+  rotateMoveDuration: 0.6
+  fadeOut: 0.4
+  fadeIn: 0.4
 --- !u!4 &422445295
 Transform:
   m_ObjectHideFlags: 0
@@ -25992,6 +25996,7 @@ GameObject:
   - component: {fileID: 2100147363}
   - component: {fileID: 2100147362}
   - component: {fileID: 2100147367}
+  - component: {fileID: 2100147368}
   m_Layer: 5
   m_Name: NavPanel_8
   m_TagString: Untagged
@@ -26117,6 +26122,28 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
+--- !u!114 &2100147368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100147361}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f91c8a204894749b7e4ee17fcafc19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ButtonLeft: {fileID: 2130430416}
+  ButtonRight: {fileID: 2041410293}
+  ButtonUp: {fileID: 1867762077}
+  ButtonDown: {fileID: 0}
+  ButtonForward: {fileID: 0}
+  ViewLeft: {fileID: 486053262}
+  ViewRight: {fileID: 311289142}
+  ViewForward: {fileID: 0}
+  NextFloorScene: f2_8
+  PrevFloorScene: 
 --- !u!4 &2103284590 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
@@ -27753,16 +27780,16 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1436918980}
+  - {fileID: 303696317}
+  - {fileID: 990809027}
   - {fileID: 964955258}
+  - {fileID: 1436918980}
   - {fileID: 356571276}
   - {fileID: 1919230732}
   - {fileID: 1786924370}
-  - {fileID: 990809027}
   - {fileID: 422445295}
   - {fileID: 2100147366}
   - {fileID: 653335682}
-  - {fileID: 303696317}
   - {fileID: 664117319}
   - {fileID: 12681514}
   - {fileID: 1032096865}

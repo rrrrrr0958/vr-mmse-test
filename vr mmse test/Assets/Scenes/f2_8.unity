@@ -16866,12 +16866,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: f2_8
-  forwardVP: {fileID: 1946357296}
-  leftVP: {fileID: 0}
-  rightVP: {fileID: 0}
-  upScene: f3_8
-  downScene: f1_8
+  vpForward: {fileID: 1946357296}
+  vpLeft: {fileID: 0}
+  vpRight: {fileID: 0}
+  sceneUp: f3_8
+  sceneDown: f1_8
+  rotateMoveDuration: 0.6
+  fadeOut: 0.4
+  fadeIn: 0.4
 --- !u!4 &1390563722
 Transform:
   m_ObjectHideFlags: 0
@@ -23147,6 +23149,7 @@ GameObject:
   - component: {fileID: 1784404274}
   - component: {fileID: 1784404273}
   - component: {fileID: 1784404278}
+  - component: {fileID: 1784404279}
   m_Layer: 5
   m_Name: NavPanel_8
   m_TagString: Untagged
@@ -23272,6 +23275,28 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
+--- !u!114 &1784404279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1784404272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f91c8a204894749b7e4ee17fcafc19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ButtonLeft: {fileID: 0}
+  ButtonRight: {fileID: 0}
+  ButtonUp: {fileID: 2044080219}
+  ButtonDown: {fileID: 800995960}
+  ButtonForward: {fileID: 238135818}
+  ViewLeft: {fileID: 0}
+  ViewRight: {fileID: 0}
+  ViewForward: {fileID: 1946357296}
+  NextFloorScene: f3_8
+  PrevFloorScene: f1_8
 --- !u!1001 &1787874761
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25804,7 +25829,7 @@ Transform:
   m_GameObject: {fileID: 1946357295}
   serializedVersion: 2
   m_LocalRotation: {x: 0.4294172, y: -0.06859408, z: 0.032731872, w: 0.89990246}
-  m_LocalPosition: {x: -0.13, y: -2, z: -0.266}
+  m_LocalPosition: {x: -0.15, y: -1, z: -0.14}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27667,12 +27692,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acf1a298ee2b064a93c3622bbdc3869, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorLabel: f1
-  forwardVP: {fileID: 1946357296}
-  leftVP: {fileID: 0}
-  rightVP: {fileID: 0}
-  upScene: f3_8
-  downScene: f1_8
+  vpForward: {fileID: 0}
+  vpLeft: {fileID: 0}
+  vpRight: {fileID: 0}
+  sceneUp: 
+  sceneDown: 
+  rotateMoveDuration: 0.6
+  fadeOut: 0.4
+  fadeIn: 0.4
 --- !u!1001 &2108964534
 PrefabInstance:
   m_ObjectHideFlags: 0

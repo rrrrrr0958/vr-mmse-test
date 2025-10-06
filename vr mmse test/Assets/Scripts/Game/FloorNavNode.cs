@@ -1,104 +1,89 @@
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
+using Unity.XR.CoreUtils;   
 /// <summary>
-/// 每層樓的導航節點與動作集：
-/// - 本層三個 Viewpoint（前/左/右）：呼叫 GoForward/GoLeft/GoRight 來瞬移
-/// - 跨場景（上/下樓）：呼叫 GoUp/GoDown 切換樓層
-/// 可直接綁在 UI Button、世界空間按鈕或 Trigger 的 UnityEvent。
+/// 管同場景 viewpoint 切換 & 上下樓（切場景）。
+/// 保持與 NavPanel 既有的 GoXXX() 介面不變，內部改成呼叫 TransitionManager。
 /// </summary>
 public class FloorNavNode : MonoBehaviour
 {
-    [Header("標籤")]
-    [Tooltip("顯示用樓層標籤（例如 F1/F2/F3）")]
-    public string floorLabel = "F1";
+    [Header("同場景 Viewpoints")]
+    public Transform vpForward;
+    public Transform vpLeft;
+    public Transform vpRight;
 
-    [Header("本層 Viewpoints")]
-    public Transform forwardVP;
-    public Transform leftVP;
-    public Transform rightVP;
+    [Header("上下樓對應場景名（需加入 Build Settings）")]
+    public string sceneUp;     // 例如 "F2"
+    public string sceneDown;   // 例如 "F1"
 
-    [Header("跨場景")]
-    [Tooltip("往上樓要載入的場景名（例如 F2）")]
-    public string upScene;    // 例如 "F2"
-    [Tooltip("往下樓要載入的場景名（例如 F1 或 B1）")]
-    public string downScene;  // 例如 "B1"
-
-    PlayerRigMover _mover;
+    [Header("轉場參數")]
+    [Tooltip("左右/直走時，旋轉/位移所花時間（秒）")]
+    public float rotateMoveDuration = 0.6f;
+    [Tooltip("黑幕淡出/淡入（上下樓切場景）所花時間（秒）")]
+    public float fadeOut = 0.4f, fadeIn = 0.4f;
 
     void Awake()
     {
-        _mover = FindFirstObjectByType<PlayerRigMover>(FindObjectsInactive.Exclude);
-        if (!_mover)
-            Debug.LogWarning("[FloorNavNode] 找不到 PlayerRigMover，GoForward/Left/Right 將不會生效（請確認場景有 XR Origin 並掛上 PlayerRigMover）。");
+        // 可選：若場景中還沒有 TransitionManager，自動建立一個（也可以手動放好）
+        if (TransitionManager.I == null)
+        {
+            var go = new GameObject("[TransitionManager_Auto]");
+            go.AddComponent<TransitionManager>();
+        }
+
+        // 自動掛 XR Origin（如果尚未指定）
+        if (TransitionManager.I.xrOrigin == null)
+        {
+            var xr = FindFirstObjectByType<XROrigin>(FindObjectsInactive.Exclude);
+            if (xr) TransitionManager.I.xrOrigin = xr.transform;
+            else
+            {
+                // 如果你的 XR Origin 物件名不同，以下僅示意
+                var xrRig = GameObject.Find("XR Origin (XR Rig)");
+                if (xrRig) TransitionManager.I.xrOrigin = xrRig.transform;
+            }
+        }
     }
 
-    // ============ 對外動作（給 UI/Trigger 綁定） ============
-    public void GoForward() => TeleportTo(forwardVP, "forward");
-    public void GoLeft()    => TeleportTo(leftVP,    "left");
-    public void GoRight()   => TeleportTo(rightVP,   "right");
+    // ========= NavPanel 既有介面（無參數、可直接綁 Button） =========
+    public void GoForward() => _ = GoToViewpoint(vpForward);
+    public void GoLeft()    => _ = GoToViewpoint(vpLeft);
+    public void GoRight()   => _ = GoToViewpoint(vpRight);
 
-    public void GoUp()      => RequestFloor(upScene,   "up");
-    public void GoDown()    => RequestFloor(downScene, "down");
+    public void GoUp()      => _ = LoadFloor(sceneUp);
+    public void GoDown()    => _ = LoadFloor(sceneDown);
 
-    // ============ 內部實作 ============
-    void TeleportTo(Transform vp, string dirLabel)
+    // ========= 內部實作 =========
+    async Task GoToViewpoint(Transform target)
     {
-        if (!vp)
+        if (target == null)
         {
-            Debug.LogWarning($"[FloorNavNode] {dirLabel}VP 未指派，無法瞬移。");
+            Debug.LogWarning("[FloorNavNode] 目標 Viewpoint 未指定。");
             return;
         }
 
-        // 跨場景後引用可能失效，重新抓
-        if (!_mover)
-            _mover = FindFirstObjectByType<PlayerRigMover>(FindObjectsInactive.Exclude);
-        if (!_mover)
-        {
-            Debug.LogWarning("[FloorNavNode] 場景中沒有 PlayerRigMover。");
-            return;
-        }
+        await TransitionManager.I.RotateMoveTo(target, rotateMoveDuration);
 
-        // 若題目仍開啟，先收起；並確保解鎖 allowMove
+        // 到達後 → 通知 SessionController（強型別呼叫，比 SendMessage 穩）
         var session = FindFirstObjectByType<SessionController>(FindObjectsInactive.Exclude);
-        if (session && session.quizPanel && session.quizPanel.gameObject.activeInHierarchy)
-            session.quizPanel.Hide();
-
-        if (!_mover.allowMove)
-            Debug.Log("[FloorNavNode] allowMove=false → 自動解鎖後再瞬移。");
-        _mover.allowMove = true;
-
-        Debug.Log($"[FloorNavNode] Teleport {dirLabel} → {vp.name}");
-        _mover.GoTo(vp); // 這裡應該會看到 [Mover] GoTo ... 的後續 log
+        if (session != null)
+        {
+            session.OnArrivedAtViewpoint(target);
+        }
+        else
+        {
+            Debug.LogWarning("[FloorNavNode] 找不到 SessionController，無法出題/切換 UI。");
+        }
     }
 
-    void RequestFloor(string sceneName, string dir)
+    async Task LoadFloor(string sceneName)
     {
-        if (string.IsNullOrWhiteSpace(sceneName))
+        if (string.IsNullOrEmpty(sceneName))
         {
-            Debug.LogWarning($"[FloorNavNode] {dir}Scene 未設定，忽略切換。");
+            Debug.LogWarning("[FloorNavNode] 場景名稱未指定。");
             return;
         }
-
-        // 直接切場景；SessionController 會在 sceneLoaded 自動出題
-        Debug.Log($"[FloorNavNode] LoadScene → {sceneName}");
-        SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
-    }
-
-    // ============ 編輯器可視化 ============
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.cyan;
-        if (forwardVP) { Gizmos.DrawLine(transform.position, forwardVP.position); DrawSphere(forwardVP.position); }
-        Gizmos.color = Color.yellow;
-        if (leftVP)    { Gizmos.DrawLine(transform.position, leftVP.position);    DrawSphere(leftVP.position); }
-        Gizmos.color = Color.magenta;
-        if (rightVP)   { Gizmos.DrawLine(transform.position, rightVP.position);   DrawSphere(rightVP.position); }
-    }
-
-    void DrawSphere(Vector3 pos)
-    {
-        const float r = 0.15f;
-        Gizmos.DrawWireSphere(pos, r);
+        await TransitionManager.I.FadeSceneLoad(sceneName, fadeOut, fadeIn);
     }
 }

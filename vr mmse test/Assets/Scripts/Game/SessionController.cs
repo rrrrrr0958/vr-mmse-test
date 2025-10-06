@@ -173,6 +173,12 @@ public class SessionController : MonoBehaviour
         string vpName = vp ? vp.name : GuessVPNameByNearest(sceneName);
         AskQuestion(sceneName, vpName);
     }
+    // 供外部（FloorNavNode / TransitionManager）通知到達用
+    public void OnArrivedAtViewpoint(Transform vp)
+    {
+        HandleTeleportedTarget(vp);   // 直接沿用你原本的流程：
+                                    // AskQuestion(...)、HideNavPanel() 都會被執行
+    }
 
     void AskQuestion(string sceneName, string vpName)
     {
