@@ -209,7 +209,7 @@ public class GameManager : MonoBehaviour
         if (confirmPanel) confirmPanel.SetActive(selectedSet.Count == 3);
     }
 
-    public void OnConfirm()
+    public void OnConfirm() //這裡有改(手部控制)
     {
         endTime = Time.time;
         float timeUsed = endTime - startTime;
@@ -222,15 +222,13 @@ public class GameManager : MonoBehaviour
         float accuracy = correctSet.Count > 0 ? (float)matches / correctSet.Count : 0f;
         bool allCorrect = (selectedSet.Count == correctSet.Count) && (matches == correctSet.Count);
 
-        // if (resultText)
-        // {
-        //     resultText.gameObject.SetActive(true);
-        //     resultText.text =
-        //         $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
-        //         $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
-        //         $"正確率：{accuracy * 100f:F1}% 用時 {timeUsed:F2}s\n" +
-        //         $"結果：{(allCorrect ? "完全正確！" : "請再試試")}";
-        // }
+        
+        Debug.Log(
+                $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
+                $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
+                $"正確率：{accuracy * 100f:F1}% 用時 {timeUsed:F2}s\n"
+                // +$"結果：{(allCorrect ? "完全正確！" : "請再試試")}"
+        );
 
         if (confirmPanel) confirmPanel.SetActive(false);
         if (panel1) panel1.SetActive(false);
@@ -238,12 +236,24 @@ public class GameManager : MonoBehaviour
         // 保留：其他腳本要用的 JSON 字串
         ConvertGameDataToJson("Player001", accuracy, timeUsed);
 
+        // ★★★ 新增：呼叫 VRTracker 存軌跡
+        VRTracker tracker = FindFirstObjectByType<VRTracker>();
+        if (tracker != null)
+        {
+            tracker.SaveAndUploadTrajectory();
+        }
+        else
+        {
+            Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
+        }
+
         // 若 SceneFlowManager 沒掛，避免 NRE
         if (SceneFlowManager.instance != null)
             SceneFlowManager.instance.LoadNextScene();
         else
             Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
     }
+
 
     public void OnRetry()
     {

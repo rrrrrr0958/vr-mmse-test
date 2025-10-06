@@ -3,8 +3,11 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;   // Process
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 public class SceneFlowManager : MonoBehaviour
 {
@@ -26,9 +29,7 @@ public class SceneFlowManager : MonoBehaviour
     public Image fadeImage;
     public float fadeDuration = 3f;
 
-    // === 追蹤目前啟動中的 Python 伺服器 ===
-    private Process currentServerProcess = null;
-    private string currentServerKey = null; // 可用來記錄是哪支腳本（debug用）
+    private readonly List<Process> allServerProcesses = new List<Process>();
 
     void Awake()
     {
@@ -36,6 +37,7 @@ public class SceneFlowManager : MonoBehaviour
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
+            StartCoroutine(StartPersistentServers());
         }
         else
         {
@@ -43,74 +45,44 @@ public class SceneFlowManager : MonoBehaviour
         }
     }
 
-    public void LoadNextScene()
+    private IEnumerator StartPersistentServers()
     {
-        currentIndex++;
-        if (currentIndex >= sceneOrder.Count)
-        {
-            UnityEngine.Debug.Log("流程結束，回到第一個場景");
-            currentIndex = 0;
-        }
-
-        string nextScene = sceneOrder[currentIndex];
-        StartCoroutine(LoadSceneRoutine(nextScene));
+        yield return StartCoroutine(StartPythonIfFree("audio_5.py", 5000));
+        yield return new WaitForSeconds(2f);
+        yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));
     }
 
-    public IEnumerator LoadSceneRoutine(string nextScene)
+    private IEnumerator StartPythonIfFree(string script, int port)
     {
-        // 1) 黑幕淡入
-        yield return StartCoroutine(Fade(0f, 1f));
+        if (!IsPortAvailable(port))
+        {
+            UnityEngine.Debug.LogWarning($"[SceneFlow] Port {port} 已被佔用，跳過啟動 {script}");
+            yield break;
+        }
 
-        // 2) 在離開目前場景前，先關掉舊伺服器
-        StopCurrentServer();
-
-        // 3) 非阻塞載入新場景
-        AsyncOperation op = SceneManager.LoadSceneAsync(nextScene, LoadSceneMode.Single);
-        op.allowSceneActivation = false;
-
-        while (op.progress < 0.9f) yield return null;
-        op.allowSceneActivation = true;
-
-        // 4) 等一幀讓場景物件初始化
+        StartPythonScript(script);
         yield return null;
-
-        // 4.5) 額外等 XR Origin 初始化（避免視角卡住）
-        yield return new WaitForSeconds(3f);
-
-        // 5) 依新場景啟動對應 Python 伺服器
-        StartServerForScene(nextScene);
-
-        // 6) 黑幕淡出
-        yield return StartCoroutine(Fade(1f, 0f));
     }
 
-    // 依場景名稱啟動對應 Python 伺服器（會記錄到 currentServerProcess）
-    public void StartServerForScene(string sceneName)
+    private bool IsPortAvailable(int port)
     {
-        string pythonExe = "python";  // 若需要，可改成絕對路徑或 "py"、"python3"
+        try
+        {
+            TcpListener listener = new TcpListener(System.Net.IPAddress.Loopback, port);
+            listener.Start();
+            listener.Stop();
+            return true;
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+    }
+
+    public void StartPythonScript(string scriptToRun)
+    {
+        string pythonExe = "python";
         string workingDir = Path.Combine(Application.dataPath, "Scripts");
-
-        string scriptToRun = "";
-
-        switch (sceneName)
-        {
-            case "SampleScene_5":
-                scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
-                break;
-            case "SampleScene_3":
-                scriptToRun = "audio_5.py";  // 你的 whisper/Google Web Speech 腳本
-                break;
-            case "SampleScene_2":
-                scriptToRun = "audio_5.py";
-                break;
-            // 其他場景再依需求加 case
-        }
-
-        if (string.IsNullOrEmpty(scriptToRun))
-        {
-            UnityEngine.Debug.Log($"[SceneFlow] 場景 {sceneName} 不需啟動伺服器。");
-            return;
-        }
 
         try
         {
@@ -127,34 +99,15 @@ public class SceneFlowManager : MonoBehaviour
 
             var p = new Process();
             p.StartInfo = psi;
-
             p.OutputDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
                     UnityEngine.Debug.Log($"[Python:{scriptToRun}] {e.Data}");
             };
-
             p.ErrorDataReceived += (sender, e) =>
             {
-                if (string.IsNullOrEmpty(e.Data)) return;
-
-                string line = e.Data;
-
-                // 常見無害訊息（依實際情況可再補關鍵字）
-                if (
-                    line.Contains("Running on http://") ||
-                    line.Contains("Running on all addresses (0.0.0.0)") ||
-                    line.Contains("Press CTRL+C to quit") ||
-                    line.Contains("Debugger PIN:") ||
-                    line.Contains("This is a development server") ||
-                    line.Contains("Restarting with stat"))
-                {
-                    UnityEngine.Debug.Log($"[Python-Info:{scriptToRun}] {line}");
-                }
-                else
-                {
-                    UnityEngine.Debug.LogError($"[Python-Error:{scriptToRun}] {line}");
-                }
+                if (!string.IsNullOrEmpty(e.Data))
+                    UnityEngine.Debug.LogWarning($"[PythonError:{scriptToRun}] {e.Data}");
             };
 
             bool started = p.Start();
@@ -162,54 +115,62 @@ public class SceneFlowManager : MonoBehaviour
             {
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
-
-                currentServerProcess = p;
-                currentServerKey = scriptToRun;
-                UnityEngine.Debug.Log($"[SceneFlow] 已啟動伺服器：{scriptToRun}（PID={p.Id}）");
-            }
-            else
-            {
-                UnityEngine.Debug.LogError($"[SceneFlow] 無法啟動伺服器：{scriptToRun}");
+                allServerProcesses.Add(p);
+                UnityEngine.Debug.Log($"[SceneFlow] 啟動伺服器 {scriptToRun} (PID={p.Id})");
             }
         }
         catch (System.Exception ex)
         {
-            UnityEngine.Debug.LogError($"[SceneFlow] 啟動伺服器失敗：{scriptToRun}，錯誤：{ex.Message}");
+            UnityEngine.Debug.LogError($"[SceneFlow] 無法啟動 {scriptToRun}: {ex.Message}");
         }
     }
+    //原本的loadnext
+    // public void LoadNextScene()
+    // {
+    //     currentIndex++;
+    //     if (currentIndex >= sceneOrder.Count) currentIndex = 0;
+    //     StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
+    // }
 
-    // 關掉當前伺服器
-    private void StopCurrentServer()
+    //可以設定從某場景到下一個場景時要暫停
+    public void LoadNextScene()
     {
-        if (currentServerProcess == null) return;
+        currentIndex++;
+        if (currentIndex >= sceneOrder.Count) currentIndex = 0;
 
-        try
+        // 🔹 在從 SampleScene_11 → SampleScene_2 時暫停 15 秒
+        if (sceneOrder[currentIndex - 1] == "SampleScene_11" && sceneOrder[currentIndex] == "SampleScene_2")
         {
-            if (!currentServerProcess.HasExited)
-            {
-                currentServerProcess.Kill(); // 不要帶參數
-                UnityEngine.Debug.Log($"[SceneFlow] 已關閉伺服器：{currentServerKey}（PID={currentServerProcess.Id}）");
-            }
+            StartCoroutine(PauseBeforeNextScene(15f, sceneOrder[currentIndex]));
+            return;
         }
-        catch (System.Exception ex)
-        {
-            UnityEngine.Debug.LogWarning($"[SceneFlow] 關閉伺服器發生例外：{ex.Message}");
-        }
-        finally
-        {
-            currentServerProcess.Dispose();
-            currentServerProcess = null;
-            currentServerKey = null;
-        }
+
+        StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
+    }
+    //和上方要一同存在或刪掉(寫如何暫停的)
+    private IEnumerator PauseBeforeNextScene(float seconds, string nextScene)
+    {
+        UnityEngine.Debug.Log($"[SceneFlow] 即將切換至 {nextScene}，暫停 {seconds} 秒...");
+        yield return new WaitForSeconds(seconds);
+        yield return StartCoroutine(LoadSceneRoutine(nextScene));
+    }
+
+    private IEnumerator LoadSceneRoutine(string nextScene)
+    {
+        yield return StartCoroutine(Fade(0f, 1f));
+        AsyncOperation op = SceneManager.LoadSceneAsync(nextScene, LoadSceneMode.Single);
+        op.allowSceneActivation = false;
+        while (op.progress < 0.9f) yield return null;
+        op.allowSceneActivation = true;
+        yield return new WaitForSeconds(3f);
+        yield return StartCoroutine(Fade(1f, 0f));
     }
 
     private IEnumerator Fade(float from, float to)
     {
         if (fadeImage == null) yield break;
-
         float t = 0f;
         Color c = fadeImage.color;
-
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
@@ -217,18 +178,36 @@ public class SceneFlowManager : MonoBehaviour
             fadeImage.color = new Color(c.r, c.g, c.b, a);
             yield return null;
         }
-
         fadeImage.color = new Color(c.r, c.g, c.b, to);
     }
 
-    // 遊戲退出/物件被銷毀時確保關閉伺服器
-    private void OnApplicationQuit()
+    private void KillProcessTree(Process p)
     {
-        StopCurrentServer();
+        try
+        {
+            if (p == null || p.HasExited) return;
+            int pid = p.Id;
+            ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c taskkill /PID {pid} /T /F");
+            psi.CreateNoWindow = true;
+            psi.UseShellExecute = false;
+            Process.Start(psi);
+        }
+        catch (System.Exception ex)
+        {
+            UnityEngine.Debug.LogWarning($"[SceneFlow] 無法關閉程序 PID={p?.Id}: {ex.Message}");
+        }
     }
 
-    private void OnDestroy()
+    private void StopAllPersistentServers()
     {
-        StopCurrentServer();
+        foreach (var p in allServerProcesses)
+        {
+            KillProcessTree(p);
+        }
+        allServerProcesses.Clear();
+        UnityEngine.Debug.Log("[SceneFlow] 已關閉所有伺服器");
     }
+
+    private void OnApplicationQuit() => StopAllPersistentServers();
+    private void OnDestroy() => StopAllPersistentServers();
 }

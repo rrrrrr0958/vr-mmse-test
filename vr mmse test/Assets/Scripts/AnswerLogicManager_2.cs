@@ -32,50 +32,47 @@ public class AnswerLogicManager : MonoBehaviour
 
             if (string.IsNullOrEmpty(cleanUserResponse))
             {
-                if (statusText != null) statusText.text = "辨識結果為空，請再試一次。";
-                Debug.Log($"[Answer] 您的回答: {userDisplay}. 判定：結果為空。");
-                return;
+                // 不再 return，改為視為答錯，但允許流程繼續
+                // if (statusText != null)
+                //     statusText.text = "⚠️ 辨識結果為空，已自動視為未回答。";
+                Debug.Log($"[Answer] 您的回答: {userDisplay}. 判定：結果為空，視為未回答。");
             }
-
-            // 計算相似度
-            int distance = GetLevenshteinDistance(cleanUserResponse, cleanCorrectAnswer);
-            int maxLength = Mathf.Max(cleanUserResponse.Length, cleanCorrectAnswer.Length);
-            if (maxLength == 0) maxLength = 1;
-
-            float similarity = 1.0f - ((float)distance / maxLength);
-            isCorrect = similarity >= SimilarityThreshold;
-            similarityPercent = similarity.ToString("P0"); // 例如 "67%"
-
-            // --- 畫面輸出 (加上相似度) ---
-            if (statusText != null)
+            else
             {
-                if (isCorrect)
-                {
-                    statusText.text = $"✅ 答對了！您的回答: {userDisplay}\n相似度: {similarityPercent}";
-                }
-                else
-                {
-                    statusText.text = $"❌ 答錯了。\n正確答案:「{correctAnswer}」\n相似度: {similarityPercent}";
-                }
-            }
+                // 計算相似度
+                int distance = GetLevenshteinDistance(cleanUserResponse, cleanCorrectAnswer);
+                int maxLength = Mathf.Max(cleanUserResponse.Length, cleanCorrectAnswer.Length);
+                if (maxLength == 0) maxLength = 1;
 
-            // Console 輸出
-            string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
-            Debug.Log($"\n--- 答題結果 ---");
-            Debug.Log($"題目索引: {questionIndex}");
-            Debug.Log($"正確答案: {correctAnswer}");
-            Debug.Log($"您的回答: {userDisplay}");
-            Debug.Log($"相似度: {similarityPercent} ({consoleResult}，門檻為 {SimilarityThreshold:P0})");
-            Debug.Log($"----------------\n");
+                float similarity = 1.0f - ((float)distance / maxLength);
+                isCorrect = similarity >= SimilarityThreshold;
+                similarityPercent = similarity.ToString("P0"); // 例如 "67%"
+
+                // --- 畫面輸出 (加上相似度) ---
+                // if (statusText != null)
+                // {
+                //     if (isCorrect)
+                //         statusText.text = $"✅ 答對了！您的回答: {userDisplay}\n相似度: {similarityPercent}";
+                //     else
+                //         statusText.text = $"❌ 答錯了。\n正確答案:「{correctAnswer}」\n相似度: {similarityPercent}";
+                // }
+
+                string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
+                Debug.Log($"\n--- 答題結果 ---");
+                Debug.Log($"題目索引: {questionIndex}");
+                Debug.Log($"正確答案: {correctAnswer}");
+                Debug.Log($"您的回答: {userDisplay}");
+                Debug.Log($"相似度: {similarityPercent} ({consoleResult}，門檻為 {SimilarityThreshold:P0})");
+                Debug.Log($"----------------\n");
+            }
         }
         else
         {
-            if (statusText != null) statusText.text = "流程錯誤，無效的問題索引。";
+            // if (statusText != null) statusText.text = "流程錯誤，無效的問題索引。";
             Debug.LogError($"[AnswerLogicManager] 無效的問題索引：{questionIndex}");
         }
-        
-        
     }
+
 
     public int GetLevenshteinDistance(string s, string t)
     {
