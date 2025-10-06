@@ -208,7 +208,7 @@ GameObject:
   - component: {fileID: 12345879}
   - component: {fileID: 12345878}
   m_Layer: 0
-  m_Name: ShapeScorer
+  m_Name: ShapeScorer_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -558,7 +558,7 @@ GameObject:
   - component: {fileID: 24145555}
   - component: {fileID: 24145554}
   m_Layer: 0
-  m_Name: XR Interaction Manager
+  m_Name: XR Interaction Manager_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3695,7 +3695,7 @@ GameObject:
   - component: {fileID: 267327231}
   - component: {fileID: 267327230}
   m_Layer: 0
-  m_Name: ScoreUI
+  m_Name: ScoreUI_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3714,7 +3714,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   scoreText: {fileID: 0}
-  scoreTMP: {fileID: 358493439}
+  scoreTMP: {fileID: 0}
   format: '{0:0.0}'
   lerpTime: 0.4
   showBinary: 1
@@ -5389,7 +5389,7 @@ GameObject:
   - component: {fileID: 480010670}
   - component: {fileID: 480010674}
   m_Layer: 5
-  m_Name: Countdown
+  m_Name: Countdown_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5493,7 +5493,7 @@ MonoBehaviour:
   outerRing: {fileID: 0}
   innerCircle: {fileID: 0}
   timeLabel: {fileID: 927307543}
-  duration: 15
+  duration: 90
   autoStart: 1
   showAsMMSS: 0
   warningThreshold: 10
@@ -5817,7 +5817,7 @@ GameObject:
   - component: {fileID: 513653295}
   - component: {fileID: 513653294}
   m_Layer: 0
-  m_Name: Quad
+  m_Name: Quad_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6379,7 +6379,7 @@ GameObject:
   m_Component:
   - component: {fileID: 541227421}
   m_Layer: 0
-  m_Name: WhiteBoardAndButtons
+  m_Name: WhiteBoardAndButtons_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8968,7 +8968,7 @@ GameObject:
   - component: {fileID: 718642742}
   - component: {fileID: 718642741}
   m_Layer: 0
-  m_Name: EventSystem
+  m_Name: EventSystem_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10148,7 +10148,7 @@ GameObject:
   - component: {fileID: 852385705}
   - component: {fileID: 852385704}
   m_Layer: 0
-  m_Name: LevelIntroTTS
+  m_Name: LevelIntroTTS_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11539,6 +11539,14 @@ MonoBehaviour:
     lastPosition: {x: 0, y: 0}
     isFirstDraw: 0
     isDrawing: 0
+  - brushTransform: {fileID: 0}
+    isHeld: 0
+    color: {r: 1, g: 0, b: 0, a: 0}
+    sizeY: 30
+    sizeX: 30
+    lastPosition: {x: 0, y: 0}
+    isFirstDraw: 0
+    isDrawing: 0
   brushSaturationBoost: 1.5
   brushValueBoost: 1.1
   strokeForceOpaque: 1
@@ -11664,7 +11672,7 @@ GameObject:
   m_Component:
   - component: {fileID: 964955258}
   m_Layer: 0
-  m_Name: Low-Poly Medieval Market
+  m_Name: Low-Poly Medieval Market_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13705,6 +13713,55 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 99614073485166376, guid: 94f6ad5cbfa2225449f7a5b5cac83d5f, type: 3}
   m_PrefabInstance: {fileID: 1141789751}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1145463739 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1767192433, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 1553188016}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1145463744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1145463739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_Version: 2
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
 --- !u!1001 &1150380971
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16790,7 +16847,7 @@ GameObject:
   - component: {fileID: 1436918980}
   - component: {fileID: 1436918979}
   m_Layer: 0
-  m_Name: PostProcessing
+  m_Name: PostProcessing_7
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -17778,7 +17835,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
-      value: XR Origin (XR Rig)
+      value: XR Origin (XR Rig)_7
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -17832,6 +17889,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1767192433, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1145463744}
     - targetCorrespondingSourceObject: {fileID: 202364687, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1553188022}
@@ -17883,7 +17943,7 @@ MonoBehaviour:
     m_Reference: {fileID: 83097790271614945, guid: c348712bda248c246b8c49b3db54643f, type: 3}
   showHoverDot: 1
   hoverDotPrefab: {fileID: 0}
-  hoverDotSize: 0.02
+  hoverDotSize: 0.04
   hoverDotColor: {r: 1, g: 0, b: 0, a: 1}
   surfaceOffset: 0.001
   showWhileDrawing: 1
@@ -18223,23 +18283,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 220a0fa8091444245a90a39b07937c14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  whiteboard: {fileID: 0}
-  brushIndex: 0
+  whiteboard: {fileID: 963901746}
+  brushIndex: 1
   drawAction:
-    m_UseReference: 0
+    m_UseReference: 1
     m_Action:
       m_Name: Draw
       m_Type: 0
       m_ExpectedControlType: 
-      m_Id: bb32f843-0017-48b3-943c-4891ccd0af44
+      m_Id: 0e1b1509-eb81-44a7-a86a-ed16659ac646
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-    m_Reference: {fileID: 0}
+    m_Reference: {fileID: -5982496924579745919, guid: c348712bda248c246b8c49b3db54643f, type: 3}
   showHoverDot: 1
   hoverDotPrefab: {fileID: 0}
-  hoverDotSize: 0.02
+  hoverDotSize: 0.04
   hoverDotColor: {r: 1, g: 0, b: 0, a: 1}
   surfaceOffset: 0.001
   showWhileDrawing: 1
@@ -19643,7 +19703,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5886796923679937729, guid: ee7f5db487d9aaa47b1d7a86ab4359a5, type: 3}
       propertyPath: m_Name
-      value: Board03
+      value: Board03_7
       objectReference: {fileID: 0}
     - target: {fileID: 6555493041572826747, guid: ee7f5db487d9aaa47b1d7a86ab4359a5, type: 3}
       propertyPath: m_LocalScale.x
