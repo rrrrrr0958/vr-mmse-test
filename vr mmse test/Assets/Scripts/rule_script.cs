@@ -4,7 +4,7 @@ using TMPro;
 using Unity.XR.CoreUtils;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.UI;
-using UnityEngine.Networking; // 🌟 新增
+using UnityEngine.Networking;
 
 public class Rule_script : MonoBehaviour
 {
@@ -13,6 +13,7 @@ public class Rule_script : MonoBehaviour
     public Transform vrCameraTransform;
 
     [Header("VR 輸入設定")]
+    private ActionBasedController leftHandController;
     private ActionBasedController rightHandController;
 
     [Header("UI & 3D 物件")]
@@ -20,7 +21,17 @@ public class Rule_script : MonoBehaviour
     public GameObject treasurebg_rule;
     public GameObject confirmationButton;
 
-    // 🌟 語音辨識相關設定
+    [Header("開始畫面設定")]
+    public GameObject startButton;  // ← 在 Inspector 拖入「開始」UI 按鈕
+
+    // 新增開始提示的語音和文字
+    [Header("開始提示語音與文字")]
+    public AudioClip startClip;
+    public string startText = "請用控制器任意鍵點選下方按鈕";
+
+    private bool gameStarted = false;
+
+    // 語音辨識相關設定
     [Header("語音辨識設定")]
     public string recognitionServerURL = "http://localhost:5000/recognize_speech";
     public float maxRecordingTime = 5.0f; // 最大錄音時間 (秒)
@@ -58,15 +69,29 @@ public class Rule_script : MonoBehaviour
 
     void Start()
     {
-        // 自動尋找控制器
-        rightHandController = FindObjectOfType<ActionBasedController>();
-        if (rightHandController == null)
-            Debug.LogWarning("⚠️ 未找到 RightHand Controller，請確保 Action-Based Controller 存在於場景中。");
+        var controllers = FindObjectsOfType<ActionBasedController>();
+        foreach (var c in controllers)
+        {
+            if (c.name.ToLower().Contains("left")) leftHandController = c;
+            else if (c.name.ToLower().Contains("right")) rightHandController = c;
+        }
 
-        // 初始化 UI 狀態
+        if (leftHandController == null && rightHandController == null)
+            Debug.LogWarning("⚠️ 未找到任何 Action-Based Controller，請確認 XR Rig 設置正確。");
+
+        // UI 初始化
         RuleText_rule?.gameObject.SetActive(false);
         treasurebg_rule?.SetActive(false);
         confirmationButton?.SetActive(false);
+        startButton?.SetActive(true);
+
+        // 🌟 綁定開始按鈕
+        if (startButton != null)
+        {
+            Button btn = startButton.GetComponent<Button>();
+            if (btn != null)
+                btn.onClick.AddListener(() => { gameStarted = true; startButton.SetActive(false); });
+        }
 
         if (voiceAudioSource == null || RuleText_rule == null || xrOrigin == null || vrCameraTransform == null || confirmationButton == null)
         {
@@ -75,7 +100,7 @@ public class Rule_script : MonoBehaviour
         }
 
         ApplyCameraRotationToOrigin();
-        StartCoroutine(StartGameFlow());
+        StartCoroutine(WaitForStartThenBegin());
     }
 
     public void ApplyCameraRotationToOrigin()
@@ -143,44 +168,93 @@ public class Rule_script : MonoBehaviour
         yield return new WaitForSeconds(clip.length + textSegmentDelay);
     }
 
+    IEnumerator WaitForStartThenBegin()
+    {
+        // 1. 🌟 顯示開始畫面 UI 和文字
+        RuleText_rule.gameObject.SetActive(true);
+        RuleText_rule.text = startText;
+        startButton?.SetActive(true);
+
+        // 2. 🌟 播放開始語音
+        if (voiceAudioSource != null && startClip != null)
+        {
+            voiceAudioSource.PlayOneShot(startClip);
+            // 播放完畢後，語音會自動停止，我們繼續等待輸入
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ 缺少 Start Clip，將不播放開始語音。");
+        }
+
+        // 3. 等待開始輸入 (UI 按鈕點擊 或 扳機鍵按下)
+        while (!gameStarted)
+        {
+            // 偵測左右手扳機啟動 (IsAnyTriggerPressed() 已經處理了按壓的瞬間)
+            if (IsAnyTriggerPressed())
+            {
+                gameStarted = true;
+                Debug.Log("🟢 透過 VR 板機開始流程。");
+            }
+            yield return null;
+        }
+
+        // 4. 開始流程後的清理
+        // 停止可能還在播放的開始語音
+        voiceAudioSource.Stop();
+        startButton?.SetActive(false);
+        RuleText_rule.gameObject.SetActive(false);
+
+        // 5. 啟動主流程
+        StartCoroutine(StartGameFlow());
+    }
+
     IEnumerator WaitForButtonPress()
     {
         buttonWasPressed = false;
-        Debug.Log("🕹️ 等待玩家按下 VR 板機鍵...");
+        Debug.Log("🕹️ 等待玩家按下 VR 板機鍵或按鈕...");
 
         Button btn = confirmationButton.GetComponent<Button>();
         if (btn != null)
-        {
             btn.onClick.AddListener(ConfirmButtonClick);
-        }
 
-        bool triggerWasHeld = false;
+        bool triggerHeld = false;
 
         while (!buttonWasPressed)
         {
-            // --- VR 板機鍵讀值 ---
-            if (rightHandController != null)
+            // 🌟 只要任一控制器的扳機按下即可
+            if (IsAnyTriggerPressed())
             {
-                float triggerValue = rightHandController.activateAction.action.ReadValue<float>();
-                if (triggerValue > 0.1f)
+                if (!triggerHeld)
                 {
-                    if (!triggerWasHeld)
-                    {
-                        buttonWasPressed = true;
-                        Debug.Log("🎮 VR 板機鍵按下偵測到。");
-                    }
-                    triggerWasHeld = true;
+                    buttonWasPressed = true;
+                    Debug.Log("🎮 任一 VR 板機鍵按下偵測到。");
                 }
-                else
-                {
-                    triggerWasHeld = false;
-                }
+                triggerHeld = true;
+            }
+            else
+            {
+                triggerHeld = false;
             }
 
             yield return null;
         }
 
-        if (btn != null) btn.onClick.RemoveListener(ConfirmButtonClick);
+        if (btn != null)
+            btn.onClick.RemoveListener(ConfirmButtonClick);
+    }
+
+    private bool IsAnyTriggerPressed()
+    {
+        bool leftTrigger = false;
+        bool rightTrigger = false;
+
+        if (leftHandController != null)
+            leftTrigger = leftHandController.activateAction.action.ReadValue<float>() > 0.1f;
+
+        if (rightHandController != null)
+            rightTrigger = rightHandController.activateAction.action.ReadValue<float>() > 0.1f;
+
+        return leftTrigger || rightTrigger;
     }
 
     // ===============================================
