@@ -48,8 +48,8 @@ public class SceneFlowManager : MonoBehaviour
     private IEnumerator StartPersistentServers()
     {
         yield return StartCoroutine(StartPythonIfFree("audio_5.py", 5000));
-        // yield return new WaitForSeconds(2f);
-        // yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));
+        yield return new WaitForSeconds(2f);
+        yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));
     }
 
     private IEnumerator StartPythonIfFree(string script, int port)
@@ -124,12 +124,35 @@ public class SceneFlowManager : MonoBehaviour
             UnityEngine.Debug.LogError($"[SceneFlow] 無法啟動 {scriptToRun}: {ex.Message}");
         }
     }
+    //原本的loadnext
+    // public void LoadNextScene()
+    // {
+    //     currentIndex++;
+    //     if (currentIndex >= sceneOrder.Count) currentIndex = 0;
+    //     StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
+    // }
 
+    //可以設定從某場景到下一個場景時要暫停
     public void LoadNextScene()
     {
         currentIndex++;
         if (currentIndex >= sceneOrder.Count) currentIndex = 0;
+
+        // 🔹 在從 SampleScene_11 → SampleScene_2 時暫停 15 秒
+        if (sceneOrder[currentIndex - 1] == "SampleScene_11" && sceneOrder[currentIndex] == "SampleScene_2")
+        {
+            StartCoroutine(PauseBeforeNextScene(15f, sceneOrder[currentIndex]));
+            return;
+        }
+
         StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
+    }
+    //和上方要一同存在或刪掉(寫如何暫停的)
+    private IEnumerator PauseBeforeNextScene(float seconds, string nextScene)
+    {
+        UnityEngine.Debug.Log($"[SceneFlow] 即將切換至 {nextScene}，暫停 {seconds} 秒...");
+        yield return new WaitForSeconds(seconds);
+        yield return StartCoroutine(LoadSceneRoutine(nextScene));
     }
 
     private IEnumerator LoadSceneRoutine(string nextScene)

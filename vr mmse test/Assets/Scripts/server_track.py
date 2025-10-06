@@ -35,7 +35,7 @@ def upload_csv():
     # 對每一隻手分別做位移轉換
     dfs = {}
     for hand in ["RightHand", "LeftHand"]:
-        hand_df = df[df["Type"] == hand]
+        hand_df = df[df["Type"] == hand].copy()
         if len(hand_df) == 0:
             continue
         origin = hand_df.iloc[0][["X", "Y", "Z"]].values

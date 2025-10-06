@@ -222,15 +222,13 @@ public class GameManager : MonoBehaviour
         float accuracy = correctSet.Count > 0 ? (float)matches / correctSet.Count : 0f;
         bool allCorrect = (selectedSet.Count == correctSet.Count) && (matches == correctSet.Count);
 
-        // if (resultText)
-        // {
-        //     resultText.gameObject.SetActive(true);
-        //     resultText.text =
-        //         $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
-        //         $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
-        //         $"正確率：{accuracy * 100f:F1}% 用時 {timeUsed:F2}s\n" +
-        //         $"結果：{(allCorrect ? "完全正確！" : "請再試試")}";
-        // }
+        
+        Debug.Log(
+                $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
+                $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
+                $"正確率：{accuracy * 100f:F1}% 用時 {timeUsed:F2}s\n"
+                // +$"結果：{(allCorrect ? "完全正確！" : "請再試試")}"
+        );
 
         if (confirmPanel) confirmPanel.SetActive(false);
         if (panel1) panel1.SetActive(false);
