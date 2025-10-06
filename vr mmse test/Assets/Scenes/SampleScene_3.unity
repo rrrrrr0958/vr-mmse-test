@@ -5968,6 +5968,7 @@ MonoBehaviour:
   serverUrl: http://localhost:5000/recognize_speech
   recordingDuration: 4
   rightController: {fileID: 1565867036}
+  leftController: {fileID: 1731247964}
   useOVRInput: 0
   useNewInputSystem: 1
   stallLayerMask:
@@ -21126,6 +21127,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 3230108654588891555, guid: b82d9969aedb66c4b998ad0627711207, type: 3}
   m_PrefabInstance: {fileID: 1730123832}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1731247964 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 202364688, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 1948436343}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1733331147
 PrefabInstance:

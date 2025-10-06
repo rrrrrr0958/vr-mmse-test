@@ -76,6 +76,9 @@ public class game_start_34 : MonoBehaviour
     // ===== 新增：VR 控制器 & Ray 設定 =====
     [Header("VR 控制器設定（方案A）")]
     public Transform rightController;
+    // 【新增】
+    public Transform leftController;
+    // 【新增】
     public bool useOVRInput = true;
     public bool useNewInputSystem = false;
 
@@ -230,56 +233,93 @@ public class game_start_34 : MonoBehaviour
 
     void Update()
     {
-        // 取得 Ray 的來源，根據 VR 或滑鼠模式決定
-        Ray hoverRay;
-        Transform originT = rayOriginOverride != null ? rayOriginOverride : rightController;
+        // -------------------------------------------------------------------------
+        // --- 1. 取得 Ray 的來源 (VR 模式優先，否則退回滑鼠) ---
+        // -------------------------------------------------------------------------
 
-#if ENABLE_INPUT_SYSTEM
-        // 新版輸入系統：判斷是否為 VR 模式或使用滑鼠
+        RaycastHit hoverHit = default;
+        Ray hoverRay = default;
+        Transform activeController = null;
+        bool didRaycastHit = false;
+
+        // 新版輸入系統 & VR/OVR 模式
         if (useNewInputSystem || useOVRInput)
         {
-            if (originT != null)
+            // 優先檢查右手
+            if (rightController != null)
             {
-                hoverRay = new Ray(originT.position, originT.forward);
+                hoverRay = new Ray(rightController.position, rightController.forward);
+                if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, Mathf.Infinity, stallLayerMask))
+                {
+                    didRaycastHit = true;
+                    activeController = rightController;
+                }
             }
-            else
-            {
-                // 如果沒有 VR 控制器，則退回使用滑鼠
-                hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-            }
-        }
-        else
-        {
-            // 非 VR 模式，使用滑鼠
-            hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-        }
-#else
-        // 舊版輸入系統：僅滑鼠
-        hoverRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-#endif
 
-        // --- 處理 Hover 偵測 ---
-        RaycastHit hoverHit;
-        if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, Mathf.Infinity, stallLayerMask))
+            // 如果右手沒有命中，則檢查左手
+            if (!didRaycastHit && leftController != null)
+            {
+                hoverRay = new Ray(leftController.position, leftController.forward);
+                if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, Mathf.Infinity, stallLayerMask))
+                {
+                    didRaycastHit = true;
+                    activeController = leftController;
+                }
+            }
+        }
+
+        // 如果目前 VR Raycast 尚未命中，則退回使用滑鼠 (無論是否啟用 VR)
+        if (!didRaycastHit)
         {
+            // 【修正點 1】：使用新版 Input System 讀取滑鼠位置
+            if (UnityEngine.InputSystem.Mouse.current != null)
+            {
+                Vector2 mousePos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+                hoverRay = Camera.main.ScreenPointToRay(mousePos);
+
+                // 執行 Raycast 賦值
+                if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, Mathf.Infinity, stallLayerMask))
+                {
+                    didRaycastHit = true;
+                }
+            }
+        }
+
+
+        // -------------------------------------------------------------------------
+        // --- 2. 處理 Hover 偵測 (邏輯不變) ---
+        // -------------------------------------------------------------------------
+        if (didRaycastHit)
+        {
+            // 此時 hoverHit 已經確定被賦值
             GameObject hoverObj = hoverHit.collider.gameObject;
             if (lockedClickedObjects.Contains(hoverObj))
                 return;
 
             if (hoverObj != currentHoveredObject)
             {
+                // 重置上一個 Hover 物件的顏色
                 if (currentHoveredObject != null && !lockedClickedObjects.Contains(currentHoveredObject) && originalColors.ContainsKey(currentHoveredObject))
                 {
                     currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
                 }
+                // 設置新的 Hover 物件的顏色
                 currentHoveredObject = hoverObj;
-                originalHoverColor = currentHoveredObject.GetComponent<Renderer>().material.color;
-                Color darkColor = originalHoverColor * 0.7f;
-                currentHoveredObject.GetComponent<Renderer>().material.color = darkColor;
+                Renderer rend = currentHoveredObject.GetComponent<Renderer>();
+
+                // 確保材質顏色屬性存在 (避免錯誤)
+                Color originalColor = rend.material.HasProperty("_BaseColor") ? rend.material.GetColor("_BaseColor") : rend.material.color;
+                Color darkColor = originalColor * 0.7f;
+
+                if (rend.material.HasProperty("_BaseColor"))
+                    rend.material.SetColor("_BaseColor", darkColor);
+                else
+                    rend.material.color = darkColor;
             }
         }
         else
         {
+            // 如果沒有命中任何物件，則重置目前的 Hover 物件
             if (currentHoveredObject != null && !lockedClickedObjects.Contains(currentHoveredObject) && originalColors.ContainsKey(currentHoveredObject))
             {
                 currentHoveredObject.GetComponent<Renderer>().material.color = originalColors[currentHoveredObject];
@@ -287,53 +327,79 @@ public class game_start_34 : MonoBehaviour
             }
         }
 
-        // --- 處理點擊邏輯 ---
+        // -------------------------------------------------------------------------
+        // --- 3. 處理點擊邏輯 ---
+        // -------------------------------------------------------------------------
         if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
             return;
 
-#if ENABLE_INPUT_SYSTEM
-        // 新版輸入系統：VR 控制器點擊
-        if ((useNewInputSystem || useOVRInput) && originT != null)
+        // 新版輸入系統：VR 控制器點擊 (檢查左右手)
+        if (useNewInputSystem || useOVRInput)
         {
+            bool pressed = false;
+
+            // ... (VR 控制器點擊邏輯不變) ...
             var xrRight = UnityEngine.InputSystem.XR.XRController.rightHand;
             if (xrRight != null)
             {
                 var trigger = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
                 var aButton = xrRight.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
 
-                bool pressed = false;
+                bool nowPressed = false;
                 if (trigger != null)
                 {
-                    float v = trigger.ReadValue();
-                    bool nowPressed = v > 0.5f;
+                    nowPressed = trigger.ReadValue() > 0.5f;
+                    // 使用原有的邏輯追蹤單次按下
                     if (nowPressed && !lastTriggerPressed) pressed = true;
                     lastTriggerPressed = nowPressed;
                 }
                 if (aButton != null && aButton.wasPressedThisFrame)
                     pressed = true;
+            }
 
-                if (pressed)
+            var xrLeft = UnityEngine.InputSystem.XR.XRController.leftHand;
+            if (xrLeft != null)
+            {
+                var trigger = xrLeft.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
+                var xButton = xrLeft.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
+
+                if (trigger != null && trigger.ReadValue() > 0.5f)
                 {
-                    HandleClickRaycast(originT.position, originT.forward);
+                    pressed = true;
+                }
+                if (xButton != null && xButton.wasPressedThisFrame)
+                {
+                    pressed = true;
+                }
+            }
+
+            if (pressed)
+            {
+                // 找到發出 Ray 的來源。
+                Transform triggerOrigin = activeController; // 優先使用 Hover 命中的控制器
+
+                if (triggerOrigin == null)
+                {
+                    // 如果沒有 Hover 命中，但按下了按鈕，則嘗試用右手或左手的 Ray 點擊
+                    if (rightController != null) triggerOrigin = rightController;
+                    else if (leftController != null) triggerOrigin = leftController;
+                }
+
+                if (triggerOrigin != null)
+                {
+                    // 使用控制器的 Ray 執行點擊判定
+                    HandleClickRaycast(triggerOrigin.position, triggerOrigin.forward);
                 }
             }
         }
 
-        // 新版輸入系統：滑鼠點擊
-        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame && !useOVRInput)
+        // 【修正點 2】統一使用新版輸入系統：滑鼠點擊
+        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
         {
             Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-            Ray ray = Camera.main.ScreenPointToRay(pos);
-            HandleClickRaycast(ray.origin, ray.direction);
+            Ray mouseRay = Camera.main.ScreenPointToRay(pos);
+            HandleClickRaycast(mouseRay.origin, mouseRay.direction);
         }
-#else
-        // 舊版輸入系統：滑鼠點擊
-        if (Input.GetMouseButtonDown(0))
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            HandleClickRaycast(ray.origin, ray.direction);
-        }
-#endif
     }
 
     void HandleClickRaycast(Vector3 origin, Vector3 direction)
@@ -637,7 +703,7 @@ public class game_start_34 : MonoBehaviour
         Debug.Log("Console 問題 2: 那個是什麼？ (原來的 Q3)");
         ShowHighlightCircle();
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉" , "芭蕉" }));
         HideHighlightCircle();
 
 
