@@ -1266,7 +1266,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
-      value: XR Origin (XR Rig)
+      value: XR Origin (XR Rig)_6
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3299,7 +3299,7 @@ GameObject:
   - component: {fileID: 198337988}
   - component: {fileID: 198337987}
   m_Layer: 5
-  m_Name: Game6QuestionCanvas
+  m_Name: Game6QuestionCanvas_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10656,7 +10656,7 @@ GameObject:
   m_Component:
   - component: {fileID: 964955258}
   m_Layer: 0
-  m_Name: Low-Poly Medieval Market
+  m_Name: Low-Poly Medieval Market_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13728,7 +13728,7 @@ GameObject:
   - component: {fileID: 1253079718}
   - component: {fileID: 1253079717}
   m_Layer: 0
-  m_Name: GameDirector
+  m_Name: GameDirector_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -15698,7 +15698,7 @@ GameObject:
   - component: {fileID: 1436918980}
   - component: {fileID: 1436918979}
   m_Layer: 0
-  m_Name: PostProcessing
+  m_Name: PostProcessing_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -16113,7 +16113,7 @@ GameObject:
   - component: {fileID: 1487202887}
   - component: {fileID: 1487202886}
   m_Layer: 0
-  m_Name: XR Interaction Manager
+  m_Name: XR Interaction Manager_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -17012,7 +17012,7 @@ GameObject:
   - component: {fileID: 1577512904}
   - component: {fileID: 1577512903}
   m_Layer: 0
-  m_Name: EventSystem
+  m_Name: EventSystem_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -19919,7 +19919,7 @@ GameObject:
   - component: {fileID: 1806842231}
   - component: {fileID: 1806842230}
   m_Layer: 0
-  m_Name: QuizManager
+  m_Name: QuizManager_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -21666,7 +21666,7 @@ GameObject:
   - component: {fileID: 1959120030}
   - component: {fileID: 1959120029}
   m_Layer: 5
-  m_Name: ResultText
+  m_Name: ResultText_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -21684,7 +21684,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6212fce3de102474f86718f41ebb94ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  text: {fileID: 1920884728}
+  text: {fileID: 0}
   correctColor: {r: 1, g: 1, b: 1, a: 1}
   wrongColor: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   hold: 5
@@ -25682,7 +25682,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6930379406069829862}
   m_Layer: 0
-  m_Name: table_with_meat_chease
+  m_Name: table_with_meat_chease_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27455,7 +27455,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133a1a4ca47544c15abd96d8e2cfc3a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dwellSeconds: 5
+  dwellSeconds: 3
   showTenths: 1
   localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
@@ -28439,7 +28439,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133a1a4ca47544c15abd96d8e2cfc3a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dwellSeconds: 5
+  dwellSeconds: 3
   showTenths: 1
   localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
@@ -29160,7 +29160,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133a1a4ca47544c15abd96d8e2cfc3a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dwellSeconds: 5
+  dwellSeconds: 3
   showTenths: 1
   localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}
@@ -30388,7 +30388,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 133a1a4ca47544c15abd96d8e2cfc3a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dwellSeconds: 5
+  dwellSeconds: 3
   showTenths: 1
   localOffset: {x: 0.75, y: 0.44, z: -0.1}
   localEuler: {x: 0, y: 230, z: 0}

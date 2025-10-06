@@ -34,10 +34,10 @@ public class QuizManager : MonoBehaviour
 
     readonly List<(string prompt, string id)> pool = new()
     {
-        ("請用控制器指向桌上的起司並停留5秒", "cheese"),
-        ("請用控制器指向桌上的香腸並停留5秒", "sausage"),
-        ("請用控制器指向桌上的碗並停留5秒",   "bowl"),
-        ("請用控制器指向桌上的肉排並停留5秒", "meat"),
+        ("請用控制器指向桌上的起司並停留3秒", "cheese"),
+        ("請用控制器指向桌上的香腸並停留3秒", "sausage"),
+        ("請用控制器指向桌上的碗並停留3秒",   "bowl"),
+        ("請用控制器指向桌上的肉排並停留3秒", "meat"),
     };
 
     int picked = -1;
