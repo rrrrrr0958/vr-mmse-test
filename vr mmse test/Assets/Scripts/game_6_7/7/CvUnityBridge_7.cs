@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using OpenCvSharp;
 using URect = UnityEngine.Rect;
 
-public static class CvUnityBridge
+public static class CvUnityBridge_7
 {
     // RenderTexture -> Mat (BGRA)
     public static Mat FromRenderTexture(RenderTexture rt)

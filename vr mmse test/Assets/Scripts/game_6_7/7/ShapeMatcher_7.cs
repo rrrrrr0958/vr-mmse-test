@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using OpenCvSharp;
 
-public static class ShapeMatcher
+public static class ShapeMatcher_7
 {
     // ====== Resize ======
     public static (Mat small, double scale) ResizeToMaxSide(Mat src, int maxSide)

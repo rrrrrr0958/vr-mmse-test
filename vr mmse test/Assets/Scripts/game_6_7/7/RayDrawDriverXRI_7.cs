@@ -3,10 +3,10 @@ using UnityEngine.InputSystem;
 
 
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor))]
-public class RayDrawDriverXRI : MonoBehaviour
+public class RayDrawDriverXRI_7 : MonoBehaviour
 {
     [Header("Whiteboard / Brush")]
-    public WhiteBoard whiteboard;
+    public WhiteBoard_7 whiteboard;
     public int brushIndex = 0;                 // 對應 WhiteBoard.brushes
 
     [Header("Input")]

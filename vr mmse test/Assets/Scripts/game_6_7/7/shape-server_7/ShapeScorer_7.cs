@@ -9,7 +9,7 @@ using System.IO;
 using UnityEditor;
 #endif
 
-public class ShapeScorer : MonoBehaviour
+public class ShapeScorer_7 : MonoBehaviour
 {
     [Header("Server")]
     public string scoreUrl = "http://127.0.0.1:5000/score";
@@ -226,7 +226,7 @@ public class ShapeScorer : MonoBehaviour
             float score = data.results[bi].score;
             Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
 
-            FindObjectOfType<ScoreUI>()?.UpdateScore(score);
+            FindObjectOfType<ScoreUI_7>()?.UpdateScore(score);
 
             if (verboseLogs)
             {

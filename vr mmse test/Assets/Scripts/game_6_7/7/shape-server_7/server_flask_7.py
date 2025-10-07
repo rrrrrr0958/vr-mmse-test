@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 import numpy as np
 from PIL import Image
 import io, time
-import shapesig as S
+import shapesig_7 as S
 
 app = Flask(__name__)
 

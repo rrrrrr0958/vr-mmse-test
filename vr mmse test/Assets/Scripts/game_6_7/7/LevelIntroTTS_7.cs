@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LevelIntroTTS : MonoBehaviour
+public class LevelIntroTTS_7 : MonoBehaviour
 {
     [Header("把每關的語音拖進來（依題目順序）")]
     public AudioClip[] questionVOs;

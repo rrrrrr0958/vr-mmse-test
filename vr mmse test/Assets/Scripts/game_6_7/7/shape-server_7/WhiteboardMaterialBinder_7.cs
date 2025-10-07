@@ -7,10 +7,10 @@ using System.Collections.Generic;
 /// - 白板：從材質/RawImage 取 RenderTexture → 指給 scorer.drawingRT
 /// - 目標：把多個 Material 的貼圖轉成 Texture2D 陣列 → 指給 scorer.targetTextures
 /// </summary>
-public class WhiteboardMaterialBinder : MonoBehaviour
+public class WhiteboardMaterialBinder_7 : MonoBehaviour
 {
     [Header("必填")]
-    public ShapeScorer scorer;
+    public ShapeScorer_7 scorer;
 
     [Header("白板來源（擇一）")]
     public Renderer whiteboardRenderer;     // Quad/Plane/Mesh 上的材質
@@ -34,9 +34,9 @@ public class WhiteboardMaterialBinder : MonoBehaviour
         {
             // 使用新的 API 替代過時的 FindObjectOfType
             #if UNITY_2023_1_OR_NEWER
-            scorer = Object.FindFirstObjectByType<ShapeScorer>();
+            scorer = Object.FindFirstObjectByType<ShapeScorer_7>();
             #else
-            scorer = Object.FindObjectOfType<ShapeScorer>();
+            scorer = Object.FindObjectOfType<ShapeScorer_7>();
             #endif
 
             if (scorer == null) 

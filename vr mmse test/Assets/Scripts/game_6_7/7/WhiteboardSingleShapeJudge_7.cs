@@ -4,7 +4,7 @@ using OpenCvSharp;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class WhiteboardSingleShapeJudge : MonoBehaviour
+public class WhiteboardSingleShapeJudge_7 : MonoBehaviour
 {
     public enum TargetShape { Triangle, Rectangle, Square /*, Circle*/ }
 
@@ -39,7 +39,7 @@ public class WhiteboardSingleShapeJudge : MonoBehaviour
     {
         if (whiteboardRT == null) { Report(0, "請指定 Whiteboard RT"); return; }
 
-        using var matBgra = CvUnityBridge.FromRenderTexture(whiteboardRT);
+        using var matBgra = CvUnityBridge_7.FromRenderTexture(whiteboardRT);
         var (img, _) = ResizeToMaxSide(matBgra, analysisMaxSide);
 
         using var edges = ToEdges(img, useCanny, alphaThreshold, dilateKernel, blurSigma, closeKernel);
@@ -134,7 +134,7 @@ public class WhiteboardSingleShapeJudge : MonoBehaviour
                 Cv2.Line(vis, a, b, new Scalar(0, 200, 0), 2);
                 Cv2.Circle(vis, a, 3, new Scalar(0, 120, 0), -1);
             }
-            CvUnityBridge.SetRawImage(preview, vis);
+            CvUnityBridge_7.SetRawImage(preview, vis);
         }
 
         Report(Mathf.RoundToInt(score), detail);

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;   // uGUI Text
 using TMPro;            // TextMeshPro
 
-public class ScoreUI : MonoBehaviour
+public class ScoreUI_7 : MonoBehaviour
 {
     [Header("Text Targets (擇一或兩者都接)")]
     public Text scoreText;        // uGUI 的 Text

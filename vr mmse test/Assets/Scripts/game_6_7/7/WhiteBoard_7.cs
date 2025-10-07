@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WhiteBoard : MonoBehaviour
+public class WhiteBoard_7 : MonoBehaviour
 {
     [Header("Enable/Disable")]
     public bool drawingEnabled = true;
