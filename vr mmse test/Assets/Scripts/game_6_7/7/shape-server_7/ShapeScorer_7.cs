@@ -11,6 +11,10 @@ using UnityEditor;
 
 public class ShapeScorer_7 : MonoBehaviour
 {
+    [Header("Pass/Fail")]
+    [Tooltip("大於此分數視為 1，否則 0")]
+    public float passCutoff = 60f;
+
     [Header("Server")]
     public string scoreUrl = "http://127.0.0.1:5000/score";
 
@@ -224,7 +228,9 @@ public class ShapeScorer_7 : MonoBehaviour
             int bi = Mathf.Clamp(data.best_index, 0, data.results.Length - 1);
             string name = data.results[bi].name;
             float score = data.results[bi].score;
-            Debug.Log($"[Score] 總分：{score:F1}（index={bi}, name={name}）");
+            int pass01 = score > passCutoff ? 1 : 0;
+            Debug.Log($"[Score] 總分：{score:F1} | pass={pass01}（cutoff={passCutoff:F1}, index={bi}, name={name}）");
+
 
             FindObjectOfType<ScoreUI_7>()?.UpdateScore(score);
 
