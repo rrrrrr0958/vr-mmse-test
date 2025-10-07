@@ -1,23 +1,43 @@
-using System;
-using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// TransitionManager
+/// - 場景切換：黑幕淡出→(停留)→淡入
+/// - 同場景：平滑旋轉/位移 + 頭綁遮罩（降低暈眩）
+/// 放在任一場景一次即可（DontDestroyOnLoad）。可手動指定 xrOrigin；未指定時會自動尋找。
+/// </summary>
 public class TransitionManager : MonoBehaviour
 {
     public static TransitionManager I { get; private set; }
 
-    [Header("Hook")]
-    public Transform xrOrigin;              // 指到 XR Origin (XR Rig)
-    public float vignetteDuringRotate = 0.35f;  // 旋轉/瞬移時的遮罩強度
-    public AnimationCurve ease = AnimationCurve.EaseInOut(0,0, 1,1);
+    [Header("XR Rig / Camera Root")]
+    [Tooltip("通常填 XR Origin (XR Rig)。若留空會自動尋找常見名稱，或使用主攝影機的父物件。")]
+    public Transform xrOrigin;
 
-    // internal
+    [Header("Comfort Speeds")]
+    [Tooltip("水平旋轉角速度（度/秒）。建議 80~120。")]
+    public float yawDegPerSec = 100f;
+
+    [Tooltip("位移速度（公尺/秒）。建議 1.2~2.0。")]
+    public float moveMetersPerSec = 1.6f;
+
+    [Header("Vignette / Ease")]
+    [Tooltip("旋轉/位移期間的遮罩強度（0~1）。0.35~0.55 之間較舒適。")]
+    [Range(0f, 1f)] public float vignetteDuringRotate = 0.45f;
+
+    [Tooltip("旋轉/位移前後的微停（秒），避免節奏太急。")]
+    public float prePostPause = 0.05f;
+
+    [Tooltip("插值曲線")]
+    public AnimationCurve ease = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
+    // ===== internal: overlay black canvas =====
     Canvas _canvas;
-    Image _black;
     CanvasGroup _group;
+    Image _black;
 
     void Awake()
     {
@@ -25,21 +45,31 @@ public class TransitionManager : MonoBehaviour
         I = this;
         DontDestroyOnLoad(gameObject);
         EnsureCanvas();
+        EnsureXrOrigin();
+        SceneManager.sceneLoaded += (_, __) => EnsureXrOrigin(); // 切場景後再確認一次
+    }
+
+    void OnDestroy()
+    {
+        if (I == this) I = null;
+        SceneManager.sceneLoaded -= (_, __) => EnsureXrOrigin();
     }
 
     void EnsureCanvas()
     {
-        if (_canvas != null) return;
+        if (_canvas) return;
 
         var go = new GameObject("[TransitionCanvas]");
         DontDestroyOnLoad(go);
+
         _canvas = go.AddComponent<Canvas>();
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _canvas.sortingOrder = short.MaxValue; // 確保永遠在最上層
+        _canvas.sortingOrder = short.MaxValue; // 永遠最上層
 
         _group = go.AddComponent<CanvasGroup>();
-        _group.alpha = 0f;  // 預設透明
-        _group.blocksRaycasts = true; // 防止誤觸 UI
+        _group.alpha = 0f;
+        _group.blocksRaycasts = true; // 轉場時擋住點擊
+        _group.interactable = false;
 
         var imgGO = new GameObject("Black");
         imgGO.transform.SetParent(go.transform, false);
@@ -53,41 +83,74 @@ public class TransitionManager : MonoBehaviour
         rt.offsetMax = Vector2.zero;
     }
 
-    // ====== 公用 API ======
-
-    /// <summary>上下樓：黑幕淡出 → 載入 → 淡入</summary>
-    public async Task FadeSceneLoad(string sceneName, float fadeOut=0.4f, float fadeIn=0.4f)
+    void EnsureXrOrigin()
     {
-        await FadeTo(1f, fadeOut);                       // 黑
+        if (xrOrigin) return;
+
+        // 1) 常見命名
+        var rigByName = GameObject.Find("XR Origin (XR Rig)") ??
+                        GameObject.Find("XR Origin") ??
+                        GameObject.Find("XRRig");
+        if (rigByName) { xrOrigin = rigByName.transform; return; }
+
+        // 2) 主攝影機父物件（若無父物件就用相機本體）
+        var cam = Camera.main;
+        if (cam)
+            xrOrigin = cam.transform.parent ? cam.transform.parent : cam.transform;
+    }
+
+    // ===========================================================
+    // 公開 API
+    // ===========================================================
+
+    /// <summary>
+    /// 上下樓：黑幕淡出→可選全黑停留→載入→淡入
+    /// </summary>
+    public async Task FadeSceneLoad(string sceneName, float fadeOut = 0.8f, float holdBlack = 0.2f, float fadeIn = 0.8f)
+    {
+        await FadeTo(1f, Mathf.Max(0f, fadeOut));
+        if (holdBlack > 0f) await Task.Delay(Mathf.RoundToInt(holdBlack * 1000));
+
         AsyncOperation op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
         while (!op.isDone) await Task.Yield();
-        await Task.Yield();                               // 讓新場景一幀完成
-        await FadeTo(0f, fadeIn);                        // 亮
+        await Task.Yield(); // 讓新場景跑完一幀
+
+        await FadeTo(0f, Mathf.Max(0f, fadeIn));
     }
 
     /// <summary>
-    /// 同場景轉場：輕遮罩 + 平滑旋轉/瞬移到 viewpoint
-    /// - 只會改變 XR Origin 的位置與面向（不改變玩家頭部旋轉）
+    /// 左/右/直走：依角速度/位移速度決定時長，期間加遮罩；只調整水平面朝向。
+    /// minDuration 為最短時長（秒），避免太快。
     /// </summary>
-    public async Task RotateMoveTo(Transform targetViewpoint, float duration=0.6f, bool move=true)
+    public async Task RotateMoveTo(Transform targetViewpoint, float minDuration = 0.9f, bool move = true)
     {
-        if (xrOrigin == null || targetViewpoint == null) return;
+        if (!xrOrigin || !targetViewpoint) return;
 
-        // 微暗 vignette（避免暈眩）
+        // 水平朝向
+        Vector3 curFwd = xrOrigin.forward; curFwd.y = 0f; curFwd.Normalize();
+        Vector3 tgtFwd = targetViewpoint.forward; tgtFwd.y = 0f;
+        if (tgtFwd.sqrMagnitude < 1e-6f) tgtFwd = curFwd; else tgtFwd.Normalize();
+        float yawAngle = Vector3.Angle(curFwd, tgtFwd); // 度
+
+        // 距離
+        Vector3 startPos = xrOrigin.position;
+        Vector3 endPos   = move ? targetViewpoint.position : startPos;
+        float distance   = move ? Vector3.Distance(startPos, endPos) : 0f;
+
+        // 計算時長（取旋轉/位移較大者，再不小於最短）
+        float tYaw  = yawDegPerSec     > 0f ? yawAngle  / yawDegPerSec      : 0f;
+        float tMove = moveMetersPerSec > 0f ? distance  / moveMetersPerSec  : 0f;
+        float duration = Mathf.Max(minDuration, tYaw, tMove);
+        duration = Mathf.Clamp(duration, minDuration, 2.0f); // 上限避免太久
+
+        // 遮罩進入
         float baseAlpha = _group.alpha;
         await FadeTo(Mathf.Max(baseAlpha, vignetteDuringRotate), 0.12f);
+        if (prePostPause > 0f) await Task.Delay(Mathf.RoundToInt(prePostPause * 1000));
 
-        // 計算旋轉與（可選的）位置插值
-        Vector3 startPos = xrOrigin.position;
+        // 內插
         Quaternion startRot = xrOrigin.rotation;
-
-        // 只在水平方向對齊面向（避免 pitch/roll 不適）
-        Vector3 forward = targetViewpoint.forward; forward.y = 0f;
-        if (forward.sqrMagnitude < 1e-6f) forward = xrOrigin.forward;
-        Quaternion endRot = Quaternion.LookRotation(forward.normalized, Vector3.up);
-
-        Vector3 endPos = move ? targetViewpoint.position : startPos;
-
+        Quaternion endRot   = Quaternion.LookRotation(tgtFwd, Vector3.up);
         float t = 0f;
         while (t < 1f)
         {
@@ -98,15 +161,24 @@ public class TransitionManager : MonoBehaviour
             await Task.Yield();
         }
 
-        // 回復亮度
-        await FadeTo(baseAlpha, 0.12f);
+        // 收尾
+        if (prePostPause > 0f) await Task.Delay(Mathf.RoundToInt(prePostPause * 1000));
+        await FadeTo(baseAlpha, 0.15f);
     }
 
-    // ====== 私用：黑幕插值 ======
+    // ===========================================================
+    // 私用：黑幕插值
+    // ===========================================================
     async Task FadeTo(float targetAlpha, float duration)
     {
+        if (!_group) return;
         float start = _group.alpha;
-        if (Mathf.Approximately(start, targetAlpha) || duration <= 0f) { _group.alpha = targetAlpha; return; }
+
+        if (Mathf.Approximately(start, targetAlpha) || duration <= 0f)
+        {
+            _group.alpha = targetAlpha;
+            return;
+        }
 
         float t = 0f;
         while (t < 1f)

@@ -137,8 +137,13 @@ public class MicRecorder : MonoBehaviour
         var clip = AudioClip.Create("DummyClip", samples, 1, sampleRate, false);
         var data = new float[samples];
         clip.SetData(data, 0);
+
+        // 保險：標記不要被保存
+        clip.hideFlags |= HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
+
         return clip;
     }
+
 }
 
 public static class WavUtility
