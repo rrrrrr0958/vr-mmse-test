@@ -20,6 +20,7 @@ public class Rule_script : MonoBehaviour
     public TextMeshPro RuleText_rule;
     public GameObject treasurebg_rule;
     public GameObject confirmationButton;
+    public GameObject vr_hand;
 
     [Header("開始畫面設定")]
     public GameObject startButton;  // ← 在 Inspector 拖入「開始」UI 按鈕
@@ -84,6 +85,8 @@ public class Rule_script : MonoBehaviour
         treasurebg_rule?.SetActive(false);
         confirmationButton?.SetActive(false);
         startButton?.SetActive(true);
+        // 【新增】確保這個 UI 也是關閉的
+        vr_hand?.SetActive(false);
 
         // 🌟 綁定開始按鈕
         if (startButton != null)
@@ -136,8 +139,10 @@ public class Rule_script : MonoBehaviour
 
                 RuleText_rule.text = "";
                 confirmationButton.SetActive(true);
+                vr_hand?.SetActive(true);
                 yield return StartCoroutine(WaitForButtonPress());
                 confirmationButton.SetActive(false);
+                vr_hand?.SetActive(false);
             }
             else if (i == 13)
             {

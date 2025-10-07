@@ -282,7 +282,8 @@ public class QuestionManager : MonoBehaviour
 
     void GenerateRandomQuestions()
     {
-        currentQuestionSequence = allQuestions.OrderBy(x => System.Guid.NewGuid()).Take(3).ToList();
+        //currentQuestionSequence = allQuestions.OrderBy(x => System.Guid.NewGuid()).Take(3).ToList();
+        currentQuestionSequence = allQuestions.OrderBy(x => System.Guid.NewGuid()).ToList();
     }
 
     IEnumerator WaitForAnswer(QuestionData currentQuestionData)

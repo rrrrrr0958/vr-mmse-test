@@ -687,7 +687,8 @@ public class game_start_34 : MonoBehaviour
         // ... (轉向鏡頭邏輯保持不變) ...
         if (cameraTarget_banana_3 != null)
         {
-            Debug.Log("攝影機開始轉向第二、三題目標（香蕉）...");
+            Debug.Log("攝影機開始轉向第二題目標（香蕉）...");
+            //float fixedDuration = 10.0f;
             yield return StartCoroutine(SmoothCameraMove(cameraTarget_banana_3.position, cameraTarget_banana_3.rotation));
             if (banana_bg_4 != null)
             {
@@ -708,47 +709,47 @@ public class game_start_34 : MonoBehaviour
 
 
         // >>> 【新增】 Q2 結束時，手動隱藏錄音提示字板，為 Q3 語音做準備
-        if (question3_VoiceText != null)
-        {
-            question3_VoiceText.gameObject.SetActive(false);
-            Debug.Log("Q2 回答後，錄音提示字板已隱藏。");
-        }
-        // <<<
+        //if (question3_VoiceText != null)
+        //{
+        //    question3_VoiceText.gameObject.SetActive(false);
+        //    Debug.Log("Q2 回答後，錄音提示字板已隱藏。");
+        //}
+        //// <<<
 
-        yield return new WaitForSeconds(timeBetweenQuestions);
+        //yield return new WaitForSeconds(timeBetweenQuestions);
 
 
         // ----------------------------------------------------
         // --- 第三個問題 (Q3: 問香蕉的顏色) ---
         // ----------------------------------------------------
 
-        if (banana_bg_4 != null)
-        {
-            banana_bg_4.SetActive(true);
-            Debug.Log("banana_bg_4 (香蕉物件) 已再次啟用，準備第三題。");
-        }
+        //if (banana_bg_4 != null)
+        //{
+        //    banana_bg_4.SetActive(true);
+        //    Debug.Log("banana_bg_4 (香蕉物件) 已再次啟用，準備第三題。");
+        //}
 
         // 此處不等待，直接開始播放語音
 
         // --- 執行第三個問題 ---
-        currentVoiceQuestionIndex = 3;
-        Debug.Log("Console 問題 3: 香蕉的顏色是什麼？");
-        ShowHighlightCircle();
+        //currentVoiceQuestionIndex = 3;
+        //Debug.Log("Console 問題 3: 香蕉的顏色是什麼？");
+        //ShowHighlightCircle();
 
-        // 【重點】語音播放時，錄音提示字板保持隱藏
-        if (bananaColorAudioClip != null)
-        {
-            yield return StartCoroutine(PlayAudioClipAndThenWait(bananaColorAudioClip));
-            // PlayAudioClipAndThenWait 結束後，流程進入 WaitForAnswer
-            // WaitForAnswer 會判斷 currentVoiceQuestionIndex = 3，並開啟 question3_VoiceText
-            yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
-        }
-        else
-        {
-            // ... (錯誤處理邏輯不變) ...
-            yield return new WaitForSeconds(1.0f);
-            yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
-        }
+        //// 【重點】語音播放時，錄音提示字板保持隱藏
+        //if (bananaColorAudioClip != null)
+        //{
+        //    yield return StartCoroutine(PlayAudioClipAndThenWait(bananaColorAudioClip));
+        //    // PlayAudioClipAndThenWait 結束後，流程進入 WaitForAnswer
+        //    // WaitForAnswer 會判斷 currentVoiceQuestionIndex = 3，並開啟 question3_VoiceText
+        //    yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
+        //}
+        //else
+        //{
+        //    // ... (錯誤處理邏輯不變) ...
+        //    yield return new WaitForSeconds(1.0f);
+        //    yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
+        //}
 
 
         HideHighlightCircle();
@@ -756,7 +757,7 @@ public class game_start_34 : MonoBehaviour
         // ==========================================================
 
         Debug.Log("Console: 所有魚攤問題已完成！");
-        Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/3");
+        Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/2");
 
         currentVoiceQuestionIndex = 0; // 重置問題編號
 
@@ -782,6 +783,7 @@ public class game_start_34 : MonoBehaviour
         yield return new WaitForSeconds(clip.length + voiceQuestionBufferTime);
     }
 
+    //資料庫改這邊(記得命名只有兩題)
     void UploadVoiceScoreToFirebase(int score)
     {
         if (dbReference != null)
@@ -922,8 +924,15 @@ public class game_start_34 : MonoBehaviour
             Vector3 startPosition = xrOriginTransform.position;
             Quaternion startRotation = xrOriginTransform.rotation;
             float elapsedTime = 0;
-            float duration = Vector3.Distance(startPosition, xrTargetPosition) / cameraMoveSpeed;
-            if (duration < 0.05f) duration = 0.05f;
+            //float duration = Vector3.Distance(startPosition, xrTargetPosition) / cameraMoveSpeed;
+            //if (duration < 3f) duration = 0.05f;
+            float distance = Vector3.Distance(startPosition, xrTargetPosition);
+            float angle = Quaternion.Angle(startRotation, xrTargetRotation);
+
+            // 同時考慮距離與角度，給轉場自然緩衝
+            float duration = (distance / cameraMoveSpeed) + (angle / 180f) * 0.8f;
+            if (duration < 2.5f) duration = 6.5f;
+
 
             while (elapsedTime < duration)
             {
@@ -942,7 +951,8 @@ public class game_start_34 : MonoBehaviour
             Quaternion startRotation = movingTransform.rotation;
             float elapsedTime = 0;
             float duration = Vector3.Distance(startPosition, targetPosition) / cameraMoveSpeed;
-            if (duration < 0.05f) duration = 0.05f;
+            // 確保移動至少持續 1.0 秒，以提供平滑感
+            if (duration < 0.05f) duration = 10.0f;
 
             while (elapsedTime < duration)
             {
