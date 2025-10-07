@@ -226,7 +226,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65c62caf67a344b588e99bbd11cf4e15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  scoreUrl: http://127.0.0.1:5000/score
+  passCutoff: 60
+  scoreUrl: http://127.0.0.1:5002/score
   drawingRT: {fileID: 8400000, guid: c595d15bc23c94024bb203f6832142cf, type: 2}
   drawingTex2D: {fileID: 0}
   targetTextures:

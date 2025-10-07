@@ -16,7 +16,7 @@ public class ShapeScorer_7 : MonoBehaviour
     public float passCutoff = 60f;
 
     [Header("Server")]
-    public string scoreUrl = "http://127.0.0.1:5000/score";
+    public string scoreUrl = "http://127.0.0.1:5002/score";
 
     [Header("Your Drawing Source（二選一）")]
     public RenderTexture drawingRT;
