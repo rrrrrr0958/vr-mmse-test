@@ -15,12 +15,16 @@ public class SceneFlowManager : MonoBehaviour
 
     private readonly List<string> sceneOrder = new List<string>
     {
-        "SampleScene_5",
+        "SampleScene_7",
+        //"SampleScene_14",
         "SampleScene_3",
+        "SampleScene_2",
+        "SampleScene_5",
         "SampleScene_11_1",
         "SampleScene_11",
-        "SampleScene_2",
-        "SampleScene_11"
+        "SampleScene_11",
+        "SampleScene_6"
+        
     };
 
     private int currentIndex = 0;
@@ -47,6 +51,8 @@ public class SceneFlowManager : MonoBehaviour
 
     private IEnumerator StartPersistentServers()
     {
+        yield return StartCoroutine(StartPythonIfFree("server_flask_7.py", 5002));
+        yield return new WaitForSeconds(2f);
         yield return StartCoroutine(StartPythonIfFree("audio_5.py", 5000));
         yield return new WaitForSeconds(2f);
         yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));

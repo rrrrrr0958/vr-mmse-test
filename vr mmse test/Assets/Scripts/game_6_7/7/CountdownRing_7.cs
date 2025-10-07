@@ -48,6 +48,7 @@ public class CountdownBadge : MonoBehaviour
     {
         if (outerRing) _ringBaseScale = outerRing.rectTransform.localScale;
         ApplyStaticUI();
+
     }
 
     void Start()
