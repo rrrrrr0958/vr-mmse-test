@@ -6446,8 +6446,8 @@ MonoBehaviour:
   - {fileID: 2145899759}
   - {fileID: 2126229131}
   starSpawnDelay: 0.5
-  delayAfterStars: 0.3
-  delayAfterMessage: 0.3
+  delayAfterStars: 0.2
+  delayAfterMessage: 0
   nextSceneName: Reward
 --- !u!114 &596359646
 MonoBehaviour:
