@@ -19997,6 +19997,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bfd55048f76c8411dae15160c782684d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  logEvaluationToConsole: 1
   feedbackUI: {fileID: 1959120029}
   questionText: {fileID: 378896724}
   completionPanel: {fileID: 0}

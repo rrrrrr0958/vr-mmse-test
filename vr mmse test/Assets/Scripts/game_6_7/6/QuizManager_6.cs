@@ -4,10 +4,13 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class QuizManager : MonoBehaviour
+public class QuizManager_6 : MonoBehaviour
 {
+    [Header("診斷輸出")]
+    public bool logEvaluationToConsole = true;
+
     [Header("Feedback")]
-    public FeedbackUI feedbackUI;
+    public FeedbackUI_6 feedbackUI;
 
     [Header("UI")]
     public TextMeshProUGUI questionText;
@@ -87,9 +90,9 @@ public class QuizManager : MonoBehaviour
     bool TargetExistsInScene(string id)
     {
 #if UNITY_2022_2_OR_NEWER
-        var all = FindObjectsByType<SelectableTarget>(FindObjectsSortMode.None);
+        var all = FindObjectsByType<SelectableTarget_6>(FindObjectsSortMode.None);
 #else
-        var all = FindObjectsOfType<SelectableTarget>(true);
+        var all = FindObjectsOfType<SelectableTarget_6>(true);
 #endif
         foreach (var t in all) if (t.targetId == id) return true;
         return false;
@@ -101,6 +104,14 @@ public class QuizManager : MonoBehaviour
         if (isLocked) return; // 已經鎖定，不再接受答案
 
         bool ok = targetId == currentAnswer;
+
+        if (logEvaluationToConsole)
+{
+    string msg = $"[Quiz] Selected='{targetId}'  Answer='{currentAnswer}'  Result={(ok ? "CORRECT" : "WRONG")}";
+    if (ok) Debug.Log(msg);
+    else    Debug.LogWarning(msg); // 錯誤用黃色比較醒目（但不當成 Error）
+}
+
 
         // 立即鎖互動：避免在停留期間被再次提交
         isLocked = true;

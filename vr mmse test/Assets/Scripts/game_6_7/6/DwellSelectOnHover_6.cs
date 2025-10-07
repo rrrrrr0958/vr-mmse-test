@@ -6,7 +6,7 @@ using TMPro;
 
 [DisallowMultipleComponent]
 [ExecuteAlways]
-public class DwellSelectOnHover : MonoBehaviour
+public class DwellSelectOnHover_6 : MonoBehaviour
 {
     [Header("停留選取")]
     public float dwellSeconds = 3f;
@@ -39,8 +39,8 @@ public class DwellSelectOnHover : MonoBehaviour
     public bool lockPositionInEditor = false;
 
     UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable;
-    SelectionHighlighter highlighter;
-    SelectableTarget selectable;
+    SelectionHighlighter_6 highlighter;
+    SelectableTarget_6 selectable;
 
     Transform textTf;
     Coroutine dwellCo;
@@ -109,7 +109,7 @@ public class DwellSelectOnHover : MonoBehaviour
         if (e != null && e.interactorObject != null)
             _hoverers.Add(e.interactorObject);
 
-        var qm = FindObjectOfType<QuizManager>();
+        var qm = FindObjectOfType<QuizManager_6>();
         if (qm != null && !qm.CanInteract()) { HideText(); return; }
 
         // 只在「第一位」手進來時啟動倒數（避免多次啟動）
@@ -163,7 +163,7 @@ public class DwellSelectOnHover : MonoBehaviour
         var me = highlighter;
         if (me == null) yield break;
 
-        var qm = FindObjectOfType<QuizManager>();
+        var qm = FindObjectOfType<QuizManager_6>();
         if (qm != null && !qm.CanInteract()) yield break;
 
         // 等待「有手在上面」且拿到全域 hover 鎖
@@ -184,7 +184,7 @@ public class DwellSelectOnHover : MonoBehaviour
         while (t < dwellSeconds)
         {
             // 期間若關卡鎖互動、或沒有手在上面、或鎖被搶走，就中止
-            qm = FindObjectOfType<QuizManager>();
+            qm = FindObjectOfType<QuizManager_6>();
             if (qm != null && !qm.CanInteract()) { HideText(); yield break; }
 
             if (_hoverers.Count == 0) { HideText(); yield break; }
@@ -215,8 +215,8 @@ public class DwellSelectOnHover : MonoBehaviour
     void TryGetDependencies()
     {
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();
-        highlighter = GetComponent<SelectionHighlighter>();
-        selectable  = GetComponent<SelectableTarget>();
+        highlighter = GetComponent<SelectionHighlighter_6>();
+        selectable  = GetComponent<SelectableTarget_6>();
     }
 
     void EnsureCountdownTextExists()

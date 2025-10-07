@@ -2,7 +2,7 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 
-public class FeedbackUI : MonoBehaviour
+public class FeedbackUI_6 : MonoBehaviour
 {
     [Header("Refs")]
     public TextMeshProUGUI text;   // 指到你的 TextMeshPro - Text (UI)

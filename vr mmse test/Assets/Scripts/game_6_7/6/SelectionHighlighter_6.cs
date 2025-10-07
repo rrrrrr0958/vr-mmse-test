@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable))]
-public class SelectionHighlighter : MonoBehaviour
+public class SelectionHighlighter_6 : MonoBehaviour
 {
     [Header("Size (統一大小)")]
     public float ringRadius = 0.18f;
@@ -51,9 +51,9 @@ public class SelectionHighlighter : MonoBehaviour
         get
         {
 #if UNITY_2022_2_OR_NEWER
-            var qm = FindFirstObjectByType<QuizManager>();
+            var qm = FindFirstObjectByType<QuizManager_6>();
 #else
-            var qm = FindObjectOfType<QuizManager>();
+            var qm = FindObjectOfType<QuizManager_6>();
 #endif
             return qm != null && qm.CanInteract();
         }

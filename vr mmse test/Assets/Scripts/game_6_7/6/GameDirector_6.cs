@@ -2,9 +2,9 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit; // for XRBaseInteractable
 
-public class GameDirector : MonoBehaviour
+public class GameDirector_6 : MonoBehaviour
 {
-    public static GameDirector Instance { get; private set; }
+    public static GameDirector_6 Instance { get; private set; }
 
     public enum Phase { Game1, Transition, Game2 }
     public Phase phase = Phase.Game1;
@@ -83,9 +83,9 @@ public class GameDirector : MonoBehaviour
     void SetGame1InteractablesEnabled(bool on)
     {
 #if UNITY_2022_2_OR_NEWER
-        var list = Object.FindObjectsByType<SelectableTarget>(FindObjectsSortMode.None);
+        var list = Object.FindObjectsByType<SelectableTarget_6>(FindObjectsSortMode.None);
 #else
-        var list = Object.FindObjectsOfType<SelectableTarget>(true);
+        var list = Object.FindObjectsOfType<SelectableTarget_6>(true);
 #endif
         foreach (var t in list)
         {

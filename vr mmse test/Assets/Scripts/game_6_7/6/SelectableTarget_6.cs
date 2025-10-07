@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable))]
-public class SelectableTarget : MonoBehaviour
+public class SelectableTarget_6 : MonoBehaviour
 {
     [Tooltip("此物件的ID：camera / cheese / sausage / bowl / meat / ...")]
     public string targetId;
@@ -34,9 +34,9 @@ public class SelectableTarget : MonoBehaviour
     public void Submit()
     {
 #if UNITY_2022_2_OR_NEWER
-        var qm = FindFirstObjectByType<QuizManager>();
+        var qm = FindFirstObjectByType<QuizManager_6>();
 #else
-        var qm = FindObjectOfType<QuizManager>();
+        var qm = FindObjectOfType<QuizManager_6>();
 #endif
         if (qm == null)
         {
