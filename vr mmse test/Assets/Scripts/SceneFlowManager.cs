@@ -125,28 +125,28 @@ public class SceneFlowManager : MonoBehaviour
         }
     }
     //原本的loadnext
-    // public void LoadNextScene()
-    // {
-    //     currentIndex++;
-    //     if (currentIndex >= sceneOrder.Count) currentIndex = 0;
-    //     StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
-    // }
-
-    //可以設定從某場景到下一個場景時要暫停
     public void LoadNextScene()
     {
         currentIndex++;
         if (currentIndex >= sceneOrder.Count) currentIndex = 0;
-
-        // 🔹 在從 SampleScene_11 → SampleScene_2 時暫停 15 秒
-        if (sceneOrder[currentIndex - 1] == "SampleScene_11" && sceneOrder[currentIndex] == "SampleScene_2")
-        {
-            StartCoroutine(PauseBeforeNextScene(15f, sceneOrder[currentIndex]));
-            return;
-        }
-
         StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
     }
+
+    //可以設定從某場景到下一個場景時要暫停
+    // public void LoadNextScene()
+    // {
+    //     currentIndex++;
+    //     if (currentIndex >= sceneOrder.Count) currentIndex = 0;
+
+    //     // 🔹 在從 SampleScene_11 → SampleScene_2 時暫停 15 秒
+    //     if (sceneOrder[currentIndex - 1] == "SampleScene_11" && sceneOrder[currentIndex] == "SampleScene_2")
+    //     {
+    //         StartCoroutine(PauseBeforeNextScene(15f, sceneOrder[currentIndex]));
+    //         return;
+    //     }
+
+    //     StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
+    // }
     //和上方要一同存在或刪掉(寫如何暫停的)
     private IEnumerator PauseBeforeNextScene(float seconds, string nextScene)
     {
