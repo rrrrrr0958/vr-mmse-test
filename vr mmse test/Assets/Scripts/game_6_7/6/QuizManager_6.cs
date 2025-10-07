@@ -106,11 +106,11 @@ public class QuizManager_6 : MonoBehaviour
         bool ok = targetId == currentAnswer;
 
         if (logEvaluationToConsole)
-{
-    string msg = $"[Quiz] Selected='{targetId}'  Answer='{currentAnswer}'  Result={(ok ? "CORRECT" : "WRONG")}";
-    if (ok) Debug.Log(msg);
-    else    Debug.LogWarning(msg); // 錯誤用黃色比較醒目（但不當成 Error）
-}
+        {
+            string msg = $"[Quiz] Selected='{targetId}'  Answer='{currentAnswer}'  Result={(ok ? "CORRECT" : "WRONG")}";
+            if (ok) Debug.Log(msg);
+            else Debug.LogWarning(msg); // 錯誤用黃色比較醒目（但不當成 Error）
+        }
 
 
         // 立即鎖互動：避免在停留期間被再次提交
@@ -120,12 +120,13 @@ public class QuizManager_6 : MonoBehaviour
         if (feedbackUI)
         {
             if (ok) feedbackUI.ShowCorrect("答對了！");
-            else    feedbackUI.ShowWrong("已選取，準備進下一關…");
+            else feedbackUI.ShowWrong("已選取，準備進下一關…");
         }
 
         // 啟動「選後停留 → 進關」序列
         if (holdCo != null) StopCoroutine(holdCo);
         holdCo = StartCoroutine(HoldThenAdvanceCoroutine(ok));
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator HoldThenAdvanceCoroutine(bool isCorrect)

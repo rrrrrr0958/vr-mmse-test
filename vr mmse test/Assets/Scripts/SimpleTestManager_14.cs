@@ -65,6 +65,12 @@ public class SimpleTestManager : MonoBehaviour
     private Dictionary<string, GameObject> questionPanels;
     private const int TOTAL_QUESTIONS = 5;
 
+    // 剩餘題數（至少為 0）
+    private int RemainingQuestions => Mathf.Max(0, (questions != null ? questions.Count - currentQuestionIndex : 0));
+
+    // 場景是否結束（用剩餘題數為 0 判斷）
+    private bool IsSceneFinished() => RemainingQuestions == 0;
+
     // 🔹記錄使用者回答 (key -> player 選項)
     private Dictionary<string, string> playerAnswers = new Dictionary<string, string>();
 
@@ -339,7 +345,7 @@ public class SimpleTestManager : MonoBehaviour
             isCorrect = (selectedAnswer == correctAnswers[currentQuestionKey]);
         }
 
-        // 🔹記錄使用者答案（若玩家答案重複，會覆寫）
+        // 記錄玩家答案
         playerAnswers[currentQuestionKey] = selectedAnswer;
 
         if (isCorrect)
@@ -362,18 +368,34 @@ public class SimpleTestManager : MonoBehaviour
             if (incorrectSFX != null && audioSource != null) audioSource.PlayOneShot(incorrectSFX);
         }
 
+        // 前進到下一題（索引先加一，再計算剩餘題數）
         currentQuestionIndex++;
+
+        // 清理 UI
         HideAllPanels();
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
 
-        if (currentQuestionIndex >= questions.Count)
+        // === 場景結束判斷：剩餘題數為 0 才換場 ===
+        if (IsSceneFinished())
         {
+            // 收尾動作
             SaveResultToJson();
             ShowResultPanel();
+
+            // 轉換場景（有做 null 防護）
+            if (SceneFlowManager.instance != null)
+            {
+                SceneFlowManager.instance.LoadNextScene();
+            }
+            else
+            {
+                Debug.LogWarning("SceneFlowManager.instance 為 null，無法切換到下一個場景。");
+            }
         }
         else
         {
-            Invoke("AskNextQuestion", 1f);
+            // 還有題目 → 延遲一點再出下一題
+            Invoke(nameof(AskNextQuestion), 1f);
         }
     }
 

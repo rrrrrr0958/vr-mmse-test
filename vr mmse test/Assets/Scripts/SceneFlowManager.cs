@@ -15,15 +15,17 @@ public class SceneFlowManager : MonoBehaviour
 
     private readonly List<string> sceneOrder = new List<string>
     {
+        "SampleScene_rule",
         "SampleScene_7",
-        //"SampleScene_14",
+        "SampleScene_14",
         "SampleScene_3",
         "SampleScene_2",
         "SampleScene_5",
         "SampleScene_11_1",
         "SampleScene_11",
-        "SampleScene_11",
-        "SampleScene_6"
+        "SampleScene_6",
+        // "SampleScene_11",
+        // "SampleScene_6"
         
     };
 

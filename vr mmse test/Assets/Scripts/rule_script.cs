@@ -104,6 +104,7 @@ public class Rule_script : MonoBehaviour
 
         ApplyCameraRotationToOrigin();
         StartCoroutine(WaitForStartThenBegin());
+        
     }
 
     public void ApplyCameraRotationToOrigin()
@@ -163,6 +164,7 @@ public class Rule_script : MonoBehaviour
 
         RuleText_rule.gameObject.SetActive(false);
         Debug.Log("🎯 規則播放完畢，流程結束。");
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator PlayVoiceAndText(int index)
