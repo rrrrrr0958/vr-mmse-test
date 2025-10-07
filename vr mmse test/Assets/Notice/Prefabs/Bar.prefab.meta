@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 8ca5eacdb7e30d947a81ad1aedb626c3
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 289417
+  packageName: Notice Boards
+  packageVersion: 1.0
+  assetPath: Assets/Notice/Prefabs/Bar.prefab
+  uploadId: 753496

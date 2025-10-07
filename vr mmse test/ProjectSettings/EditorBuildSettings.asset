@@ -9,6 +9,8 @@ EditorBuildSettings:
     path: Assets/Scenes/StudyScene_time.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
+    path: Assets/Scenes/StudyScene_7.unity
+    guid: 99c9720ab356a0642a771bea13969a05
     path: Assets/Scenes/SampleScene_5.unity
     guid: 18b845855ffcd1647825410515aaf33e
   - enabled: 1
