@@ -10,13 +10,21 @@ public class ResultController : MonoBehaviour
     public TMP_Text messageText;
     public Button continueButton;
 
+    [Header("Audio")]
+    public AudioController audioController;
+
     [Header("Star Settings")]
     public GameObject[] stars;
 
     [Header("Animation Settings")]
-    public float starSpawnDelay = 0.22f; // 每顆星星之間的間隔
-    public float delayAfterStars = 0.3f; // 星星全部出現後到文字出現的間隔
-    public float delayAfterMessage = 0.5f; // 文字出現後到按鈕出現的間隔
+    [Tooltip("第一顆星星出現前的延遲時間")]
+    public float initialStarDelay = 0.5f; // ✅ 新增：第一顆星星出現前延遲
+    [Tooltip("每顆星星之間的間隔時間")]
+    public float starSpawnDelay = 0.22f;
+    [Tooltip("星星全部出現後到文字出現的間隔時間")]
+    public float delayAfterStars = 0.3f;
+    [Tooltip("文字出現後到按鈕出現的間隔時間")]
+    public float delayAfterMessage = 0.5f;
 
     [Header("Scene Settings")]
     public string nextSceneName = "NextScene";
@@ -53,14 +61,27 @@ public class ResultController : MonoBehaviour
 
     IEnumerator ShowResultSequence()
     {
+        // ✅ 在第一顆星星出現前等待指定延遲
+        yield return new WaitForSeconds(initialStarDelay);
+
         // 1. 逐一顯示星星
         if (stars != null)
         {
+            bool isFirstStar = true;
+
             foreach (GameObject star in stars)
             {
                 if (star != null)
                 {
                     star.SetActive(true);
+
+                    // 只在第一顆星星出現時播放音效
+                    if (isFirstStar && audioController != null)
+                    {
+                        audioController.PlayStarSpawnSound();
+                        isFirstStar = false;
+                    }
+
                     yield return new WaitForSeconds(starSpawnDelay);
                 }
             }
@@ -85,6 +106,31 @@ public class ResultController : MonoBehaviour
     }
 
     public void OnContinueButtonClicked()
+    {
+        // 防止重複點擊
+        if (continueButton != null)
+            continueButton.interactable = false;
+
+        // 播放按鈕點擊音效並延遲載入場景
+        if (audioController != null && audioController.buttonClickSound != null)
+        {
+            audioController.PlayButtonClickSound();
+            StartCoroutine(LoadNextSceneAfterDelay(audioController.buttonClickSound.length));
+        }
+        else
+        {
+            // 若沒設定音效就直接切換
+            LoadNextScene();
+        }
+    }
+
+    private IEnumerator LoadNextSceneAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        LoadNextScene();
+    }
+
+    private void LoadNextScene()
     {
         if (!string.IsNullOrEmpty(nextSceneName))
         {
