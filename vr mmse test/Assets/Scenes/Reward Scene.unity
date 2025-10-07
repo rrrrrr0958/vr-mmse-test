@@ -6450,7 +6450,7 @@ MonoBehaviour:
   starSpawnDelay: 0.3
   delayAfterStars: 0.2
   delayAfterMessage: 0
-  nextSceneName: Reward
+  nextSceneName: Final Scroe
 --- !u!114 &596359646
 MonoBehaviour:
   m_ObjectHideFlags: 0
