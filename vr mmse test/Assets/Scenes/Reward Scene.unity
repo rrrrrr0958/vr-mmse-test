@@ -6446,8 +6446,8 @@ MonoBehaviour:
   - {fileID: 1129914372}
   - {fileID: 2145899759}
   - {fileID: 2126229131}
-  initialStarDelay: 0.5
-  starSpawnDelay: 0.3
+  initialStarDelay: 1
+  starSpawnDelay: 1
   delayAfterStars: 0.2
   delayAfterMessage: 0
   nextSceneName: Final Scroe
