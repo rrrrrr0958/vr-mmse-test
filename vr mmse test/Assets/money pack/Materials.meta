@@ -1,7 +1,12 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:vr mmse test/Assets/money pack/Materials.meta
 guid: 80695cc5b20e3014fbb9e3f97579dbd1
 folderAsset: yes
 timeCreated: 1488446808
+========
+guid: 3e2e4d7b0bed4cf9ab827e9f32448f69
+timeCreated: 1435300594
+>>>>>>>> market_8:vr mmse test/Assets/TextMesh Pro/Examples & Extras/Scenes/17 - Old Computer Terminal.unity.meta
 licenseType: Store
 DefaultImporter:
   userData: 
