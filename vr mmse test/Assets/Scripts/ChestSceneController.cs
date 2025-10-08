@@ -22,10 +22,7 @@ public class ChestSceneController : MonoBehaviour
     public float buttonDelay = 3f;           // 按鈕出現延遲
     public float fadeDuration = 1f;          // 淡入時間
 
-    [Header("Scene Transition")]
-    public string nextSceneName = "NextScene";  // 要切換的場景名稱
-    public CanvasGroup blackSphere;             // 黑色遮罩
-    public float fadeOutDuration = 1f;          // 淡出時間
+    
 
     private void Awake()
     {
@@ -77,8 +74,7 @@ public class ChestSceneController : MonoBehaviour
             continueButton.onClick.AddListener(OnContinueButtonClicked);
         }
 
-        if (blackSphere != null)
-            blackSphere.alpha = 0f;
+  
     }
 
     IEnumerator PlayChestSequence()
@@ -141,9 +137,6 @@ public class ChestSceneController : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        if (!string.IsNullOrEmpty(nextSceneName))
-            SceneManager.LoadScene(nextSceneName);
-        else
-            Debug.LogWarning("ChestSceneController: nextSceneName 未設定!");
+
     }
 }

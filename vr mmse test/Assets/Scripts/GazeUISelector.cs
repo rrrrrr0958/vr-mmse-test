@@ -13,7 +13,7 @@ public class VRButtonSelector : MonoBehaviour
     public Color highlightColor = Color.green;
 
     [Header("Scene Transition")]
-    public string targetSceneName = "Login Scene"; // 這裡可以在 Inspector 設定要切換的場景名稱
+    //public string targetSceneName = "Login Scene"; // 這裡可以在 Inspector 設定要切換的場景名稱
     public CanvasGroup fadeCanvasGroup;  
     public float fadeDuration = 1f;
 
@@ -110,8 +110,8 @@ public class VRButtonSelector : MonoBehaviour
 
         if (pressed && currentButton != null)
         {
-            Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 {targetSceneName} 場景");
-            StartCoroutine(FadeOutAndLoad(targetSceneName));
+            //Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 {targetSceneName} 場景");
+            StartCoroutine(FadeOutAndLoad());
         }
     }
 
@@ -146,13 +146,9 @@ public class VRButtonSelector : MonoBehaviour
         fadeCanvasGroup.alpha = 0;
     }
 
-    IEnumerator FadeOutAndLoad(string sceneName)
+    IEnumerator FadeOutAndLoad()
     {
-        if (fadeCanvasGroup == null)
-        {
-            SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
-            yield break;
-        }
+        
 
         float t = 0f;
         fadeCanvasGroup.alpha = 0;
@@ -164,7 +160,6 @@ public class VRButtonSelector : MonoBehaviour
         }
         fadeCanvasGroup.alpha = 1;
 
-        yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
         // 淡入會在 sceneLoaded 事件中自動觸發
     }
 }

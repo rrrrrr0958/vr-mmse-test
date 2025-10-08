@@ -477,6 +477,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1205216709}
+  - {fileID: 889126807}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &223279082
@@ -703,7 +704,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 208535855}
     m_Modifications:
     - target: {fileID: 69932169085086294, guid: 5b5aa82c8874db14092566fe05c8b462, type: 3}
       propertyPath: m_Name
@@ -747,7 +748,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 843195965673320684, guid: 5b5aa82c8874db14092566fe05c8b462, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 843195965673320684, guid: 5b5aa82c8874db14092566fe05c8b462, type: 3}
       propertyPath: m_LocalRotation.y
@@ -755,7 +756,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 843195965673320684, guid: 5b5aa82c8874db14092566fe05c8b462, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 843195965673320684, guid: 5b5aa82c8874db14092566fe05c8b462, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -928,7 +929,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &469900964
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1372,6 +1373,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.28, y: 1.39, z: 0.4805874}
   m_Center: {x: 0, y: 0.69, z: 0}
+--- !u!4 &889126807 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 843195965673320684, guid: 5b5aa82c8874db14092566fe05c8b462, type: 3}
+  m_PrefabInstance: {fileID: 367310731}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &975093010
 GameObject:
   m_ObjectHideFlags: 0
@@ -2434,6 +2440,65 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1350259333}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1426072352
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1426072355}
+  - component: {fileID: 1426072354}
+  - component: {fileID: 1426072353}
+  m_Layer: 0
+  m_Name: SceneFlow_opening
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1426072353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426072352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f89cbe5c11f11c48b62fcc5ac8ba014, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1426072354
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426072352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59ad3324610b5bf4c8f5ad294c6d1273, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fadeImage: {fileID: 0}
+  fadeDuration: 3
+--- !u!4 &1426072355
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426072352}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -200.9502, y: 45.30768, z: -645.24506}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1578262969
 GameObject:
   m_ObjectHideFlags: 0
@@ -2467,8 +2532,7 @@ MonoBehaviour:
   maxDistance: 10
   normalColor: {r: 1, g: 0.2783019, b: 0.63296586, a: 1}
   highlightColor: {r: 0.5849056, g: 0, b: 0.25775874, a: 1}
-  targetSceneName: Login Scene
-  fadeCanvasGroup: {fileID: 824689953}
+  fadeCanvasGroup: {fileID: 0}
   fadeDuration: 1
 --- !u!4 &1578262971
 Transform:
@@ -3213,9 +3277,9 @@ SceneRoots:
   - {fileID: 975093011}
   - {fileID: 1243859841}
   - {fileID: 208535855}
-  - {fileID: 367310731}
   - {fileID: 772930360}
   - {fileID: 1672909594}
   - {fileID: 8074207500906730074}
   - {fileID: 1578262971}
   - {fileID: 469900967}
+  - {fileID: 1426072355}

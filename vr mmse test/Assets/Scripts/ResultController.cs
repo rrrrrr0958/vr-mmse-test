@@ -26,8 +26,6 @@ public class ResultController : MonoBehaviour
     [Tooltip("文字出現後到按鈕出現的間隔時間")]
     public float delayAfterMessage = 0.5f;
 
-    [Header("Scene Settings")]
-    public string nextSceneName = "NextScene";
 
     void Start()
     {
@@ -57,6 +55,8 @@ public class ResultController : MonoBehaviour
                     star.SetActive(false);
             }
         }
+
+        
     }
 
     IEnumerator ShowResultSequence()
@@ -115,30 +115,18 @@ public class ResultController : MonoBehaviour
         if (audioController != null && audioController.buttonClickSound != null)
         {
             audioController.PlayButtonClickSound();
-            StartCoroutine(LoadNextSceneAfterDelay(audioController.buttonClickSound.length));
+            //StartCoroutine(LoadNextSceneAfterDelay(audioController.buttonClickSound.length));
+
+            
         }
-        else
-        {
-            // 若沒設定音效就直接切換
-            LoadNextScene();
-        }
+        SceneFlowManager.instance.LoadNextScene();
     }
 
-    private IEnumerator LoadNextSceneAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        LoadNextScene();
-    }
+    //private IEnumerator LoadNextSceneAfterDelay(float delay)
+    //{
+    //    yield return new WaitForSeconds(delay);
+        
+    //}
 
-    private void LoadNextScene()
-    {
-        if (!string.IsNullOrEmpty(nextSceneName))
-        {
-            SceneManager.LoadScene(nextSceneName);
-        }
-        else
-        {
-            Debug.LogWarning("ResultController: nextSceneName 未設定!");
-        }
-    }
+
 }
