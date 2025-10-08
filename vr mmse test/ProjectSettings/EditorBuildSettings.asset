@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/StudyScene_time.unity
     guid: 65946b8d9422668498d32e2c7d8d31dd
   - enabled: 0
-    path: Assets/Scenes/LocationRecognition/SampleScene_8.unity
+    path: Assets/Scenes/SampleScene_8.unity
     guid: 056cb950b7a462e4b9f10d54ec4d843f
   - enabled: 1
     path: Assets/Scenes/f2_8.unity
@@ -23,8 +23,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/f3_8.unity
     guid: c39645cb9a2d95545aa15eef922c867e
-    path: Assets/Scenes/StudyScene_time.unity
-    guid: 65946b8d9422668498d32e2c7d8d31dd
   - enabled: 1
     path: Assets/Scenes/Star Reward.unity
     guid: 2c717ebfc5f19b845ad1e45cfab92fe7
