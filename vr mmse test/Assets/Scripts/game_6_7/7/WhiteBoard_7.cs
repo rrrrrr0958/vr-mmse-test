@@ -499,6 +499,7 @@ if (r && renderTexture)
             b.isDrawing = false;
             b.lastPosition = Vector2.zero;
         }
+        
     }
 
     // ---- 小工具 ----

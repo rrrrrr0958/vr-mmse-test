@@ -15,13 +15,14 @@ public class SceneFlowManager : MonoBehaviour
 
     private readonly List<string> sceneOrder = new List<string>
     {
-        //"Opening",
-        //"Login Scene",
+        // "Opening",
+        // "Login Scene",
         "SampleScene_rule",
-        //"Reward_Scene",
         "SampleScene_7",
         "Reward_Scene",
         "SampleScene_14",
+        "Reward_Scene",
+        "SentenceGame_13",
         "Reward_Scene",
         "SampleScene_3",
         "Reward_Scene",
@@ -30,15 +31,15 @@ public class SceneFlowManager : MonoBehaviour
         "SampleScene_5",
         "Reward_Scene",
         "SampleScene_11_1",
+        "SampleScene_11",
+        "Reward_Scene",
+        "f1_8",
         "Reward_Scene",
         "SampleScene_11",
         "Reward_Scene",
         "SampleScene_6",
         "Reward_Scene",
-        "Final_Scroe"
-        // "SampleScene_11",
-        // "SampleScene_6"
-        
+        "Final_Scroe"        
     };
 
     private int currentIndex = 0;

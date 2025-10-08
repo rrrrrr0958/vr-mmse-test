@@ -395,8 +395,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u9001\u51FA"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: f2c25574d1362534f9639ddcb8c84d5e, type: 2}
-  m_sharedMaterial: {fileID: -4003750223768912481, guid: f2c25574d1362534f9639ddcb8c84d5e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -420,7 +420,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 20.7
+  m_fontSize: 26.85
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -600,6 +600,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1470279098769358944, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
       value: XR Origin (XR Rig)
@@ -1070,19 +1074,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e83bdb2127f42c14a80710aac9afec3d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  submitButton: {fileID: 1517814346}
-  blackPanel: {fileID: 252541149}
   messageText: {fileID: 2137959985}
   continueButton: {fileID: 602413371}
+  audioController: {fileID: 0}
   stars:
   - {fileID: 1233290422}
   - {fileID: 342973864}
   - {fileID: 281192679}
-  blackPanelFadeDuration: 0.25
-  blackPanelAlpha: 0.6
+  initialStarDelay: 0.5
   starSpawnDelay: 0.22
-  delayBeforeMessage: 0.12
-  nextSceneName: Reward
+  delayAfterStars: 0.3
+  delayAfterMessage: 0.5
 --- !u!1 &1517814344
 GameObject:
   m_ObjectHideFlags: 0
@@ -1577,8 +1579,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u7E7C\u7E8C"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: f2c25574d1362534f9639ddcb8c84d5e, type: 2}
-  m_sharedMaterial: {fileID: -4003750223768912481, guid: f2c25574d1362534f9639ddcb8c84d5e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1602,7 +1604,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 20.7
+  m_fontSize: 26.85
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1787,8 +1789,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u592A\u68D2\u4E86\uFF01"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: f2c25574d1362534f9639ddcb8c84d5e, type: 2}
-  m_sharedMaterial: {fileID: -4003750223768912481, guid: f2c25574d1362534f9639ddcb8c84d5e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

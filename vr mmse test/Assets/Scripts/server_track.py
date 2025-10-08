@@ -12,8 +12,17 @@ os.makedirs(SAVE_FOLDER, exist_ok=True)
 @app.route("/upload_csv", methods=["POST"])
 def upload_csv():
     # 建立唯一檔名
+    # 嘗試從 Unity header 讀取 File-Name，如果沒有則自動命名
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"session_{timestamp}.csv"
+    client_file_name = request.headers.get("File-Name", None)
+
+    if client_file_name:
+        file_name = client_file_name
+    else:
+        file_name = f"session_{timestamp}.csv"
+
+    print("📦 Received header File-Name =", request.headers.get("File-Name"))#debug
+
     file_path = os.path.join(SAVE_FOLDER, file_name)
 
     # 儲存 CSV
@@ -29,8 +38,8 @@ def upload_csv():
         return {"message": "No valid hand data found"}, 400
 
     # 去掉前 60 筆
-    if len(df) > 60:
-        df = df.iloc[60:].reset_index(drop=True)
+    if len(df) > 120:
+        df = df.iloc[120:].reset_index(drop=True)
 
     # 對每一隻手分別做位移轉換
     dfs = {}
@@ -48,8 +57,16 @@ def upload_csv():
     ax.set_xlabel("X (<- left . right ->)")
     ax.set_ylabel("Y (up, down)")
     ax.set_title("Hand Trajectory (Trimmed)")
-    ax.set_xlim(-0.5, 0.5)
-    ax.set_ylim(-0.2, 0.8)
+    lower_name = file_name.lower()
+    if "pick" in lower_name:
+        ax.set_xlim(-0.5, 0.5)
+        ax.set_ylim(-0.2, 0.8)
+    elif "draw" in lower_name:
+        ax.set_xlim(-0.5, 0.5)
+        ax.set_ylim(-0.2, 0.8)
+        # ax.set_xlim(-0.4, 0.4)
+        # ax.set_ylim(-0.4, 0.4)
+
 
     # 根據有的手建立線物件
     lines = {}

@@ -174,7 +174,7 @@ public class Rule_script : MonoBehaviour
         RuleText_rule.gameObject.SetActive(false);
         Debug.Log("🎯 規則播放完畢，流程結束。");
         // 🚨 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
-        // SceneFlowManager.instance.LoadNextScene(); 
+        SceneFlowManager.instance.LoadNextScene(); 
     }
 
     IEnumerator PlayVoiceAndText(int index)

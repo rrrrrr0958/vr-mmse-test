@@ -71,6 +71,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene_6.unity
     guid: 4d4336e94bc2245dab66b958c8595154
+  - enabled: 1
+    path: Assets/Scenes/SentenceGame_13.unity
+    guid: 05d4bf2fc08f1a44eb7f99c201768df8
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: f9089ef7ad893164fa8ac7a2d6a3ef8a, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

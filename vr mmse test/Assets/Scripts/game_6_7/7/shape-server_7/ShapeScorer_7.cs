@@ -143,6 +143,22 @@ public class ShapeScorer_7 : MonoBehaviour
                 #if UNITY_EDITOR
                 AssetDatabase.Refresh(); // 讓檔案立刻出現在 Project 視窗
                 #endif
+                // ★★★ 新增：呼叫 VRTracker 存軌跡
+                VRTracker1 tracker = FindFirstObjectByType<VRTracker1>();
+                if (tracker != null)
+                {
+                    tracker.SaveAndUploadTrajectory();
+                }
+                else
+                {
+                    Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
+                }
+
+                // 若 SceneFlowManager 沒掛，避免 NRE
+                if (SceneFlowManager.instance != null)
+                    SceneFlowManager.instance.LoadNextScene();
+                else
+                    Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
             }
             catch (System.Exception e)
             {
