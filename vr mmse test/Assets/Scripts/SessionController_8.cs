@@ -205,7 +205,7 @@ public class SessionController : MonoBehaviour
 
         // HUD 到相機前
         var cam = Camera.main ? Camera.main.transform : (_mover ? _mover.cameraTransform : null);
-        if (quizPanel && cam) quizPanel.PlaceHudInFront(cam, 1.6f, 0f);
+        if (quizPanel && cam) quizPanel.PlaceHudInFront(cam, 2.0f, 0f);
 
         quizPanel.Show("你現在在哪裡?", labels, OnPick);
 
