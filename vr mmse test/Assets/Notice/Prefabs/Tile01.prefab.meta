@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: c0142abc7172bb440805b2cd513afe97
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 289417
+  packageName: Notice Boards
+  packageVersion: 1.0
+  assetPath: Assets/Notice/Prefabs/Tile01.prefab
+  uploadId: 753496

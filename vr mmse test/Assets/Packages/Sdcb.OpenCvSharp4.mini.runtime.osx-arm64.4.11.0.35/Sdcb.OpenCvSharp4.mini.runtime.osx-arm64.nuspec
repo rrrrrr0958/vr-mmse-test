@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Sdcb.OpenCvSharp4.mini.runtime.osx-arm64</id>
+    <version>4.11.0.35</version>
+    <title>Sdcb.OpenCvSharp4.mini.runtime.osx-arm64 native bindings</title>
+    <authors>sdcb</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://licenses.nuget.org/Apache-2.0</licenseUrl>
+    <projectUrl>https://github.com/sdcb/opencvsharp-mini-runtime</projectUrl>
+    <description>Native binding for sdcb.OpenCvSharp4.mini to work on osx-arm64.</description>
+    <summary>Native binding for sdcb.OpenCvSharp4.mini to work on osx-arm64.</summary>
+    <copyright>Copyright 2025</copyright>
+    <tags>Sdcb OpenCV OpenCvSharp OpenCvSharp4</tags>
+    <repository type="git" url="https://github.com/sdcb/opencvsharp-mini-runtime.git" />
+  </metadata>
+</package>
