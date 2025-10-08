@@ -8256,11 +8256,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   db: {fileID: 11400000, guid: 025979435d536f946894d7055637d163, type: 2}
-  quizPanel: {fileID: 0}
+  quizPanel: {fileID: 1387626450}
   navPanelGroup: {fileID: 0}
   showNavPanelAfterAnswer: 0
   forceShowNavPanelOnDisable: 1
-  logger: {fileID: 0}
+  logger: {fileID: 653335680}
   autoCreateLoggerIfMissing: 1
   optionsPerQuestion: 4
 --- !u!4 &653335682
@@ -12682,7 +12682,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6501755809687671949, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -22071,7 +22071,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1786924367
 MonoBehaviour:
   m_ObjectHideFlags: 0

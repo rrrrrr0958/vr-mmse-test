@@ -35,6 +35,6 @@ MonoBehaviour:
     displayText: "\u4E00\u6A13 \u9EB5\u5305\u5E97"
   - sceneName: f1_8
     floorLabel: f1_8
-    stallLabel: Bread
-    viewpointName: VP_Bread_8
+    stallLabel: Fish
+    viewpointName: VP_Fish_8
     displayText: "\u4E00\u6A13 \u9B5A\u6524"

@@ -19,10 +19,10 @@ public class TransitionManager : MonoBehaviour
 
     [Header("Comfort Speeds")]
     [Tooltip("水平旋轉角速度（度/秒）。建議 80~120。")]
-    public float yawDegPerSec = 100f;
+    public float yawDegPerSec = 80f;
 
     [Tooltip("位移速度（公尺/秒）。建議 1.2~2.0。")]
-    public float moveMetersPerSec = 1.6f;
+    public float moveMetersPerSec = 1.2f;
 
     [Header("Vignette / Ease")]
     [Tooltip("旋轉/位移期間的遮罩強度（0~1）。0.35~0.55 之間較舒適。")]
@@ -63,17 +63,30 @@ public class TransitionManager : MonoBehaviour
         DontDestroyOnLoad(go);
 
         _canvas = go.AddComponent<Canvas>();
-        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _canvas.sortingOrder = short.MaxValue; // 永遠最上層
-
-        _group = go.AddComponent<CanvasGroup>();
+        _group  = go.AddComponent<CanvasGroup>();
         _group.alpha = 0f;
-        _group.blocksRaycasts = true; // 轉場時擋住點擊
+        _group.blocksRaycasts = true;
         _group.interactable = false;
+
+        // === 關鍵：在 XR 上改用 Screen Space - Camera，綁到 HMD 相機 ===
+        var cam = Camera.main; // XR 裝置時應為 CenterEye/MainCamera
+        if (cam != null)
+        {
+            _canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            _canvas.worldCamera = cam;
+            _canvas.planeDistance = 0.5f;     // 在相機前
+            _canvas.sortingOrder = short.MaxValue;
+        }
+        else
+        {
+            // 萬一還沒抓到相機，暫時用 Overlay；sceneLoaded 後會再重綁
+            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _canvas.sortingOrder = short.MaxValue;
+        }
 
         var imgGO = new GameObject("Black");
         imgGO.transform.SetParent(go.transform, false);
-        _black = imgGO.AddComponent<Image>();
+        _black = imgGO.AddComponent<UnityEngine.UI.Image>();
         _black.color = Color.black;
 
         var rt = _black.rectTransform;
@@ -81,22 +94,33 @@ public class TransitionManager : MonoBehaviour
         rt.anchorMax = Vector2.one;
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
+
+        // 切場景後再嘗試一次把 Canvas 綁到 XR 相機（避免啟動當下還沒有 MainCamera）
+        SceneManager.sceneLoaded += (_, __) =>
+        {
+            var cam2 = Camera.main;
+            if (cam2 != null)
+            {
+                _canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                _canvas.worldCamera = cam2;
+                _canvas.planeDistance = 0.5f;
+            }
+        };
     }
 
     void EnsureXrOrigin()
     {
         if (xrOrigin) return;
 
-        // 1) 常見命名
+        // 先找 XR Rig
         var rigByName = GameObject.Find("XR Origin (XR Rig)") ??
                         GameObject.Find("XR Origin") ??
                         GameObject.Find("XRRig");
         if (rigByName) { xrOrigin = rigByName.transform; return; }
 
-        // 2) 主攝影機父物件（若無父物件就用相機本體）
+        // 用主攝影機推斷 XR 根（有父物件則用父物件，否則就用相機本身）
         var cam = Camera.main;
-        if (cam)
-            xrOrigin = cam.transform.parent ? cam.transform.parent : cam.transform;
+        if (cam) xrOrigin = cam.transform.parent ? cam.transform.parent : cam.transform;
     }
 
     // ===========================================================
