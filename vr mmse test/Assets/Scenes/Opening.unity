@@ -1509,6 +1509,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 58445280694286476, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1470279098769358944, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
       value: XR Origin (XR Rig)
@@ -1807,7 +1815,7 @@ GameObject:
   - component: {fileID: 772930358}
   - component: {fileID: 772930357}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: Canvas1_op
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3441,7 +3449,7 @@ GameObject:
   - component: {fileID: 2092043037}
   - component: {fileID: 2092043041}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: Canvas_op
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
