@@ -1,170 +1,58 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.XR;
-using UnityEngine.SceneManagement;
-using System.Collections;
 
 public class VRButtonSelector : MonoBehaviour
 {
     [Header("VR Settings")]
-    public Camera vrCamera;
-    public float maxDistance = 10f;
-    public Color normalColor = Color.white;
-    public Color highlightColor = Color.green;
+    public Camera vrCamera;                 // 玩家頭盔相機
+    public float viewAngleThreshold = 15f;  // 視角判斷閾值（角度）
+    public float maxViewDistance = 15f;     // 可偵測距離
 
-    [Header("Scene Transition")]
-    public string targetSceneName = "Login Scene"; // 這裡可以在 Inspector 設定要切換的場景名稱
-    public CanvasGroup fadeCanvasGroup;  
-    public float fadeDuration = 1f;
+    [Header("UI Elements")]
+    public GameObject sofa;                 // 沙發物件
+    public GameObject hintText;             // 提示文字
+    public Button actionButton;             // 按鈕（僅顯示用）
 
-    private Button currentButton;
-    private Button lastButton;
-
-    private InputDevice leftController;
-    private InputDevice rightController;
-
-    void Awake()
-    {
-        // 確保淡入淡出控制器跨場景保留
-        DontDestroyOnLoad(gameObject);
-    }
+    private bool isSofaVisible = false;     // 是否目前看到沙發
 
     void Start()
     {
-        leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
-        rightController = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-
-        if (fadeCanvasGroup != null)
-        {
-            fadeCanvasGroup.alpha = 0;
-        }
-
-        // 每次場景載入後自動淡入
-        SceneManager.sceneLoaded += (scene, mode) =>
-        {
-            StartCoroutine(FadeIn());
-        };
+        // 初始隱藏提示與按鈕
+        if (hintText != null) hintText.SetActive(false);
+        if (actionButton != null) actionButton.gameObject.SetActive(false);
     }
 
     void Update()
     {
-        if (!leftController.isValid)
-            leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
-        if (!rightController.isValid)
-            rightController = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-
-        CheckButtonHover();
-        CheckButtonPress();
+        CheckSofaInView();  // 每幀檢查玩家是否看到沙發
     }
 
-    void CheckButtonHover()
+    /// <summary>
+    /// 檢查玩家視線是否看向沙發
+    /// </summary>
+    void CheckSofaInView()
     {
-        Ray ray = new Ray(vrCamera.transform.position, vrCamera.transform.forward);
-        RaycastHit hit;
+        if (sofa == null || vrCamera == null) return;
 
-        if (Physics.Raycast(ray, out hit, maxDistance))
+        Vector3 dirToSofa = (sofa.transform.position - vrCamera.transform.position).normalized;
+        float angle = Vector3.Angle(vrCamera.transform.forward, dirToSofa);
+        float distance = Vector3.Distance(vrCamera.transform.position, sofa.transform.position);
+
+        bool visibleNow = (angle < viewAngleThreshold && distance < maxViewDistance);
+
+        if (visibleNow && !isSofaVisible)
         {
-            Button btn = hit.collider.GetComponent<Button>() ?? hit.collider.GetComponentInParent<Button>();
-
-            if (btn != null)
-            {
-                currentButton = btn;
-
-                if (lastButton != currentButton)
-                {
-                    ResetButtonColor(lastButton);
-                    HighlightButton(currentButton);
-                    lastButton = currentButton;
-                }
-                return;
-            }
+            // 第一次看到沙發 → 顯示提示與按鈕
+            isSofaVisible = true;
+            if (hintText != null) hintText.SetActive(true);
+            if (actionButton != null) actionButton.gameObject.SetActive(true);
         }
 
-        if (lastButton != null)
-        {
-            ResetButtonColor(lastButton);
-            lastButton = null;
-            currentButton = null;
-        }
     }
-
-    void CheckButtonPress()
+    public void OnSceneSwitchButtonClicked_sofa()
     {
-        bool pressed = false;
-
-        if (leftController.isValid)
-        {
-            if (leftController.TryGetFeatureValue(CommonUsages.primaryButton, out bool p1) && p1)
-                pressed = true;
-            if (leftController.TryGetFeatureValue(CommonUsages.secondaryButton, out bool p2) && p2)
-                pressed = true;
-        }
-
-        if (rightController.isValid)
-        {
-            if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool p3) && p3)
-                pressed = true;
-            if (rightController.TryGetFeatureValue(CommonUsages.secondaryButton, out bool p4) && p4)
-                pressed = true;
-        }
-
-        if (pressed && currentButton != null)
-        {
-            Debug.Log($"觸發按鈕：{currentButton.name} → 切換到 {targetSceneName} 場景");
-            StartCoroutine(FadeOutAndLoad(targetSceneName));
-        }
-    }
-
-    void HighlightButton(Button btn)
-    {
-        if (btn == null) return;
-        var img = btn.GetComponent<Image>();
-        if (img != null)
-            img.color = highlightColor;
-    }
-
-    void ResetButtonColor(Button btn)
-    {
-        if (btn == null) return;
-        var img = btn.GetComponent<Image>();
-        if (img != null)
-            img.color = normalColor;
-    }
-
-    IEnumerator FadeIn()
-    {
-        if (fadeCanvasGroup == null) yield break;
-
-        float t = 0f;
-        fadeCanvasGroup.alpha = 1;
-        while (t < fadeDuration)
-        {
-            t += Time.deltaTime;
-            fadeCanvasGroup.alpha = 1 - (t / fadeDuration);
-            yield return null;
-        }
-        fadeCanvasGroup.alpha = 0;
-    }
-
-    IEnumerator FadeOutAndLoad(string sceneName)
-    {
-        if (fadeCanvasGroup == null)
-        {
-            SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
-            yield break;
-        }
-
-        float t = 0f;
-        fadeCanvasGroup.alpha = 0;
-        while (t < fadeDuration)
-        {
-            t += Time.deltaTime;
-            fadeCanvasGroup.alpha = t / fadeDuration;
-            yield return null;
-        }
-        fadeCanvasGroup.alpha = 1;
-
-        yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
-        // 淡入會在 sceneLoaded 事件中自動觸發
+        SceneFlowManager.instance.LoadNextScene();
+        // SceneFlowManager.instance.LoadNextScene();
+        // SceneManager.LoadScene("NextSceneName");
     }
 }

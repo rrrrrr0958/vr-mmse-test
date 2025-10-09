@@ -1,0 +1,18 @@
+﻿{
+  "PlayerId": "001",
+  "Timestamp": "2025-10-07 17:27:03",
+  "CorrectAnswers": {
+    "Year": "2025",
+    "Day": "7",
+    "Month": "10月",
+    "DayOfWeek": "星期二"
+  },
+  "PlayerAnswers": {
+    "Year": "2025",
+    "Month": "10月",
+    "Day": "13",
+    "DayOfWeek": "星期一",
+    "Hour": "下午  5:00"
+  },
+  "TotalCorrect": 3
+}

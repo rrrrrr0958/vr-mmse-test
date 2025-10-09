@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: cee0abf12240ab34294354897649e6ea
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 289417
+  packageName: Notice Boards
+  packageVersion: 1.0
+  assetPath: Assets/Notice/Prefabs/PostBase.prefab
+  uploadId: 753496

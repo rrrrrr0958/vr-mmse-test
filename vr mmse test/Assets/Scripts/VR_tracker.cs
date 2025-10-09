@@ -88,7 +88,7 @@ public class VRTracker : MonoBehaviour
     public void SaveAndUploadTrajectory()
     {
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"session_{timestamp}.csv";
+        string fileName = $"pick_session_{timestamp}.csv";
 
         string csvData = "Type,X,Y,Z,Time,TriggerPressed\n";
 
@@ -134,5 +134,15 @@ public class VRTracker : MonoBehaviour
             Debug.Log($"CSV uploaded successfully! File: {fileName}");
         else
             Debug.LogError("Upload failed: " + request.error);
+    }
+    public void ClearCurrentCSVData()
+    {
+        rightHandPositions.Clear();
+        leftHandPositions.Clear();
+        rightTriggerPressed.Clear();
+        leftTriggerPressed.Clear();
+        timestamps.Clear();
+
+        Debug.Log("Current CSV tracking data cleared.");
     }
 }

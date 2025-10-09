@@ -5,6 +5,7 @@ using Unity.XR.CoreUtils;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using System.Text; // 處理 WAV 檔案標頭時會用到
 
 public class Rule_script : MonoBehaviour
 {
@@ -52,21 +53,29 @@ public class Rule_script : MonoBehaviour
         "歡迎來到VR樂園",
         "我們準備了一系列的挑戰任務",
         "所有任務完成後可以開啟寶箱",
-        "現在先來知道挑戰的規則",
-        "第一：請勿移動和大幅度轉頭",
+        "現在先來知道       挑戰的規則",
+        "第一：請勿移動   和大幅度轉頭",
         "第二：若在遊戲過程中感到任何不適",
-        "請立即告知身旁的護理人員",
-        "第三：遊戲任務如果需要點選物品",
-        "請使用食指按下扳機鍵",
+        "請立即告知              身旁的護理人員",
+        "第三：遊戲任務   如果需要點選物品",
+        "請使用食指           按下扳機鍵",
         "現在請使用扳機鍵對準按鈕並按下",
-        "第四：若遊戲任務需要作答",
+        "第四：若遊戲       任務需要作答",
         "請在題目播放完畢後直接說出答案",
-        "或是依照題目指令回答",
-        "現在請說出：      「我知道了」", // Index 13
-        "接下來開始遊戲吧！"     // Index 14
+        "或是依照                題目指令回答",
+        "現在請說出：          「我知道了」", // Index 13
+        "接下來開始遊戲吧！"      // Index 14
     };
 
     private bool buttonWasPressed = false;
+
+    // 🌟 新增：用於解析 JSON 回應的結構
+    [System.Serializable]
+    public class RecognitionResponse
+    {
+        public string transcription;
+        public string error;
+    }
 
     void Start()
     {
@@ -104,6 +113,7 @@ public class Rule_script : MonoBehaviour
 
         ApplyCameraRotationToOrigin();
         StartCoroutine(WaitForStartThenBegin());
+
     }
 
     public void ApplyCameraRotationToOrigin()
@@ -163,6 +173,8 @@ public class Rule_script : MonoBehaviour
 
         RuleText_rule.gameObject.SetActive(false);
         Debug.Log("🎯 規則播放完畢，流程結束。");
+        // 🚨 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
+        SceneFlowManager.instance.LoadNextScene(); 
     }
 
     IEnumerator PlayVoiceAndText(int index)
@@ -263,7 +275,7 @@ public class Rule_script : MonoBehaviour
     }
 
     // ===============================================
-    // 🌟 新增: 語音錄製與辨識邏輯
+    // 🌟 語音錄製與辨識邏輯
     // ===============================================
 
     IEnumerator StartRecordingAndRecognize()
@@ -272,7 +284,7 @@ public class Rule_script : MonoBehaviour
         if (Microphone.devices.Length == 0)
         {
             Debug.LogError("🔴 找不到麥克風設備！無法進行錄音。");
-            RuleText_rule.text = "找不到麥克風！";
+            //RuleText_rule.text = "找不到麥克風！";
             yield return new WaitForSeconds(2f);
             yield break; // 結束錄音流程
         }
@@ -282,14 +294,13 @@ public class Rule_script : MonoBehaviour
 
         // 2. 開始錄音
         // 顯示 "錄音中"
-        RuleText_rule.text = "錄音中";
+        RuleText_rule.text = "錄音中...";
 
         // 啟動錄音，長度為 maxRecordingTime，使用 SAMPLE_RATE
         AudioClip recordingClip = Microphone.Start(deviceName, false, (int)maxRecordingTime, SAMPLE_RATE);
         float startTime = Time.time;
 
         // 3. 等待錄音結束 (達到最大時間)
-        // ⚠️ 備註: 若需按鍵停止錄音，這裡需要一個 while 迴圈等待按鍵事件
         while (Microphone.IsRecording(deviceName) && (Time.time - startTime < maxRecordingTime))
         {
             yield return null;
@@ -297,17 +308,18 @@ public class Rule_script : MonoBehaviour
 
         // 4. 停止錄音
         Microphone.End(deviceName);
-        Debug.Log($"✅ 錄音停止，錄音長度: {Time.time - startTime:F2} 秒");
+        float endTime = Time.time;
+        Debug.Log($"✅ 錄音停止，錄音長度: {endTime - startTime:F2} 秒");
 
         // 5. 處理錄製的音訊 (只取有效的長度)
-        float clipLength = Time.time - startTime;
+        float clipLength = endTime - startTime;
         if (clipLength > 0.1f) // 避免錄到空檔
         {
             // 從 AudioClip 截取出有效的錄音部分
             AudioClip finalClip = TrimAudioClip(recordingClip, clipLength);
 
             // 6. 將音訊上傳並等待辨識結果
-            //RuleText_rule.text = "處理中...";
+            RuleText_rule.text = "處理中...";
             yield return StartCoroutine(UploadAudio(finalClip));
 
             // 釋放記憶體
@@ -315,10 +327,12 @@ public class Rule_script : MonoBehaviour
         }
         else
         {
-            //RuleText_rule.text = "未錄到聲音，繼續。";
+            //RuleText_rule.text = "未錄到聲音，請再試一次。";
             Debug.Log("⚠️ 錄音時間過短，未上傳。");
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(2f); // 讓文字停留 2 秒
         }
+        // 7. 即使失敗，也要確保文字回到規則文本 (在 StartGameFlow 中下一次循環會更新)
+        RuleText_rule.text = ruleTexts_Final[13];
     }
 
     // 協助函式: 截取錄音片段
@@ -328,20 +342,85 @@ public class Rule_script : MonoBehaviour
         float[] data = new float[samples];
         originalClip.GetData(data, 0);
 
+        // 創建一個新的 AudioClip
         AudioClip newClip = AudioClip.Create("TrimmedClip", samples, originalClip.channels, originalClip.frequency, false);
         newClip.SetData(data, 0);
         return newClip;
     }
 
-    // 協助函式: 執行上傳及語音辨識
+    // ===============================================
+    // 🌟 新增: 將 AudioClip 轉為 WAV 格式的 Byte 陣列 (取代 WavUtility)
+    // 程式碼來源：基於常見的 Unity AudioClip 轉 WAV 實作
+    // ===============================================
+    private byte[] AudioClipToWav(AudioClip clip)
+    {
+        int channels = clip.channels;
+        int sampleRate = clip.frequency;
+        int samples = clip.samples;
+
+        // 取得 PCM 格式的 float 陣列
+        float[] data = new float[samples * channels];
+        clip.GetData(data, 0);
+
+        // 將 float 轉換為 16-bit short
+        short[] intData = new short[data.Length];
+        byte[] bytesData = new byte[data.Length * 2];
+
+        int rescaleFactor = 32767; // 2^15 - 1
+        for (int i = 0; i < data.Length; i++)
+        {
+            intData[i] = (short)(data[i] * rescaleFactor);
+            // 將 short 轉為 little-endian byte 陣列 (LOBYTE, HIBYTE)
+            bytesData[i * 2] = (byte)(intData[i]);
+            bytesData[i * 2 + 1] = (byte)(intData[i] >> 8);
+        }
+
+        // WAV 標頭大小是 44 bytes
+        int headerSize = 44;
+        int totalLength = headerSize + bytesData.Length;
+
+        System.IO.MemoryStream stream = new System.IO.MemoryStream(totalLength);
+        System.IO.BinaryWriter writer = new System.IO.BinaryWriter(stream);
+
+        // 1. RIFF 標頭
+        writer.Write(Encoding.UTF8.GetBytes("RIFF")); // Chunk ID
+        writer.Write(totalLength - 8); // Chunk Size (檔案總長度 - 8)
+        writer.Write(Encoding.UTF8.GetBytes("WAVE")); // Format
+
+        // 2. fmt 副標頭
+        writer.Write(Encoding.UTF8.GetBytes("fmt ")); // Sub-chunk 1 ID
+        writer.Write(16); // Sub-chunk 1 Size (PCM 為 16)
+        writer.Write((ushort)1); // Audio Format (PCM = 1)
+        writer.Write((ushort)channels); // Channels
+        writer.Write(sampleRate); // Sample Rate
+        writer.Write(sampleRate * channels * 2); // Byte Rate (SampleRate * Channels * BitsPerSample/8)
+        writer.Write((ushort)(channels * 2)); // Block Align (Channels * BitsPerSample/8)
+        writer.Write((ushort)16); // Bits Per Sample (16-bit)
+
+        // 3. data 副標頭
+        writer.Write(Encoding.UTF8.GetBytes("data")); // Sub-chunk 2 ID
+        writer.Write(bytesData.Length); // Sub-chunk 2 Size (實際音訊資料長度)
+
+        // 4. 音訊資料
+        writer.Write(bytesData);
+
+        byte[] wavData = stream.ToArray();
+        writer.Close();
+        stream.Close();
+
+        return wavData;
+    }
+
+
     // 協助函式: 執行上傳及語音辨識
     IEnumerator UploadAudio(AudioClip clip)
     {
-        // 將 AudioClip 轉換為 WAV 格式的 Byte 陣列
-        byte[] wavData = WavUtility.FromAudioClip(clip);
+        // 🌟 修正：將 AudioClip 轉換為 WAV 格式的 Byte 陣列
+        byte[] wavData = AudioClipToWav(clip);
 
         // 使用 UnityWebRequestMultiPartForm 來發送檔案
         WWWForm form = new WWWForm();
+        // 將 WAV 資料附加到表單，指定檔案名和 MIME 類型
         form.AddBinaryData("file", wavData, "temp_audio.wav", "audio/wav");
 
         using (UnityWebRequest www = UnityWebRequest.Post(recognitionServerURL, form))
@@ -360,33 +439,43 @@ public class Rule_script : MonoBehaviour
                 try
                 {
                     string jsonResponse = www.downloadHandler.text;
+                    // 使用您在 Rule_script 腳本中定義的 RecognitionResponse 結構
                     RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
 
                     if (response.transcription != null)
                     {
                         // 成功辨識
                         Debug.Log($"🗣️ 辨識結果 (Transcription): {response.transcription}");
-                        //RuleText_rule.text = $"你說：「{response.transcription}」";
+
+                        // 🌟 關鍵邏輯：檢查辨識結果是否為「我知道了」
+                        //if (response.transcription.Trim().Contains("我知道了"))
+                        //{
+                        //    RuleText_rule.text = $"你說：「{response.transcription}」\n✅ 辨識成功！";
+                        //}
+                        //else
+                        //{
+                        //    RuleText_rule.text = $"你說：「{response.transcription}」\n❌ 回答錯誤，請重說。";
+                        //    // 失敗後，讓流程重新回到錄音階段 (通過一個小循環實現，這裡為了簡潔暫不實現複雜循環)
+                        //    // 這裡直接返回，讓 StartRecordingAndRecognize 外面的 for 迴圈繼續執行到下一句
+                        //}
                     }
                     else if (response.error != null)
                     {
                         // 辨識失敗，但伺服器有回傳錯誤 (例如：辨識不到聲音)
                         Debug.LogWarning($"⚠️ 語音辨識錯誤: {response.error}");
-                        //RuleText_rule.text = "辨識失敗或無回應。";
+                        //RuleText_rule.text = $"辨識失敗：{response.error}";
                     }
                 }
                 catch (System.Exception e)
                 {
-                    // 🔴 錯誤修正：從 try-catch 區塊中移除了 yield return
                     Debug.LogError($"🔴 解析伺服器回應失敗: {e.Message}");
                     //RuleText_rule.text = "處理回應失敗！";
                 }
             }
         }
 
-        // 🌟 修正：將等待時間移到 try-catch 區塊外面
-        // 根據你的需求，無論結果如何，都讓文字停留 2 秒後再繼續流程
-        yield return new WaitForSeconds(2f);
+        // 讓文字停留 2 秒後再繼續流程
+        yield return new WaitForSeconds(0.5f);
     }
 
 }

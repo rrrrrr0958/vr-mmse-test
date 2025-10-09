@@ -15,12 +15,31 @@ public class SceneFlowManager : MonoBehaviour
 
     private readonly List<string> sceneOrder = new List<string>
     {
-        "SampleScene_5",
+        "Opening",
+        "Login Scene",
+        "SampleScene_rule",
+        "SampleScene_7",
+        "Reward_Scene",
+        "SampleScene_14",
+        "Reward_Scene",
+        "SentenceGame_13",
+        "Reward_Scene",
         "SampleScene_3",
+        "Reward_Scene",
+        "SampleScene_2",
+        "Reward_Scene",
+        "SampleScene_5",
+        "Reward_Scene",
         "SampleScene_11_1",
         "SampleScene_11",
-        "SampleScene_2",
-        "SampleScene_11"
+        "Reward_Scene",
+        "f1_8",
+        "Reward_Scene",
+        "SampleScene_11",
+        "Reward_Scene",
+        "SampleScene_6",
+        "Reward_Scene",
+        "Final_Scroe"        
     };
 
     private int currentIndex = 0;
@@ -47,6 +66,8 @@ public class SceneFlowManager : MonoBehaviour
 
     private IEnumerator StartPersistentServers()
     {
+        yield return StartCoroutine(StartPythonIfFree("server_flask_7.py", 5002));
+        yield return new WaitForSeconds(2f);
         yield return StartCoroutine(StartPythonIfFree("audio_5.py", 5000));
         yield return new WaitForSeconds(2f);
         yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));
@@ -125,28 +146,28 @@ public class SceneFlowManager : MonoBehaviour
         }
     }
     //原本的loadnext
-    // public void LoadNextScene()
-    // {
-    //     currentIndex++;
-    //     if (currentIndex >= sceneOrder.Count) currentIndex = 0;
-    //     StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
-    // }
-
-    //可以設定從某場景到下一個場景時要暫停
     public void LoadNextScene()
     {
         currentIndex++;
         if (currentIndex >= sceneOrder.Count) currentIndex = 0;
-
-        // 🔹 在從 SampleScene_11 → SampleScene_2 時暫停 15 秒
-        if (sceneOrder[currentIndex - 1] == "SampleScene_11" && sceneOrder[currentIndex] == "SampleScene_2")
-        {
-            StartCoroutine(PauseBeforeNextScene(15f, sceneOrder[currentIndex]));
-            return;
-        }
-
         StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
     }
+
+    //可以設定從某場景到下一個場景時要暫停
+    // public void LoadNextScene()
+    // {
+    //     currentIndex++;
+    //     if (currentIndex >= sceneOrder.Count) currentIndex = 0;
+
+    //     // 🔹 在從 SampleScene_11 → SampleScene_2 時暫停 15 秒
+    //     if (sceneOrder[currentIndex - 1] == "SampleScene_11" && sceneOrder[currentIndex] == "SampleScene_2")
+    //     {
+    //         StartCoroutine(PauseBeforeNextScene(15f, sceneOrder[currentIndex]));
+    //         return;
+    //     }
+
+    //     StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
+    // }
     //和上方要一同存在或刪掉(寫如何暫停的)
     private IEnumerator PauseBeforeNextScene(float seconds, string nextScene)
     {
