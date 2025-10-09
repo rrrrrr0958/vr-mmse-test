@@ -8684,7 +8684,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rightHand: {fileID: 1376626316}
   leftHand: {fileID: 1376626315}
-  serverUrl: http://127.0.0.1:5001/upload_csv
+  serverUrl: http://127.0.0.1:5002/upload_csv
 --- !u!1 &703419173
 GameObject:
   m_ObjectHideFlags: 0

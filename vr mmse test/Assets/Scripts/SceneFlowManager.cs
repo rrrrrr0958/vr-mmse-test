@@ -66,11 +66,11 @@ public class SceneFlowManager : MonoBehaviour
 
     private IEnumerator StartPersistentServers()
     {
-        yield return StartCoroutine(StartPythonIfFree("server_flask_7.py", 5002));
-        yield return new WaitForSeconds(2f);
-        yield return StartCoroutine(StartPythonIfFree("audio_5.py", 5000));
-        yield return new WaitForSeconds(2f);
-        yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));
+        yield return StartCoroutine(StartPythonIfFree("draw.py", 5002));
+        yield return new WaitForSeconds(3f);
+        // yield return StartCoroutine(StartPythonIfFree("audio_5.py", 5000));
+        // yield return new WaitForSeconds(2f);
+        // yield return StartCoroutine(StartPythonIfFree("server_track.py", 5001));
     }
 
     private IEnumerator StartPythonIfFree(string script, int port)

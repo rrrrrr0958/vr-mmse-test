@@ -19,7 +19,7 @@ public class VRTracker1 : MonoBehaviour
     private List<int> leftTriggerPressed = new List<int>();
 
     [Header("Server Settings")]
-    public string serverUrl = "http://127.0.0.1:5001/upload_csv";
+    public string serverUrl = "http://127.0.0.1:5002/upload_csv";
 
     private float startTime;
     private bool isRecording = false;

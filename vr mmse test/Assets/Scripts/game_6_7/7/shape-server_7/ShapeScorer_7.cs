@@ -116,7 +116,6 @@ public class ShapeScorer_7 : MonoBehaviour
     {
         if (!Application.isPlaying) { Debug.LogWarning("請在 Play 模式下使用。"); return; }
         StartCoroutine(SendForScore());
-        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator SendForScore()
