@@ -53,17 +53,17 @@ public class Rule_script : MonoBehaviour
         "歡迎來到VR樂園",
         "我們準備了一系列的挑戰任務",
         "所有任務完成後可以開啟寶箱",
-        "現在先來知道挑戰的規則",
-        "第一：請勿移動和大幅度轉頭",
+        "現在先來知道       挑戰的規則",
+        "第一：請勿移動   和大幅度轉頭",
         "第二：若在遊戲過程中感到任何不適",
-        "請立即告知身旁的護理人員",
-        "第三：遊戲任務如果需要點選物品",
-        "請使用食指按下扳機鍵",
+        "請立即告知              身旁的護理人員",
+        "第三：遊戲任務   如果需要點選物品",
+        "請使用食指           按下扳機鍵",
         "現在請使用扳機鍵對準按鈕並按下",
-        "第四：若遊戲任務需要作答",
+        "第四：若遊戲       任務需要作答",
         "請在題目播放完畢後直接說出答案",
-        "或是依照題目指令回答",
-        "現在請說出：     「我知道了」", // Index 13
+        "或是依照                題目指令回答",
+        "現在請說出：          「我知道了」", // Index 13
         "接下來開始遊戲吧！"      // Index 14
     };
 
@@ -284,7 +284,7 @@ public class Rule_script : MonoBehaviour
         if (Microphone.devices.Length == 0)
         {
             Debug.LogError("🔴 找不到麥克風設備！無法進行錄音。");
-            RuleText_rule.text = "找不到麥克風！";
+            //RuleText_rule.text = "找不到麥克風！";
             yield return new WaitForSeconds(2f);
             yield break; // 結束錄音流程
         }
@@ -294,7 +294,7 @@ public class Rule_script : MonoBehaviour
 
         // 2. 開始錄音
         // 顯示 "錄音中"
-        RuleText_rule.text = "請說出：「我知道了」\n(錄音中...)";
+        RuleText_rule.text = "錄音中...";
 
         // 啟動錄音，長度為 maxRecordingTime，使用 SAMPLE_RATE
         AudioClip recordingClip = Microphone.Start(deviceName, false, (int)maxRecordingTime, SAMPLE_RATE);
@@ -327,7 +327,7 @@ public class Rule_script : MonoBehaviour
         }
         else
         {
-            RuleText_rule.text = "未錄到聲音，請再試一次。";
+            //RuleText_rule.text = "未錄到聲音，請再試一次。";
             Debug.Log("⚠️ 錄音時間過短，未上傳。");
             yield return new WaitForSeconds(2f); // 讓文字停留 2 秒
         }
@@ -431,7 +431,7 @@ public class Rule_script : MonoBehaviour
             {
                 // 伺服器連線或協議錯誤
                 Debug.LogError($"🔴 語音辨識伺服器錯誤: {www.error}");
-                RuleText_rule.text = "伺服器連線錯誤！";
+                //RuleText_rule.text = "伺服器連線錯誤！";
             }
             else
             {
@@ -448,34 +448,34 @@ public class Rule_script : MonoBehaviour
                         Debug.Log($"🗣️ 辨識結果 (Transcription): {response.transcription}");
 
                         // 🌟 關鍵邏輯：檢查辨識結果是否為「我知道了」
-                        if (response.transcription.Trim().Contains("我知道了"))
-                        {
-                            RuleText_rule.text = $"你說：「{response.transcription}」\n✅ 辨識成功！";
-                        }
-                        else
-                        {
-                            RuleText_rule.text = $"你說：「{response.transcription}」\n❌ 回答錯誤，請重說。";
-                            // 失敗後，讓流程重新回到錄音階段 (通過一個小循環實現，這裡為了簡潔暫不實現複雜循環)
-                            // 這裡直接返回，讓 StartRecordingAndRecognize 外面的 for 迴圈繼續執行到下一句
-                        }
+                        //if (response.transcription.Trim().Contains("我知道了"))
+                        //{
+                        //    RuleText_rule.text = $"你說：「{response.transcription}」\n✅ 辨識成功！";
+                        //}
+                        //else
+                        //{
+                        //    RuleText_rule.text = $"你說：「{response.transcription}」\n❌ 回答錯誤，請重說。";
+                        //    // 失敗後，讓流程重新回到錄音階段 (通過一個小循環實現，這裡為了簡潔暫不實現複雜循環)
+                        //    // 這裡直接返回，讓 StartRecordingAndRecognize 外面的 for 迴圈繼續執行到下一句
+                        //}
                     }
                     else if (response.error != null)
                     {
                         // 辨識失敗，但伺服器有回傳錯誤 (例如：辨識不到聲音)
                         Debug.LogWarning($"⚠️ 語音辨識錯誤: {response.error}");
-                        RuleText_rule.text = $"辨識失敗：{response.error}";
+                        //RuleText_rule.text = $"辨識失敗：{response.error}";
                     }
                 }
                 catch (System.Exception e)
                 {
                     Debug.LogError($"🔴 解析伺服器回應失敗: {e.Message}");
-                    RuleText_rule.text = "處理回應失敗！";
+                    //RuleText_rule.text = "處理回應失敗！";
                 }
             }
         }
 
         // 讓文字停留 2 秒後再繼續流程
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(0.5f);
     }
 
 }
