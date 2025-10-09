@@ -638,7 +638,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &61207072
 RectTransform:
   m_ObjectHideFlags: 0
@@ -21239,9 +21239,6 @@ MonoBehaviour:
   textDelay: 1.51
   buttonDelay: 1
   fadeDuration: 1
-  nextSceneName: 
-  blackSphere: {fileID: 0}
-  fadeOutDuration: 1
 --- !u!1001 &1933765620
 PrefabInstance:
   m_ObjectHideFlags: 0

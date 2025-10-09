@@ -47,5 +47,12 @@ public class VRButtonSelector : MonoBehaviour
             if (hintText != null) hintText.SetActive(true);
             if (actionButton != null) actionButton.gameObject.SetActive(true);
         }
+
+    }
+    public void OnSceneSwitchButtonClicked_sofa()
+    {
+        SceneFlowManager.instance.LoadNextScene();
+        // SceneFlowManager.instance.LoadNextScene();
+        // SceneManager.LoadScene("NextSceneName");
     }
 }

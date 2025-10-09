@@ -496,7 +496,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 84367409}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1578262970}
+        m_TargetAssemblyTypeName: VRButtonSelector, Assembly-CSharp
+        m_MethodName: OnSceneSwitchButtonClicked_sofa
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &84367409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3562,7 +3574,6 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 21784922}
   - {fileID: 975093011}
   - {fileID: 1243859841}
   - {fileID: 454648835}
@@ -3572,3 +3583,4 @@ SceneRoots:
   - {fileID: 1578262971}
   - {fileID: 2092043040}
   - {fileID: 1426072355}
+  - {fileID: 21784922}

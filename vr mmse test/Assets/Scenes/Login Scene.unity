@@ -4523,7 +4523,7 @@ MonoBehaviour:
   m_text: "\u8A3B\u518A"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
-  m_sharedMaterial: {fileID: 9097021707352035785, guid: 8c38b9620217f604d828844065296f90, type: 2}
+  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4588,7 +4588,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &285590183
@@ -4683,7 +4683,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &304127480
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10309,7 +10309,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 847957839}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
@@ -10324,8 +10324,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -11805,6 +11805,7 @@ GameObject:
   - component: {fileID: 971702070}
   - component: {fileID: 971702069}
   - component: {fileID: 971702068}
+  - component: {fileID: 971702071}
   m_Layer: 5
   m_Name: Placeholder
   m_TagString: Untagged
@@ -11873,8 +11874,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u8ACB\u8F38\u5165\u60A8\u7684\u5E74\u9F61"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8c38b9620217f604d828844065296f90, type: 2}
-  m_sharedMaterial: {fileID: 9097021707352035785, guid: 8c38b9620217f604d828844065296f90, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -11939,7 +11940,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &971702070
@@ -11950,6 +11951,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971702066}
   m_CullTransparentMesh: 1
+--- !u!23 &971702071
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971702066}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &974924859
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18127,7 +18173,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1451867502}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1673287214}
+        m_TargetAssemblyTypeName: MainScene, Assembly-CSharp
+        m_MethodName: OnSceneSwitchButtonClicked
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1451867502
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21218,8 +21276,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u200B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -21519,13 +21577,15 @@ MonoBehaviour:
   InputPassword: {fileID: 232165969}
   LoginPanel: {fileID: 304127479}
   InfoPanel: {fileID: 1814800076}
-  textEmail: {fileID: 557832282}
   UserGenderPanel: {fileID: 1024281973}
   UserAgePanel: {fileID: 503771651}
-  InputAge: {fileID: 225873324}
   UserPanelDisplay: {fileID: 1679038492}
+  textEmail: {fileID: 557832282}
   textAge: {fileID: 197239881}
   textGender: {fileID: 1546140738}
+  InputAge: {fileID: 225873324}
+  audioSource: {fileID: 0}
+  buttonClickSound: {fileID: 8300000, guid: 49b6f943eb0d8ab4f9a4baa8f1398c3e, type: 3}
 --- !u!4 &1673287215
 Transform:
   m_ObjectHideFlags: 0
