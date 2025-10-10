@@ -70,7 +70,7 @@ public class ChestSceneController : MonoBehaviour
 
             btnGroup.alpha = 0f;
             continueButton.gameObject.SetActive(false);
-            continueButton.onClick.RemoveAllListeners();
+            // continueButton.onClick.RemoveAllListeners();
             continueButton.onClick.AddListener(OnContinueButtonClicked);
         }
 
