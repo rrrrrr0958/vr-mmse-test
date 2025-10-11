@@ -13590,7 +13590,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1184802324
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17742,6 +17742,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 808857e1491e9dd488581487f639ab1d, type: 3}
   - {fileID: 8300000, guid: cad3deeb6da5f6743bca2f233c75e97a, type: 3}
   - {fileID: 8300000, guid: 86e3a419c4ab18040bb0b7af1979d5df, type: 3}
+  successClip: {fileID: 8300000, guid: a37068ba2bb3b3e4dad78deadce6b5f9, type: 3}
+  failureClip: {fileID: 8300000, guid: c4d6c8829597a72438177990a570768e, type: 3}
   initialDelaySeconds: 1
   treasureDisplaySeconds: 3
   textSegmentDelay: 0.5
