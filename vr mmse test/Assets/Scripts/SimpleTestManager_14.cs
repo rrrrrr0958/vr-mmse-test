@@ -7,6 +7,7 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using Newtonsoft.Json;
+using UnityEngine.EventSystems; // 為了能使用 EventSystem 而新增
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -40,7 +41,7 @@ public class SimpleTestManager : MonoBehaviour
     public AudioClip incorrectSFX;
 
     [Header("Question Prompts")]
-    public AudioClip startTestAudio; 
+    public AudioClip startTestAudio;
     public AudioClip yearQuestionAudio;
     public AudioClip monthQuestionAudio;
     public AudioClip dayQuestionAudio;
@@ -56,11 +57,11 @@ public class SimpleTestManager : MonoBehaviour
     [Header("Scenery")]
     public Material[] seasonMaterials;
     public Renderer sceneryRenderer;
-    
+
     [Header("Season Visual Effects")]
     public float seasonTransitionDuration = 1.0f;
     public AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-    
+
     [Header("DEBUG - 測試用")]
     public bool forceSeasonChange = false;
     [Range(0, 3)]
@@ -78,18 +79,41 @@ public class SimpleTestManager : MonoBehaviour
     private bool IsSceneFinished() => RemainingQuestions == 0;
     private Dictionary<string, string> playerAnswers = new Dictionary<string, string>();
 
-    // ▼▼▼ 修改處 ▼▼▼
-    // 將音檔播放移至 Start() 函式，這樣一進入 Play 模式就會播放
     void Start()
     {
-        PlayQuestionSound(startTestAudio); // <-- 播放開始音檔
+        PlayQuestionSound(startTestAudio);
         InitializeTest();
+
+        // 在遊戲一開始，就為所有問題按鈕加上「移開時取消選定」的腳本
+        SetupButtonDeselection(yearButtons);
+        SetupButtonDeselection(monthButtons);
+        SetupButtonDeselection(dayButtons);
+        SetupButtonDeselection(dayOfWeekButtons);
+        SetupButtonDeselection(hourButtons);
+
         if (forceSeasonChange)
         {
             StartCoroutine(CycleAllSeasons());
         }
     }
-    
+
+    /// <summary>
+    /// 輔助函式：為一組按鈕陣列中的每個按鈕加上 DeselectOnPointerExit 元件。
+    /// </summary>
+    /// <param name="buttons">要處理的按鈕陣列</param>
+    void SetupButtonDeselection(Button[] buttons)
+    {
+        if (buttons == null) return;
+
+        foreach (var button in buttons)
+        {
+            if (button != null && button.GetComponent<DeselectOnPointerExit>() == null)
+            {
+                button.gameObject.AddComponent<DeselectOnPointerExit>();
+            }
+        }
+    }
+
     void InitializeTest()
     {
         score = 0;
@@ -123,12 +147,12 @@ public class SimpleTestManager : MonoBehaviour
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
         if (feedbackText != null) feedbackText.text = "";
         if (titleText != null) titleText.text = "今天市場有開嗎?";
-        
+
         Debug.Log("Simple Test Manager initialized");
     }
 
     #region Options Generation & Helpers
-    
+
     List<string> GenerateDayOptions()
     {
         DateTime now = DateTime.Now;
@@ -290,44 +314,44 @@ public class SimpleTestManager : MonoBehaviour
             else { buttons[i].gameObject.SetActive(false); }
         }
     }
-    
+
     void AskNextQuestion()
     {
         selectedAnswer = "";
         if (feedbackText != null) feedbackText.text = "";
-        
+
         string currentQuestionKey = questions[currentQuestionIndex];
         List<string> options = null;
-        
-        switch(currentQuestionKey)
+
+        switch (currentQuestionKey)
         {
-            case "Year": 
-                options = GenerateYearOptions(); 
+            case "Year":
+                options = GenerateYearOptions();
                 if (titleText != null) titleText.text = "請問今年是哪一年？";
                 PlayQuestionSound(yearQuestionAudio);
                 break;
-            case "Month": 
-                options = GenerateMonthOptions(); 
+            case "Month":
+                options = GenerateMonthOptions();
                 if (titleText != null) titleText.text = "現在是幾月呢？";
                 PlayQuestionSound(monthQuestionAudio);
                 break;
-            case "Day": 
-                options = GenerateDayOptions(); 
+            case "Day":
+                options = GenerateDayOptions();
                 if (titleText != null) titleText.text = "今天幾號？";
                 PlayQuestionSound(dayQuestionAudio);
                 break;
-            case "DayOfWeek": 
-                options = GenerateDayOfWeekOptions(); 
+            case "DayOfWeek":
+                options = GenerateDayOfWeekOptions();
                 if (titleText != null) titleText.text = "那今天是星期幾？";
                 PlayQuestionSound(dayOfWeekQuestionAudio);
                 break;
-            case "Hour": 
-                options = GenerateHourOptions(); 
+            case "Hour":
+                options = GenerateHourOptions();
                 if (titleText != null) titleText.text = "現在大概是什麼時候了？";
                 PlayQuestionSound(hourQuestionAudio);
                 break;
         }
-        
+
         if (options != null) UpdateButtonsForQuestion(currentQuestionKey, options);
         if (questionPanels.ContainsKey(currentQuestionKey) && questionPanels[currentQuestionKey] != null)
         {
@@ -491,21 +515,19 @@ public class SimpleTestManager : MonoBehaviour
         if (hourPanel != null) hourPanel.SetActive(false);
         if (resultPanel != null) resultPanel.SetActive(false);
     }
-    
+
     #region Public Control Methods
-    
-    // ▼▼▼ 修改處 ▼▼▼
-    // 按下按鈕時，不再需要播放音檔，所以恢復成原本的樣子
-    public void StartTest() 
+
+    public void StartTest()
     {
-        HideAllPanels(); 
-        AskNextQuestion(); 
+        HideAllPanels();
+        AskNextQuestion();
     }
 
-    public void RestartTest() 
-    { 
-        if (audioSource != null) audioSource.Stop(); 
-        InitializeTest(); 
+    public void RestartTest()
+    {
+        if (audioSource != null) audioSource.Stop();
+        InitializeTest();
     }
 
     #endregion
