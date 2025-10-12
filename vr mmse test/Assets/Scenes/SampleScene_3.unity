@@ -6050,6 +6050,8 @@ MonoBehaviour:
   weaponStallAudioClip: {fileID: 8300000, guid: 971e89d37c2abfc46ab9fdb3dc74dbb2, type: 3}
   breadStallAudioClip: {fileID: 8300000, guid: 8488e1f06d201d141b724e29a75d9144, type: 3}
   meatStallAudioClip: {fileID: 8300000, guid: 8fb3e216a33954b44bce7c3a01738d82, type: 3}
+  transitToFishStallAudioClip: {fileID: 8300000, guid: 6655f085ced03944dbf12beb16dfaa30, type: 3}
+  transitToBananaAudioClip: {fileID: 8300000, guid: 1272b337af1b4d34abfa8084d8ecce03, type: 3}
   whatIsSellingAudioClip: {fileID: 8300000, guid: a74c6f198b7149e45b839d7ffec1f20a, type: 3}
   fishColorAudioClip: {fileID: 8300000, guid: 28beae60842bca643931e664533bc22c, type: 3}
   whatIsThatAudioClip: {fileID: 8300000, guid: 25212e41d207a124ba59f1a6a9ce3f63, type: 3}

@@ -413,38 +413,40 @@ public class QuestionManager : MonoBehaviour
         }
     }
 
-    // ===============================================
-    // ⭐ 修正：WAV 檔案儲存函式 (使用相對路徑)
-    // ===============================================
+    // 修正：WAV 檔案儲存函式 (使用相對路徑)
     private void SaveWavFile(byte[] wavData, int questionNumber)
     {
-        // ⭐ 使用 Directory.GetCurrentDirectory() 來獲取應用程式執行目錄 (相對路徑的起點)
-        // 在 Editor 中通常是專案根目錄。
-        string baseDirectory = Directory.GetCurrentDirectory();
+        // 1. 構建目標路徑
+        string relativePath = "Scripts/game_5";
+        string directoryPath = Path.Combine(Application.dataPath, relativePath);
 
-        string folderName = "game5";
-        string directoryPath = Path.Combine(baseDirectory, folderName);
-
-        // 建立資料夾
+        // 2. 建立資料夾
         if (!Directory.Exists(directoryPath))
         {
             Directory.CreateDirectory(directoryPath);
             Debug.Log($"已建立資料夾: {directoryPath}");
         }
 
-        // 檔案命名：時間戳記 + 題號 (Q1, Q2, ...)
-        string timestamp = DateTime.Now.ToString("yyyyMMdd"); //yyyyMMdd_HHmmss
-        string fileName = $"{timestamp}_5_Q{questionNumber}.wav";
+        // 3. 檔案命名 (時間戳記 + 題號)
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
+        string fileName = $"{timestamp}_game5_Q{questionNumber}.wav";
         string filePath = Path.Combine(directoryPath, fileName);
 
+        // 4. 寫入檔案
         try
         {
             File.WriteAllBytes(filePath, wavData);
-            Debug.Log($"✅ 語音檔案儲存成功: {filePath}");
+
+            // 僅在 Editor 環境下，強制 Unity 刷新 Asset Database，讓新檔案即時出現在 Project 面板
+#if UNITY_EDITOR
+        UnityEditor.AssetDatabase.Refresh();
+#endif
+
+            Debug.Log($"✅ 語音檔案儲存成功 (Assets/Scripts/game_5): {filePath}");
         }
         catch (Exception e)
         {
-            Debug.LogError($"❌ 語音檔案儲存失敗。請檢查權限或路徑: {filePath}. 錯誤訊息: {e.Message}");
+            Debug.LogError($"❌ 語音檔案儲存失敗。請檢查 {directoryPath} 是否存在且有寫入權限。錯誤訊息: {e.Message}");
         }
     }
 
@@ -504,7 +506,7 @@ public class QuestionManager : MonoBehaviour
         string remainingMoneyStr = remainingMoney.ToString();
         string normalizedResponse = userResponse.Replace("。", "").Replace("元", "").Trim();
 
-        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\"");
+        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\""); //這邊錯誤&正確都要存到database
 
         if (normalizedResponse == remainingMoneyStr)
         {
