@@ -108,6 +108,7 @@ public class RunLogger : MonoBehaviour
         {
             Directory.CreateDirectory(folder);
 
+            // 原有輸出：每次 run 產出一組 csv/json 到 persistentDataPath/runs
             File.WriteAllText(baseName + ".csv", ToCSV(_records), Encoding.UTF8);
 
             var wrap = new Wrapper
@@ -119,6 +120,9 @@ public class RunLogger : MonoBehaviour
                 createdAt = DateTime.Now.ToString("o", CultureInfo.InvariantCulture),
             };
             File.WriteAllText(baseName + ".json", JsonUtility.ToJson(wrap, true), Encoding.UTF8);
+
+            // ★ 新增：累積寫入專案內（或在 Build 環境寫到 persistentDataPath）的 results_8.csv
+            AppendToResults8Csv(_records);
 
             UnityEngine.Debug.Log($"[RunLogger] Saved:\n  {baseName}.csv\n  {baseName}.json\n  (n={_records.Count}, acc={accuracy:P1}, avgRT={avgRt} ms)");
         }
@@ -171,5 +175,52 @@ public class RunLogger : MonoBehaviour
         if (s.Contains(",") || s.Contains("\"") || s.Contains("\n"))
             return "\"" + s.Replace("\"", "\"\"") + "\"";
         return s;
+    }
+
+    /// <summary>
+    /// 追加寫入 results_8.csv（Editor：Assets/Scripts/results_8.csv；Build：persistentDataPath/results_8.csv）
+    /// 不影響既有輸出。不存在時會自動建立並寫入表頭。
+    /// </summary>
+    void AppendToResults8Csv(List<QARecord> list)
+    {
+        try
+        {
+#if UNITY_EDITOR
+            string dir = Path.Combine(Application.dataPath, "Scripts");
+#else
+            string dir = Application.persistentDataPath;
+#endif
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+            string path = Path.Combine(dir, "results_8.csv");
+            bool newFile = !File.Exists(path);
+
+            using (var sw = new StreamWriter(path, append: true, Encoding.UTF8))
+            {
+                if (newFile)
+                {
+                    sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+                }
+
+                foreach (var r in list)
+                {
+                    sw.WriteLine(string.Join(",",
+                        Escape(r.timeISO),
+                        Escape(r.sceneName),
+                        Escape(r.vpKey),
+                        Escape(r.displayText),
+                        Escape(r.userChoiceKey),
+                        r.correct ? "1" : "0",
+                        r.rtMs.ToString(CultureInfo.InvariantCulture)
+                    ));
+                }
+            }
+
+            UnityEngine.Debug.Log($"[RunLogger] results_8.csv updated at: {path}");
+        }
+        catch (Exception e)
+        {
+            UnityEngine.Debug.LogError($"[RunLogger] results_8.csv write FAILED: {e.Message}");
+        }
     }
 }
