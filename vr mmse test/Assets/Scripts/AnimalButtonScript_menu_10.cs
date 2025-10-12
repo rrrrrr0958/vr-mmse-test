@@ -2,18 +2,20 @@ using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Button))]
-public class AnimalButtonScript_menu : MonoBehaviour
+public class AnimalButtonScript_menu_10 : MonoBehaviour
 {
     [Header("動物名稱設定")]
     public string animalName = "默認動物";
 
     private Button button;
+    private GameManagerMenu_10 gmMenu;
+    private GameManager_10 gmPlay;
 
     void Awake()
     {
         button = GetComponent<Button>();
         if (string.IsNullOrEmpty(animalName))
-            animalName = gameObject.name; // 預設用物件名當動物名
+            animalName = gameObject.name;
     }
 
     void OnEnable()
@@ -21,7 +23,18 @@ public class AnimalButtonScript_menu : MonoBehaviour
         if (button != null)
             button.onClick.AddListener(OnButtonClick);
         else
-            Debug.LogError($"[AnimalButtonScript_menu] {name} 找不到 Button 元件");
+            Debug.LogError($"[AnimalButtonScript_menu_10] {name} 找不到 Button 元件");
+
+        // 嘗試找到 GameManager（兩種版本）
+        gmMenu = GameManagerMenu_10.instance ?? FindObjectOfType<GameManagerMenu_10>(true);
+        gmPlay = GameManager_10.instance ?? FindObjectOfType<GameManager_10>(true);
+
+        if (gmMenu != null)
+            Debug.Log($"[AnimalButtonScript_menu_10] 綁定到 GameManagerMenu_10");
+        else if (gmPlay != null)
+            Debug.Log($"[AnimalButtonScript_menu_10] 綁定到 GameManager_10");
+        else
+            Debug.LogWarning($"[AnimalButtonScript_menu_10] 尚未找到任何 GameManager（可能還在載入中）");
     }
 
     void OnDisable()
@@ -30,20 +43,33 @@ public class AnimalButtonScript_menu : MonoBehaviour
             button.onClick.RemoveListener(OnButtonClick);
     }
 
-    // 按鈕點擊時
     private void OnButtonClick()
     {
-        if (GameManagerMenu.instance == null)
+        // 嘗試確認 Manager 是否存在
+        if (gmMenu == null && gmPlay == null)
         {
-            Debug.LogError("[AnimalButtonScript_menu] 找不到 GameManagerMenu.instance，確認場景中有掛 GameManagerMenu");
-            return;
+            gmMenu = GameManagerMenu_10.instance ?? FindObjectOfType<GameManagerMenu_10>(true);
+            gmPlay = GameManager_10.instance ?? FindObjectOfType<GameManager_10>(true);
         }
 
-        // 依照你現在的 GameManagerMenu 實作，傳入 Button + 名稱
-        GameManagerMenu.instance.OnAnimalButtonClick(button, animalName);
-        Debug.Log($"[AnimalButtonScript_menu] 已將 {animalName} 傳給 GameManagerMenu（含 Button）");
+        if (gmMenu != null)
+        {
+            gmMenu.OnAnimalButtonClick(button, animalName);
+            Debug.Log($"[AnimalButtonScript_menu_10] 傳給 GameManagerMenu_10：{animalName}");
+        }
+        else if (gmPlay != null)
+        {
+            gmPlay.OnAnimalButtonClick(button, animalName);
+            Debug.Log($"[AnimalButtonScript_menu_10] 傳給 GameManager_10：{animalName}");
+        }
+        else
+        {
+            Debug.LogError("[AnimalButtonScript_menu_10] ❌ 找不到任何 GameManager_10 或 GameManagerMenu_10，請確認場景是否掛載正確");
+        }
     }
 
-    // 供外部動態改名
-    public void SetAnimalName(string name) => animalName = name;
+    public void SetAnimalName(string name)
+    {
+        animalName = name;
+    }
 }

@@ -1,15 +1,18 @@
-using System.Collections; // for IEnumerator / Coroutine
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
+using System.IO;
 using UnityEngine.UI;
 using TMPro;
-using System.IO;
+using System;
+using UnityEngine.SceneManagement;
+using System.Collections;
 using System.Linq;
 
-[DefaultExecutionOrder(-100)]
-public class GameManager : MonoBehaviour
+[DefaultExecutionOrder(-50)]
+public class GameManager_10 : MonoBehaviour
 {
-    public static GameManager instance;
+    public static GameManager_10 instance;
+    public List<string> clickedAnimalSequence = new List<string>();
 
     [Header("UI References")]
     public GameObject panel1;
@@ -23,273 +26,298 @@ public class GameManager : MonoBehaviour
     [Header("Animal Buttons (可留空)")]
     public List<Button> animalButtons = new List<Button>();
 
-    [Header("正確答案設定")]
-    public bool loadFromPreviousScene = true;
-    public List<string> correctAnswerSequence = new List<string> { "鳳梨", "蘋果", "葡萄" };
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip clickSound;
 
-    // 狀態
-    private readonly List<string> clickedOrder = new List<string>();
+    [Header("Save Settings (相對路徑)")]
+    public string saveFolder = "Game_10";
+
     private readonly HashSet<string> selectedSet = new HashSet<string>();
-
-    // ★ 原色快取（必用它來還原／變色）
     private readonly Dictionary<Button, Color> originalColors = new Dictionary<Button, Color>();
-
-    // 檔案（照你指定的絕對路徑）
-    private const string CUSTOM_DATA_FOLDER = @"C:\Users\alanchang\Desktop\unity project_team\vr-mmse-test\vr mmse test\Assets\Data";
-
+    private string saveFilePath;
+    private List<string> correctAnswers = new List<string>();
     private float startTime;
-    private float endTime;
-
-    // 提供給其它腳本使用
-    public IReadOnlyList<string> ClickedAnimalSequence => clickedOrder;
+    private bool finalizedSave = false;
 
     void Awake()
     {
-        // 單例
+        // ✅ 讓舊的 instance 自動銷毀
         if (instance != null && instance != this)
         {
-            Destroy(gameObject);
-            return;
+            Debug.Log("[GM] 🔁 舊的 GameManager_10 已存在，銷毀舊版本");
+            Destroy(instance.gameObject);
         }
+
         instance = this;
+        DontDestroyOnLoad(gameObject);
 
-        // 1) 若清單沒填，先在 Awake 早期就自動收集（包含 Inactive）
-        if (animalButtons == null || animalButtons.Count == 0)
-        {
-#if UNITY_2023_1_OR_NEWER
-            animalButtons = new List<Button>(
-                FindObjectsByType<Button>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None
-                )
-            );
-#else
-            animalButtons = new List<Button>(FindObjectsOfType<Button>(true));
-#endif
-        }
+        SetupRelativeSavePath();
+        clickedAnimalSequence.Clear();
+        selectedSet.Clear();
 
-        // 2) 在任何可能變色之前，把原色快取起來（只快取一次）
-        foreach (var btn in animalButtons)
-        {
-            EnsureOriginalColorCached(btn);
-        }
+        // 確保事件只註冊一次
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     void Start()
     {
         startTime = Time.time;
+        StartCoroutine(WaitAndBindUI());
+        LoadCorrectAnswersFromFile();
+    }
 
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"[GM] 場景載入完成：{scene.name} → 重新綁定 UI");
+        StartCoroutine(WaitAndBindUI());
+    }
+
+    private IEnumerator WaitAndBindUI()
+    {
+        float timeout = 5f;
+
+        // 等待場景中 UI 生成
+        while ((confirmButton == null || retryButton == null) && timeout > 0)
+        {
+            confirmButton = GameObject.Find("ConfirmButton")?.GetComponent<Button>();
+            retryButton = GameObject.Find("RetryButton")?.GetComponent<Button>();
+
+            panel1 = GameObject.Find("Panel1");
+            confirmPanel = GameObject.Find("ConfirmPanel");
+            resultText = GameObject.Find("ResultText")?.GetComponent<TextMeshProUGUI>();
+
+            timeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        // 保險重設 UI 狀態
         if (confirmPanel) confirmPanel.SetActive(false);
         if (resultText) resultText.gameObject.SetActive(false);
 
-        if (loadFromPreviousScene)
-            StartCoroutine(LoadAnswersNextFrame());
+        BindButtons();
+    }
 
+    private void BindButtons()
+    {
         if (confirmButton)
         {
             confirmButton.onClick.RemoveAllListeners();
-            confirmButton.onClick.AddListener(OnConfirm);
+            confirmButton.onClick.AddListener(() => { PlayClickSound(); OnConfirm(); });
+            Debug.Log("[GM] ✅ ConfirmButton 綁定成功");
         }
+        else Debug.LogWarning("[GM] ⚠ 找不到 ConfirmButton");
+
         if (retryButton)
         {
             retryButton.onClick.RemoveAllListeners();
-            retryButton.onClick.AddListener(OnRetry);
+            retryButton.onClick.AddListener(() => { PlayClickSound(); OnRetry(); });
+            Debug.Log("[GM] ✅ RetryButton 綁定成功");
         }
+        else Debug.LogWarning("[GM] ⚠ 找不到 RetryButton");
+
+        if (animalButtons == null || animalButtons.Count == 0)
+        {
+            var allBtns = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            animalButtons = new List<Button>(allBtns);
+        }
+
+        foreach (var btn in animalButtons)
+            EnsureOriginalColorCached(btn);
     }
 
-    private IEnumerator LoadAnswersNextFrame()
+    private void PlayClickSound()
     {
-        // 等一下，避免讀到上一場景尚未 flush 完成的舊檔
-        yield return new WaitForSeconds(0.05f);
-        LoadCorrectAnswerFromFile();
+        if (audioSource && clickSound)
+            audioSource.PlayOneShot(clickSound);
+    }
+
+    private void SetupRelativeSavePath()
+    {
+        try
+        {
+            string folderPath = Path.Combine(Application.dataPath, "Scripts", saveFolder);
+            Directory.CreateDirectory(folderPath);
+            saveFilePath = Path.Combine(folderPath, "gamedata.json");
+        }
+        catch
+        {
+            saveFilePath = Path.Combine(Application.persistentDataPath, "gamedata.json");
+        }
+        Debug.Log($"[GM] 儲存路徑：{saveFilePath}");
     }
 
     private void EnsureOriginalColorCached(Button btn)
     {
-        if (!btn) return;
-
-        // Button.targetGraphic 通常等於 btn.image（UGUI Button）
-        var img = btn.image;
-        if (img && !originalColors.ContainsKey(btn))
-        {
-            originalColors[btn] = img.color;   // ← 僅在第一次快取
-        }
+        if (btn && btn.image && !originalColors.ContainsKey(btn))
+            originalColors[btn] = btn.image.color;
     }
-
-    private void RestoreButtonColor(Button btn)
-    {
-        if (!btn) return;
-        var img = btn.image;
-        if (img && originalColors.TryGetValue(btn, out var oc))
-        {
-            img.color = oc; // ← 完整還原到當初快取的顏色
-        }
-    }
-
-    private void TintButtonDarker(Button btn, float factor = 0.7f)
-    {
-        if (!btn) return;
-        var img = btn.image;
-        if (img && originalColors.TryGetValue(btn, out var oc))
-        {
-            // 一律以「原色」為基底變深，避免累積變暗/還原不全
-            var darker = oc * factor;
-            darker.a = oc.a; // 保留原本 alpha
-            img.color = darker;
-        }
-    }
-
-    // 讀取最新備份檔（gamedata_*.json）
-    private string GetLatestBackupFile()
-    {
-        if (!Directory.Exists(CUSTOM_DATA_FOLDER)) return null;
-        var files = Directory.GetFiles(CUSTOM_DATA_FOLDER, "gamedata_*.json");
-        if (files.Length == 0) return null;
-
-        return files
-            .OrderByDescending(f => File.GetCreationTime(f))
-            .FirstOrDefault();
-    }
-
-    private void LoadCorrectAnswerFromFile()
+    private void LoadCorrectAnswersFromFile()
     {
         try
         {
-            string latestBackup = GetLatestBackupFile();
-            if (string.IsNullOrEmpty(latestBackup))
+            if (!File.Exists(saveFilePath))
             {
-                Debug.LogWarning("⚠ 沒有找到任何備份檔，使用預設答案");
+                Debug.LogWarning("[GM] 沒有 gamedata.json，使用預設空答案");
                 return;
             }
 
-            string json = File.ReadAllText(latestBackup);
-            Debug.Log($"[GM] 從最新備份檔讀取：{latestBackup}\n內容={json}");
+            string json = File.ReadAllText(saveFilePath);
+            Debug.Log($"[GM] 📄 載入 JSON 原文：\n{json}");
 
-            var data = JsonUtility.FromJson<GameDataFromFile>(json);
-            if (data != null && data.selections != null && data.selections.Length > 0)
+            var data = JsonUtility.FromJson<GameMultiAttemptData>(json);
+
+            if (data == null)
             {
-                correctAnswerSequence = new List<string>(data.selections);
-                Debug.Log($"✅ 成功載入：{string.Join("、", correctAnswerSequence)}");
+                Debug.LogError("[GM] ❌ 反序列化失敗，JsonUtility 回傳 null");
+                return;
+            }
+
+            if (data.correctAnswers == null)
+            {
+                Debug.LogError("[GM] ❌ data.correctAnswers 是 null");
+                return;
+            }
+
+            if (data.correctAnswers.Count > 0)
+            {
+                correctAnswers = data.correctAnswers;
+                Debug.Log($"✅ 載入正確答案：{string.Join("、", correctAnswers)}");
             }
             else
             {
-                Debug.LogWarning("⚠ 備份檔 selections 為空，使用預設答案");
+                Debug.LogWarning("[GM] ⚠ 正確答案為空，請確認 JSON 檔內有 'correctAnswers'");
             }
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
-            Debug.LogError($"❌ 載入備份檔失敗：{e.Message}");
+            Debug.LogError("讀取正確答案失敗：" + e.Message);
         }
     }
-
-    // 由 AnimalButtonScript / AnimalSelectionManager 呼叫
     public void OnAnimalButtonClick(Button btn, string animalName)
     {
-        if (string.IsNullOrEmpty(animalName)) animalName = btn ? btn.name : "";
-        EnsureOriginalColorCached(btn); // 不會覆蓋既有快取
+        PlayClickSound();
+
+        if (string.IsNullOrEmpty(animalName))
+            animalName = btn ? btn.name : "";
+
+        EnsureOriginalColorCached(btn);
 
         if (selectedSet.Contains(animalName))
         {
             selectedSet.Remove(animalName);
-            clickedOrder.Remove(animalName);
-
-            // ★ 完整還原
-            RestoreButtonColor(btn);
+            clickedAnimalSequence.Remove(animalName);
+            if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
+                btn.image.color = oc;
         }
         else
         {
             if (selectedSet.Count >= 3) return;
             selectedSet.Add(animalName);
-            clickedOrder.Add(animalName);
-
-            // ★ 依原色變深（不會累積）
-            TintButtonDarker(btn, 0.7f);
+            clickedAnimalSequence.Add(animalName);
+            if (btn && btn.image)
+            {
+                var c = btn.image.color;
+                c.a = 0.5f;
+                btn.image.color = c;
+            }
         }
 
-        if (confirmPanel) confirmPanel.SetActive(selectedSet.Count == 3);
+        if (confirmPanel)
+            confirmPanel.SetActive(selectedSet.Count == 3);
     }
 
-    public void OnConfirm() //這裡有改(手部控制)
+    public void OnConfirm()
     {
-        endTime = Time.time;
-        float timeUsed = endTime - startTime;
-
-        var correctSet = new HashSet<string>(correctAnswerSequence);
-        int matches = 0;
-        foreach (var name in clickedOrder)
-            if (correctSet.Contains(name)) matches++;
-
-        float accuracy = correctSet.Count > 0 ? (float)matches / correctSet.Count : 0f;
-        bool allCorrect = (selectedSet.Count == correctSet.Count) && (matches == correctSet.Count);
-
-        
-        Debug.Log(
-                $"你選擇的順序：{string.Join("、", clickedOrder)}\n" +
-                $"正確答案：{string.Join("、", correctAnswerSequence)}\n" +
-                $"正確率：{accuracy * 100f:F1}% 用時 {timeUsed:F2}s\n"
-                // +$"結果：{(allCorrect ? "完全正確！" : "請再試試")}"
-        );
-
         if (confirmPanel) confirmPanel.SetActive(false);
         if (panel1) panel1.SetActive(false);
+        SaveAttemptResult();
+        finalizedSave = true;
 
-        // 保留：其他腳本要用的 JSON 字串
-        ConvertGameDataToJson("Player001", accuracy, timeUsed);
-
-        // ★★★ 新增：呼叫 VRTracker 存軌跡
-        VRTracker tracker = FindFirstObjectByType<VRTracker>();
-        if (tracker != null)
-        {
-            tracker.SaveAndUploadTrajectory();
-        }
-        else
-        {
-            Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
-        }
-
-        // 若 SceneFlowManager 沒掛，避免 NRE
         if (SceneFlowManager.instance != null)
             SceneFlowManager.instance.LoadNextScene();
-        else
-            Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
     }
-
 
     public void OnRetry()
     {
         selectedSet.Clear();
-        clickedOrder.Clear();
+        clickedAnimalSequence.Clear();
 
-        // ★ 保證全部按鈕回到原色
         foreach (var kv in originalColors)
-            RestoreButtonColor(kv.Key);
+            if (kv.Key && kv.Key.image) kv.Key.image.color = kv.Value;
 
         if (confirmPanel) confirmPanel.SetActive(false);
-        if (resultText) resultText.gameObject.SetActive(false);
-        if (panel1) panel1.SetActive(true);
     }
 
-    // 其它腳本（ResultManager_10 等）仍然可以呼叫
-    public string ConvertGameDataToJson(string playerId = "Guest", float accuracy = 0f, float timeUsed = 0f)
+    private void SaveAttemptResult()
     {
-        var data = new GameData( // ← 使用你原本專案裡的 GameData 類別
-            playerId,
-            new List<string>(clickedOrder),
-            new List<string>(correctAnswerSequence),
-            accuracy,
-            timeUsed
-        );
-        string json = JsonUtility.ToJson(data, true);
-        Debug.Log("📄 遊戲數據 JSON:\n" + json);
-        return json;
-    }
-}
+        try
+        {
+            if (clickedAnimalSequence.Count == 0)
+            {
+                Debug.Log("[GM] selections 為空，略過寫檔");
+                return;
+            }
 
-// 讀檔用資料結構：用 string[] 避免 JsonUtility 的 List 反序列化問題
-[System.Serializable]
-public class GameDataFromFile
-{
-    public string playerId;
-    public string timestamp;
-    public string[] selections;
+            GameMultiAttemptData data;
+            if (File.Exists(saveFilePath))
+            {
+                string json = File.ReadAllText(saveFilePath);
+                data = JsonUtility.FromJson<GameMultiAttemptData>(json);
+            }
+            else
+            {
+                data = new GameMultiAttemptData();
+            }
+
+            // 清理字串
+            List<string> cleanCorrect = new List<string>();
+            foreach (var s in correctAnswers)
+            {
+                if (!string.IsNullOrWhiteSpace(s))
+                    cleanCorrect.Add(s.Trim().Replace("　", ""));
+            }
+
+            List<string> cleanSelected = new List<string>();
+            foreach (var s in clickedAnimalSequence)
+            {
+                if (!string.IsNullOrWhiteSpace(s))
+                    cleanSelected.Add(s.Trim().Replace("　", ""));
+            }
+
+            var correctSet = new HashSet<string>(cleanCorrect);
+            int correctCount = correctSet.Intersect(cleanSelected).Count();
+            float accuracy = correctSet.Count > 0 ? (float)correctCount / correctSet.Count : 0f;
+
+            float timeUsed = Time.time - startTime;
+            int round = data.attempts.Count + 1;
+
+            var attempt = new GameAttempt
+            {
+                round = round,
+                selected = new List<string>(clickedAnimalSequence),
+                correctCount = correctCount,
+                timeUsed = timeUsed
+            };
+            data.attempts.Add(attempt);
+
+            string updatedJson = JsonUtility.ToJson(data, true);
+            File.WriteAllText(saveFilePath, updatedJson);
+
+            Debug.Log($"[GM] ✅ 已保存第 {round} 次作答");
+            Debug.Log($"正確答案：{string.Join("、", cleanCorrect)}");
+            Debug.Log($"玩家選擇：{string.Join("、", cleanSelected)}");
+            Debug.Log($"答對 {correctCount}/{cleanCorrect.Count} 題，正確率：{accuracy * 100f:F1}%");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("保存作答失敗：" + e.Message);
+        }
+    }
 }
