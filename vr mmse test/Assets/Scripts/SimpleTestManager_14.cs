@@ -38,6 +38,15 @@ public class SimpleTestManager : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip correctSFX;
     public AudioClip incorrectSFX;
+
+    [Header("Question Prompts")]
+    public AudioClip startTestAudio; 
+    public AudioClip yearQuestionAudio;
+    public AudioClip monthQuestionAudio;
+    public AudioClip dayQuestionAudio;
+    public AudioClip dayOfWeekQuestionAudio;
+    public AudioClip hourQuestionAudio;
+
     [Header("Season Ambience")]
     public AudioClip springAmbience;
     public AudioClip summerAmbience;
@@ -65,17 +74,15 @@ public class SimpleTestManager : MonoBehaviour
     private Dictionary<string, GameObject> questionPanels;
     private const int TOTAL_QUESTIONS = 5;
 
-    // 剩餘題數（至少為 0）
     private int RemainingQuestions => Mathf.Max(0, (questions != null ? questions.Count - currentQuestionIndex : 0));
-
-    // 場景是否結束（用剩餘題數為 0 判斷）
     private bool IsSceneFinished() => RemainingQuestions == 0;
-
-    // 🔹記錄使用者回答 (key -> player 選項)
     private Dictionary<string, string> playerAnswers = new Dictionary<string, string>();
 
+    // ▼▼▼ 修改處 ▼▼▼
+    // 將音檔播放移至 Start() 函式，這樣一進入 Play 模式就會播放
     void Start()
     {
+        PlayQuestionSound(startTestAudio); // <-- 播放開始音檔
         InitializeTest();
         if (forceSeasonChange)
         {
@@ -92,17 +99,15 @@ public class SimpleTestManager : MonoBehaviour
 
         DateTime now = DateTime.Now;
 
-        // questions 的順序就是題目順序 (會用於儲存時保序)
         questions = new List<string> { "Year", "Month", "Day", "DayOfWeek", "Hour" };
 
-        // 🔹修正：依序填入正確答案（包含 Hour）
         correctAnswers["Year"] = now.Year.ToString();
         string[] monthNames = { "", "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月" };
         correctAnswers["Month"] = monthNames[now.Month];
         correctAnswers["Day"] = now.Day.ToString();
         string[] dayNames = { "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六" };
         correctAnswers["DayOfWeek"] = dayNames[(int)now.DayOfWeek];
-        correctAnswers["Hour"] = FormatHourTo12(now.Hour); // 🔹修正：把 Hour 的正確答案也加入
+        correctAnswers["Hour"] = FormatHourTo12(now.Hour);
 
         SetSceneryBySeason(GetCurrentSeason(), false);
 
@@ -117,7 +122,7 @@ public class SimpleTestManager : MonoBehaviour
         if (startPanel != null) startPanel.SetActive(true);
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
         if (feedbackText != null) feedbackText.text = "";
-        if (titleText != null) titleText.text = "準備好就開始吧！";
+        if (titleText != null) titleText.text = "今天市場有開嗎?";
         
         Debug.Log("Simple Test Manager initialized");
     }
@@ -194,7 +199,6 @@ public class SimpleTestManager : MonoBehaviour
 
     private string FormatHourTo12(int hour)
     {
-        // 🔹修正：統一成單一空白的格式（避免出現雙空白）
         if (hour == 0) return "午夜 12:00";
         if (hour < 12) return $"上午 {hour}:00";
         if (hour == 12) return "中午 12:00";
@@ -297,11 +301,31 @@ public class SimpleTestManager : MonoBehaviour
         
         switch(currentQuestionKey)
         {
-            case "Year": options = GenerateYearOptions(); if (titleText != null) titleText.text = "請問今年是哪一年？"; break;
-            case "Month": options = GenerateMonthOptions(); if (titleText != null) titleText.text = "現在是幾月呢？"; break;
-            case "Day": options = GenerateDayOptions(); if (titleText != null) titleText.text = "今天幾號？"; break;
-            case "DayOfWeek": options = GenerateDayOfWeekOptions(); if (titleText != null) titleText.text = "那今天是星期幾？"; break;
-            case "Hour": options = GenerateHourOptions(); if (titleText != null) titleText.text = "現在大概是什麼時候了？"; break;
+            case "Year": 
+                options = GenerateYearOptions(); 
+                if (titleText != null) titleText.text = "請問今年是哪一年？";
+                PlayQuestionSound(yearQuestionAudio);
+                break;
+            case "Month": 
+                options = GenerateMonthOptions(); 
+                if (titleText != null) titleText.text = "現在是幾月呢？";
+                PlayQuestionSound(monthQuestionAudio);
+                break;
+            case "Day": 
+                options = GenerateDayOptions(); 
+                if (titleText != null) titleText.text = "今天幾號？";
+                PlayQuestionSound(dayQuestionAudio);
+                break;
+            case "DayOfWeek": 
+                options = GenerateDayOfWeekOptions(); 
+                if (titleText != null) titleText.text = "那今天是星期幾？";
+                PlayQuestionSound(dayOfWeekQuestionAudio);
+                break;
+            case "Hour": 
+                options = GenerateHourOptions(); 
+                if (titleText != null) titleText.text = "現在大概是什麼時候了？";
+                PlayQuestionSound(hourQuestionAudio);
+                break;
         }
         
         if (options != null) UpdateButtonsForQuestion(currentQuestionKey, options);
@@ -345,7 +369,6 @@ public class SimpleTestManager : MonoBehaviour
             isCorrect = (selectedAnswer == correctAnswers[currentQuestionKey]);
         }
 
-        // 記錄玩家答案
         playerAnswers[currentQuestionKey] = selectedAnswer;
 
         if (isCorrect)
@@ -368,21 +391,15 @@ public class SimpleTestManager : MonoBehaviour
             if (incorrectSFX != null && audioSource != null) audioSource.PlayOneShot(incorrectSFX);
         }
 
-        // 前進到下一題（索引先加一，再計算剩餘題數）
         currentQuestionIndex++;
-
-        // 清理 UI
         HideAllPanels();
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
 
-        // === 場景結束判斷：剩餘題數為 0 才換場 ===
         if (IsSceneFinished())
         {
-            // 收尾動作
             SaveResultToJson();
             ShowResultPanel();
 
-            // 轉換場景（有做 null 防護）
             if (SceneFlowManager.instance != null)
             {
                 SceneFlowManager.instance.LoadNextScene();
@@ -394,19 +411,23 @@ public class SimpleTestManager : MonoBehaviour
         }
         else
         {
-            // 還有題目 → 延遲一點再出下一題
             Invoke(nameof(AskNextQuestion), 1f);
+        }
+    }
+
+    private void PlayQuestionSound(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip);
         }
     }
 
     private void ShowResultPanel()
     {
-        // if (resultPanel != null) resultPanel.SetActive(true);
-        // if (resultScoreText != null) resultScoreText.text = $"總分：{score}/{TOTAL_QUESTIONS}";
         Debug.Log($"測驗完成，共 {score} 題正確。");
     }
 
-    // 🔹修正：使用有順序的 Questions 陣列來儲存每題的 correct/player，確保順序一致
     [Serializable]
     private class QuestionRecord
     {
@@ -428,7 +449,6 @@ public class SimpleTestManager : MonoBehaviour
     {
         try
         {
-            // 相對位置：Assets/time_game_data (Editor 下) —— 你之前要求的相對位置
             string folderPath = Path.Combine(Application.dataPath, "time_game_data");
             if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
 
@@ -472,9 +492,25 @@ public class SimpleTestManager : MonoBehaviour
         if (resultPanel != null) resultPanel.SetActive(false);
     }
     
-    #region Unchanged Methods (skeletons for completeness)
-    public void StartTest() { HideAllPanels(); AskNextQuestion(); }
-    public void RestartTest() { if (audioSource != null) audioSource.Stop(); InitializeTest(); }
+    #region Public Control Methods
+    
+    // ▼▼▼ 修改處 ▼▼▼
+    // 按下按鈕時，不再需要播放音檔，所以恢復成原本的樣子
+    public void StartTest() 
+    {
+        HideAllPanels(); 
+        AskNextQuestion(); 
+    }
+
+    public void RestartTest() 
+    { 
+        if (audioSource != null) audioSource.Stop(); 
+        InitializeTest(); 
+    }
+
+    #endregion
+
+    #region Scenery & Season Methods
     string GetCurrentSeason() { int m = DateTime.Now.Month; if (m >= 3 && m <= 5) return "春天"; if (m >= 6 && m <= 8) return "夏天"; if (m >= 9 && m <= 11) return "秋天"; return "冬天"; }
     void SetAmbienceBySeason(string season) { }
     void SetSceneryBySeason(string season, bool animated = true) { }
