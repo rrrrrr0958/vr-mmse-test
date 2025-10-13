@@ -14376,10 +14376,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u8ACB\u7528\u63A7\u5236\u5668\u4EFB\u610F\u9375\u9EDE\u9078\u6309\u9215"
+  m_text: "\u9304\u97F3\u5DF2\u7D50\u675F"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
-  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d2b6e85a8fe00e54a81ecfb25cf99c77, type: 2}
+  m_sharedMaterial: {fileID: -4069784185997713420, guid: d2b6e85a8fe00e54a81ecfb25cf99c77, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -14473,7 +14473,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  - {fileID: -4069784185997713420, guid: d2b6e85a8fe00e54a81ecfb25cf99c77, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
