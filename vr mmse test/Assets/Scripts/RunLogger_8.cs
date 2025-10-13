@@ -121,8 +121,8 @@ public class RunLogger : MonoBehaviour
             };
             File.WriteAllText(baseName + ".json", JsonUtility.ToJson(wrap, true), Encoding.UTF8);
 
-            // ★ 新增：累積寫入專案內（或在 Build 環境寫到 persistentDataPath）的 results_8.csv
-            AppendToResults8Csv(_records);
+            // ★ 新增/修改：累積寫入 results_8.csv（Editor: Assets/Scripts/game_8；Build: persistentDataPath/game_8）
+            AppendToResults13Csv(_records);
 
             UnityEngine.Debug.Log($"[RunLogger] Saved:\n  {baseName}.csv\n  {baseName}.json\n  (n={_records.Count}, acc={accuracy:P1}, avgRT={avgRt} ms)");
         }
@@ -177,31 +177,32 @@ public class RunLogger : MonoBehaviour
         return s;
     }
 
+    // ========================= 累積結果：results_8.csv =========================
+
+    // 目錄：Editor -> Assets/Scripts/game_8；Build -> <persistentDataPath>/game_8
+#if UNITY_EDITOR
+    private static readonly string ResultsBaseDir = Path.Combine(Application.dataPath, "Scripts", "game_8");
+#else
+    private static readonly string ResultsBaseDir = Path.Combine(Application.persistentDataPath, "game_8");
+#endif
+    private const string ResultsFileName = "results_8.csv";
+    private static string ResultsCsvPath => Path.Combine(ResultsBaseDir, ResultsFileName);
+    private static readonly Encoding Utf8Bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+
     /// <summary>
-    /// 追加寫入 results_8.csv（Editor：Assets/Scripts/results_8.csv；Build：persistentDataPath/results_8.csv）
-    /// 不影響既有輸出。不存在時會自動建立並寫入表頭。
+    /// 追加寫入 results_8.csv（Editor：Assets/Scripts/game_8；Build：persistentDataPath/game_8）
+    /// 不影響既有輸出。不存在時會自動建立與寫入表頭；舊檔若無 BOM 會自動轉換為 UTF-8 with BOM。
     /// </summary>
-    void AppendToResults8Csv(List<QARecord> list)
+    void AppendToResults13Csv(List<QARecord> list)
     {
         try
         {
-#if UNITY_EDITOR
-            string dir = Path.Combine(Application.dataPath, "Scripts");
-#else
-            string dir = Application.persistentDataPath;
-#endif
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            Directory.CreateDirectory(ResultsBaseDir);
+            EnsureResultsCsvReady();
 
-            string path = Path.Combine(dir, "results_8.csv");
-            bool newFile = !File.Exists(path);
-
-            using (var sw = new StreamWriter(path, append: true, Encoding.UTF8))
+            using (var fs = new FileStream(ResultsCsvPath, FileMode.Append, FileAccess.Write, FileShare.Read))
+            using (var sw = new StreamWriter(fs, Utf8Bom))
             {
-                if (newFile)
-                {
-                    sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
-                }
-
                 foreach (var r in list)
                 {
                     sw.WriteLine(string.Join(",",
@@ -216,11 +217,94 @@ public class RunLogger : MonoBehaviour
                 }
             }
 
-            UnityEngine.Debug.Log($"[RunLogger] results_8.csv updated at: {path}");
+            UnityEngine.Debug.Log($"[RunLogger] results_8.csv updated at: {ResultsCsvPath}");
         }
         catch (Exception e)
         {
             UnityEngine.Debug.LogError($"[RunLogger] results_8.csv write FAILED: {e.Message}");
         }
+    }
+
+    void EnsureResultsCsvReady()
+    {
+        if (!File.Exists(ResultsCsvPath) || new FileInfo(ResultsCsvPath).Length == 0)
+        {
+            WriteResultsHeader();
+            return;
+        }
+
+        // 舊檔轉為 UTF-8 with BOM（一次性）
+        if (!HasUtf8Bom(ResultsCsvPath))
+        {
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(ResultsCsvPath);
+                string text = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false).GetString(bytes);
+
+                using (var fs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                using (var sw = new StreamWriter(fs, Utf8Bom))
+                {
+                    sw.Write(text);
+                }
+                UnityEngine.Debug.Log("[RunLogger] Migrated results_8.csv to UTF-8 with BOM.");
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning($"[RunLogger] CSV BOM migration failed: {ex.Message}");
+            }
+        }
+
+        EnsureResultsHeaderExists();
+    }
+
+    void WriteResultsHeader()
+    {
+        using (var fs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+        using (var sw = new StreamWriter(fs, Utf8Bom))
+        {
+            sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+        }
+    }
+
+    void EnsureResultsHeaderExists()
+    {
+        try
+        {
+            using (var fs = new FileStream(ResultsCsvPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var sr = new StreamReader(fs, detectEncodingFromByteOrderMarks: true))
+            {
+                string firstLine = sr.ReadLine();
+                if (string.IsNullOrEmpty(firstLine) ||
+                    !firstLine.Contains("timeISO") || !firstLine.Contains("rtMs"))
+                {
+                    string rest = sr.ReadToEnd();
+                    using (var wfs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    using (var sw = new StreamWriter(wfs, Utf8Bom))
+                    {
+                        sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+                        if (!string.IsNullOrEmpty(firstLine)) sw.WriteLine(firstLine);
+                        if (!string.IsNullOrEmpty(rest)) sw.Write(rest);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogWarning($"[RunLogger] EnsureResultsHeaderExists warn: {ex.Message}");
+        }
+    }
+
+    bool HasUtf8Bom(string path)
+    {
+        try
+        {
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                if (fs.Length < 3) return false;
+                int b1 = fs.ReadByte(), b2 = fs.ReadByte(), b3 = fs.ReadByte();
+                return (b1 == 0xEF && b2 == 0xBB && b3 == 0xBF);
+            }
+        }
+        catch { return false; }
     }
 }
