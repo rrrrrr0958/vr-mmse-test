@@ -6,7 +6,6 @@ using UnityEngine.Networking;
 public class AsrClient : MonoBehaviour
 {
     [Header("Flask endpoint")]
-    
     public string serverUrl = "http://127.0.0.1:5003/score";
 
     [Serializable] public class Reasons { public bool has_subject_verb; public bool understandable; }
