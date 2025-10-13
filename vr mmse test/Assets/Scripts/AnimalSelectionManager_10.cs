@@ -1,65 +1,95 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
-public class AnimalSelectionManager : MonoBehaviour
+public class AnimalSelectionManager_10 : MonoBehaviour
 {
     [Header("動物按鈕設定")]
-    public Button rabbitButton;      // 兔子
-    public Button tigerButton;       // 老虎
-    public Button buffaloButton;     // 水牛
-    public Button pandaButton;       // 熊貓
-    public Button deerButton;        // 鹿
-    public Button wolfButton;        // 狼
+    public Button rabbitButton;
+    public Button tigerButton;
+    public Button buffaloButton;
+    public Button pandaButton;
+    public Button deerButton;
+    public Button wolfButton;
 
-    private GameManager gm;  // ← 安全的快取
-
-    void Awake()
-    {
-        // 先嘗試用單例
-        gm = GameManager.instance;
-
-        // 若單例還沒設好（載入順序等原因），就從場景抓
-        if (gm == null)
-        {
-#if UNITY_2023_1_OR_NEWER
-            gm = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
-#else
-            gm = FindObjectOfType<GameManager>(true);
-#endif
-        }
-
-        if (gm == null)
-        {
-            Debug.LogError("[AnimalSelectionManager] 找不到 GameManager，無法綁定按鈕事件。");
-        }
-    }
+    private GameManager_10 gmPlay;
 
     void Start()
     {
+        StartCoroutine(WaitForGameManagerThenSetup());
+    }
+
+    IEnumerator WaitForGameManagerThenSetup()
+    {
+        float timeout = 2f;
+        while (gmPlay == null && timeout > 0)
+        {
+            gmPlay = GameManager_10.instance ?? FindObjectOfType<GameManager_10>(true);
+            timeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        if (gmPlay == null)
+        {
+            Debug.LogError("[AnimalSelectionManager_10] ❌ 找不到 GameManager_10。");
+            yield break;
+        }
+
         SetupButtonEvents();
     }
 
     void SetupButtonEvents()
     {
-        if (gm == null) return; // 防呆
+        Debug.Log("[AnimalSelectionManager_10] ✅ 綁定到 GameManager_10");
 
-        if (rabbitButton)  { rabbitButton.onClick.RemoveAllListeners();  rabbitButton.onClick.AddListener(() => gm.OnAnimalButtonClick(rabbitButton,  rabbitButton.name)); }
-        if (tigerButton)   { tigerButton.onClick.RemoveAllListeners();   tigerButton.onClick.AddListener(() => gm.OnAnimalButtonClick(tigerButton,   tigerButton.name)); }
-        if (buffaloButton) { buffaloButton.onClick.RemoveAllListeners(); buffaloButton.onClick.AddListener(() => gm.OnAnimalButtonClick(buffaloButton,buffaloButton.name)); }
-        if (pandaButton)   { pandaButton.onClick.RemoveAllListeners();   pandaButton.onClick.AddListener(() => gm.OnAnimalButtonClick(pandaButton,   pandaButton.name)); }
-        if (deerButton)    { deerButton.onClick.RemoveAllListeners();    deerButton.onClick.AddListener(() => gm.OnAnimalButtonClick(deerButton,    deerButton.name)); }
-        if (wolfButton)    { wolfButton.onClick.RemoveAllListeners();    wolfButton.onClick.AddListener(() => gm.OnAnimalButtonClick(wolfButton,    wolfButton.name)); }
+        if (rabbitButton)
+        {
+            rabbitButton.onClick.RemoveAllListeners();
+            rabbitButton.onClick.AddListener(() => OnAnimalClick(rabbitButton));
+        }
+        if (tigerButton)
+        {
+            tigerButton.onClick.RemoveAllListeners();
+            tigerButton.onClick.AddListener(() => OnAnimalClick(tigerButton));
+        }
+        if (buffaloButton)
+        {
+            buffaloButton.onClick.RemoveAllListeners();
+            buffaloButton.onClick.AddListener(() => OnAnimalClick(buffaloButton));
+        }
+        if (pandaButton)
+        {
+            pandaButton.onClick.RemoveAllListeners();
+            pandaButton.onClick.AddListener(() => OnAnimalClick(pandaButton));
+        }
+        if (deerButton)
+        {
+            deerButton.onClick.RemoveAllListeners();
+            deerButton.onClick.AddListener(() => OnAnimalClick(deerButton));
+        }
+        if (wolfButton)
+        {
+            wolfButton.onClick.RemoveAllListeners();
+            wolfButton.onClick.AddListener(() => OnAnimalClick(wolfButton));
+        }
+    }
 
-        Debug.Log("所有動物按鈕事件設置完成！");
+    void OnAnimalClick(Button btn)
+    {
+        string name = btn ? btn.name : "unknown";
+        if (gmPlay != null)
+            gmPlay.OnAnimalButtonClick(btn, name);
+        else
+            Debug.LogError("[AnimalSelectionManager_10] ❌ 無法呼叫 OnAnimalButtonClick，找不到 GameManager_10。");
     }
 
     void OnDestroy()
     {
-        if (rabbitButton)  rabbitButton.onClick.RemoveAllListeners();
-        if (tigerButton)   tigerButton.onClick.RemoveAllListeners();
+        if (rabbitButton) rabbitButton.onClick.RemoveAllListeners();
+        if (tigerButton) tigerButton.onClick.RemoveAllListeners();
         if (buffaloButton) buffaloButton.onClick.RemoveAllListeners();
-        if (pandaButton)   pandaButton.onClick.RemoveAllListeners();
-        if (deerButton)    deerButton.onClick.RemoveAllListeners();
-        if (wolfButton)    wolfButton.onClick.RemoveAllListeners();
+        if (pandaButton) pandaButton.onClick.RemoveAllListeners();
+        if (deerButton) deerButton.onClick.RemoveAllListeners();
+        if (wolfButton) wolfButton.onClick.RemoveAllListeners();
     }
 }

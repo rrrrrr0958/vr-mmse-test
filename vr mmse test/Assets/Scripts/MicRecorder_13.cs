@@ -5,7 +5,7 @@ using UnityEngine;
 public class MicRecorder : MonoBehaviour
 {
     [Header("Recording Settings")]
-    public int sampleRate = 44100;         // 安全值
+    public int sampleRate = 44100;
     public int maxRecordSeconds = 10;
     [NonSerialized] public string selectedDevice;
 
@@ -79,7 +79,7 @@ public class MicRecorder : MonoBehaviour
 
         var wav = WavUtility.FromAudioFloat(data, sampleRate);
         OnWavReady?.Invoke(wav);
-        Debug.Log($"[MicRecorder] Done. {length} samples ({length/(float)sampleRate:0.00}s)");
+        Debug.Log($"[MicRecorder] Done. {length} samples ({length / (float)sampleRate:0.00}s)");
     }
 
     void Update()
@@ -94,7 +94,6 @@ public class MicRecorder : MonoBehaviour
         }
         else
         {
-            // dummy 進度
             micPos = Mathf.Min(_pos + Mathf.RoundToInt(Time.deltaTime * sampleRate), _samples.Length);
         }
 
@@ -107,14 +106,12 @@ public class MicRecorder : MonoBehaviour
         }
         else
         {
-            // 產生小振幅正弦波，讓音量條有變化
             for (int i = _pos; i < micPos; i++)
                 _samples[i] = Mathf.Sin(2 * Mathf.PI * 440 * i / sampleRate) * 0.2f;
         }
 
         _pos = Mathf.Clamp(micPos, 0, _samples.Length);
 
-        // RMS 音量
         float rms = 0f;
         int count = Mathf.Min(1024, _pos);
         for (int i = 0; i < count; i++)
@@ -137,13 +134,9 @@ public class MicRecorder : MonoBehaviour
         var clip = AudioClip.Create("DummyClip", samples, 1, sampleRate, false);
         var data = new float[samples];
         clip.SetData(data, 0);
-
-        // 保險：標記不要被保存
         clip.hideFlags |= HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-
         return clip;
     }
-
 }
 
 public static class WavUtility
@@ -155,7 +148,7 @@ public static class WavUtility
 
         const float rescale = 32767f;
         for (int i = 0; i < samples.Length; i++)
-            intData[i] = (short)Mathf.Clamp(samples[i] * rescale, short.MinValue, short.MaxValue);
+            intData[i] = (short)Mathf.Clamp(samples[i] * rescale, short.MinValue, short.MaxValue); // ✅ 修正這行
 
         Buffer.BlockCopy(intData, 0, bytesData, 0, bytesData.Length);
 
@@ -163,11 +156,10 @@ public static class WavUtility
         using var bw = new BinaryWriter(ms);
         int byteRate = sampleRate * 2; // mono 16-bit
 
-        // RIFF header
         bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
         bw.Write(36 + bytesData.Length);
         bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-        // fmt
+
         bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
         bw.Write(16);
         bw.Write((short)1);             // PCM
@@ -176,7 +168,7 @@ public static class WavUtility
         bw.Write(byteRate);
         bw.Write((short)2);             // block align
         bw.Write((short)16);            // bits
-        // data
+
         bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
         bw.Write(bytesData.Length);
         bw.Write(bytesData);
