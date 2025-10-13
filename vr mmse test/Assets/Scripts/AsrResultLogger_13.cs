@@ -5,50 +5,24 @@ using UnityEngine;
 
 public static class AsrResultLogger
 {
-    // === 路徑設定：Editor 寫 Assets/Scripts；裝置上寫 persistentDataPath/Exports ===
-    private static string BaseDir
-    {
-        get
-        {
+    // === 目錄規範 ===
+    // Editor：Assets/Scripts/game_13
+    // Build（Quest/Android/Standalone Player）：<persistentDataPath>/game_13
 #if UNITY_EDITOR
-            return Path.Combine(Application.dataPath, "Scripts");
+    private static readonly string BaseDir = Path.Combine(Application.dataPath, "Scripts", "game_13");
 #else
-            return Path.Combine(Application.persistentDataPath, "Exports");
+    private static readonly string BaseDir = Path.Combine(Application.persistentDataPath, "game_13");
 #endif
-        }
-    }
 
-    private static string CsvPath => Path.Combine(BaseDir, "results_13.csv");
+    private const string CsvFileName = "results_13.csv";
+    private static string CsvPath => Path.Combine(BaseDir, CsvFileName);
 
-    // UTF-8 with BOM（Excel/記事本友好）
+    // Excel/記事本友好：UTF-8 with BOM
     private static readonly Encoding Utf8Bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
 
-    /// <summary>外部呼叫：新增一筆紀錄</summary>
-    public static void Append(string transcript, int score, string wavPath = null)
-    {
-        try
-        {
-            Directory.CreateDirectory(BaseDir);
+    public static string GetOutputDirectory() => BaseDir;
 
-            EnsureCsvReady(); // 確保有 BOM + 表頭；必要時將舊檔改寫成有 BOM
-
-            using (var fs = new FileStream(CsvPath, FileMode.Append, FileAccess.Write, FileShare.Read))
-            using (var sw = new StreamWriter(fs, Utf8Bom))
-            {
-                string ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                sw.WriteLine($"{CsvEscape(ts)},{score},{CsvEscape(wavPath ?? "")},{CsvEscape(transcript ?? "")}");
-            }
-
-            // 可選：在 Console 確認路徑
-            // Debug.Log($"[AsrResultLogger] CSV appended: {CsvPath}");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[AsrResultLogger] Append failed: {ex.Message}");
-        }
-    }
-
-    /// <summary>保存 WAV 檔（Editor：Assets/Scripts；裝置：persistentDataPath/Exports）</summary>
+    /// 保存此次錄音的 WAV 檔到指定目錄；回傳完整路徑
     public static string SaveWav(byte[] wavBytes, string preferredName = null)
     {
         try
@@ -59,7 +33,9 @@ public static class AsrResultLogger
                 ? $"record_{DateTime.Now:yyyyMMdd_HHmmssfff}.wav"
                 : (preferredName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ? preferredName : preferredName + ".wav");
 
-            string fullPath = Path.Combine(BaseDir, SanitizeFileName(fileName));
+            fileName = SanitizeFileName(fileName);
+            string fullPath = Path.Combine(BaseDir, fileName);
+
             File.WriteAllBytes(fullPath, wavBytes);
             Debug.Log($"[AsrResultLogger] WAV saved: {fullPath}");
             return fullPath;
@@ -71,57 +47,70 @@ public static class AsrResultLogger
         }
     }
 
-    // ===== 內部工具 =====
-
-    /// <summary>
-    /// 確保 CSV 檔存在且為 UTF-8 with BOM，沒表頭就寫表頭。
-    /// 若偵測到既有檔案「沒有 BOM」，會自動改寫成有 BOM 的 UTF-8。
-    /// </summary>
-    private static void EnsureCsvReady()
+    /// 追加一筆結果到 CSV（自動建立資料夾、檔案、表頭；舊檔會自動轉 BOM）
+    /// 欄位：timestamp,score,wav_path,transcript
+    public static void Append(string transcript, int score, string wavPath = null)
     {
-        Directory.CreateDirectory(BaseDir);
-
-        if (!File.Exists(CsvPath) || new FileInfo(CsvPath).Length == 0)
+        try
         {
-            // 新檔：直接用 UTF-8 with BOM 建立並寫表頭
-            using (var fs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            Directory.CreateDirectory(BaseDir);
+            EnsureCsvReady();
+
+            using (var fs = new FileStream(CsvPath, FileMode.Append, FileAccess.Write, FileShare.Read))
             using (var sw = new StreamWriter(fs, Utf8Bom))
             {
-                sw.WriteLine("timestamp,score,wav_path,transcript");
+                string ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                sw.WriteLine($"{CsvEscape(ts)},{score},{CsvEscape(wavPath ?? "")},{CsvEscape(transcript ?? "")}");
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[AsrResultLogger] Append failed: {ex.Message}");
+        }
+    }
+
+    // ===== 內部 =====
+
+    private static void EnsureCsvReady()
+    {
+        if (!File.Exists(CsvPath) || new FileInfo(CsvPath).Length == 0)
+        {
+            WriteHeader();
             return;
         }
 
-        // 檔案存在：檢查是否有 BOM
+        // 舊檔轉為 UTF-8 with BOM（一次性）
         if (!HasUtf8Bom(CsvPath))
         {
             try
             {
-                // 以目前檔案的「實際位元組」讀入，再以 UTF-8（不論有無亂碼）重寫為「UTF-8 with BOM」
                 byte[] bytes = File.ReadAllBytes(CsvPath);
-                string text;
+                string text = new UTF8Encoding(false, false).GetString(bytes);
 
-                // 嘗試先用 UTF-8（無 BOM）解碼，不拋例外
-                text = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false).GetString(bytes);
-
-                // 以 Create 覆蓋並寫回 UTF-8 with BOM
                 using (var fs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
                 using (var sw = new StreamWriter(fs, Utf8Bom))
                 {
                     sw.Write(text);
                 }
-
-                Debug.Log("[AsrResultLogger] Migrated results.csv to UTF-8 with BOM.");
+                Debug.Log("[AsrResultLogger] Migrated results_13.csv to UTF-8 with BOM.");
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[AsrResultLogger] Failed to migrate CSV to UTF-8 BOM: {ex.Message}. Will continue appending with BOM.");
-                // 即使遷移失敗，之後的 append 仍會用 BOM；建議手動刪除舊檔讓它重建。
+                Debug.LogWarning($"[AsrResultLogger] CSV BOM migration failed: {ex.Message}");
             }
         }
 
-        // 檢查首行是否表頭，沒有就補上
+        // 無表頭就補上
         EnsureHeaderExists();
+    }
+
+    private static void WriteHeader()
+    {
+        using (var fs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+        using (var sw = new StreamWriter(fs, Utf8Bom))
+        {
+            sw.WriteLine("timestamp,score,wav_path,transcript");
+        }
     }
 
     private static void EnsureHeaderExists()
@@ -132,15 +121,9 @@ public static class AsrResultLogger
             using (var sr = new StreamReader(fs, detectEncodingFromByteOrderMarks: true))
             {
                 string firstLine = sr.ReadLine();
-                if (firstLine == null) // 空檔案
+                if (string.IsNullOrEmpty(firstLine) ||
+                    !firstLine.Contains("timestamp") || !firstLine.Contains("transcript"))
                 {
-                    WriteHeader();
-                    return;
-                }
-
-                if (!firstLine.Contains("timestamp") || !firstLine.Contains("transcript"))
-                {
-                    // 沒有表頭：把原文保留下來，重寫加表頭
                     string rest = sr.ReadToEnd();
                     using (var wfs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
                     using (var sw = new StreamWriter(wfs, Utf8Bom))
@@ -154,16 +137,7 @@ public static class AsrResultLogger
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"[AsrResultLogger] EnsureHeaderExists failed: {ex.Message}");
-        }
-    }
-
-    private static void WriteHeader()
-    {
-        using (var fs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-        using (var sw = new StreamWriter(fs, Utf8Bom))
-        {
-            sw.WriteLine("timestamp,score,wav_path,transcript");
+            Debug.LogWarning($"[AsrResultLogger] EnsureHeaderExists warn: {ex.Message}");
         }
     }
 
@@ -174,29 +148,22 @@ public static class AsrResultLogger
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 if (fs.Length < 3) return false;
-                int b1 = fs.ReadByte();
-                int b2 = fs.ReadByte();
-                int b3 = fs.ReadByte();
+                int b1 = fs.ReadByte(), b2 = fs.ReadByte(), b3 = fs.ReadByte();
                 return (b1 == 0xEF && b2 == 0xBB && b3 == 0xBF);
             }
         }
-        catch
-        {
-            return false;
-        }
+        catch { return false; }
     }
 
     private static string CsvEscape(string s)
     {
         if (s == null) return "\"\"";
-        s = s.Replace("\"", "\"\"");
-        return $"\"{s}\"";
+        return "\"" + s.Replace("\"", "\"\"") + "\"";
     }
 
     private static string SanitizeFileName(string name)
     {
-        foreach (var c in Path.GetInvalidFileNameChars())
-            name = name.Replace(c, '_');
+        foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
         return name;
     }
 }
