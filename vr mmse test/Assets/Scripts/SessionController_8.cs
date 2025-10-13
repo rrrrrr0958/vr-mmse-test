@@ -1,4 +1,4 @@
-// Assets/Scripts/Game/SessionController.cs
+  // Assets/Scripts/Game/SessionController.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
@@ -229,6 +229,7 @@ public class SessionController : MonoBehaviour
         if (showNavPanelAfterAnswer) ShowNavPanel();
 
         _quizActive = false;
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     // ===== utils =====

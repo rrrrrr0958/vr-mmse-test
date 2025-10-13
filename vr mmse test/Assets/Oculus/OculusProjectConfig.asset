@@ -33,7 +33,7 @@ MonoBehaviour:
   securityXmlPath: 
   horizonOsSdkEnabled: 0
   minHorizonOsSdkVersion: 68
-  targetHorizonOsSdkVersion: 78
+  targetHorizonOsSdkVersion: 77
   skipUnneededShaders: 0
   enableIL2CPPLTO: 0
   removeGradleManifest: 1

@@ -7,9 +7,12 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
-    guid: d1c3109bdb54ad54c8a2b2838528e640
+    guid: 00000000000000000000000000000000
   - enabled: 0
-    path: Assets/Scenes/LocationRecognition/SampleScene_8.unity
+    path: Assets/Scenes/StudyScene_time.unity
+    guid: 65946b8d9422668498d32e2c7d8d31dd
+  - enabled: 0
+    path: Assets/Scenes/SampleScene_8.unity
     guid: 056cb950b7a462e4b9f10d54ec4d843f
   - enabled: 1
     path: Assets/Scenes/f2_8.unity
@@ -20,9 +23,62 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/f3_8.unity
     guid: c39645cb9a2d95545aa15eef922c867e
+  - enabled: 1
+    path: Assets/Scenes/Star Reward.unity
+    guid: 2c717ebfc5f19b845ad1e45cfab92fe7
+  - enabled: 0
+    path: Assets/Scenes/Reward.unity
+    guid: 2c94ee97eb39aec42af74e54d6cb7c69
+  - enabled: 1
+    path: Assets/Scenes/Reward_Scene.unity
+    guid: d1c3109bdb54ad54c8a2b2838528e640
+  - enabled: 1
+    path: Assets/Scenes/Final_Scroe.unity
+    guid: fd9da7de18d639f4a9e559762810236b
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_3.unity
+    guid: 1dcf8796e5df13747a3ad3886a64d0a5
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_11_1.unity
+    guid: c3535f3dc15b78441b9293dee421e2e8
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_11.unity
+    guid: 34d4841cb2b182647a1c49c41ef315d2
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_2.unity
+    guid: 0423c2b5f941eba409b6e7c38c9cc6dc
+  - enabled: 1
+    path: Assets/Scenes/Opening.unity
+    guid: 2624ac639d5d7424f8e6e5d5612e30e5
+  - enabled: 0
+    path: Assets/Scenes/Prefabs.unity
+    guid: 0a3988e10241db84aa84ac261753c72a
+  - enabled: 1
+    path: Assets/Scenes/Login Scene.unity
+    guid: 121092aa298d2c34e90b147bdc144219
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_5.unity
+    guid: 18b845855ffcd1647825410515aaf33e
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_rule.unity
+    guid: 75858ef6d15b4324d8f8549f5b42c695
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_7.unity
+    guid: 0e8813edb35af4de7a8ee4c4339dd1c6
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_14.unity
+    guid: 76e7f6e17c7e0d5448b69fe7e87ff649
+  - enabled: 1
+    path: Assets/Scenes/SampleScene_6.unity
+    guid: 4d4336e94bc2245dab66b958c8595154
+  - enabled: 1
+    path: Assets/Scenes/SentenceGame_13.unity
+    guid: 05d4bf2fc08f1a44eb7f99c201768df8
   m_configObjects:
+    Unity.XR.Oculus.Settings: {fileID: 11400000, guid: f9089ef7ad893164fa8ac7a2d6a3ef8a, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: 1b623526ae0fb1d4ebd3f0e5bf75fc51, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 3bc4df8f976ff0540932ec01016672c6, type: 2}
-    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 0d631a29ec27a1a4c833d3d1bdc2fb9b, type: 2}
-    xr.sdk.mock-hmd.settings: {fileID: 11400000, guid: ca61350a2d824784d82c67ff67ac8cad, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 66a61ffaa67add241833746cafd623f8, type: 2}
+    xr.sdk.mock-hmd.settings: {fileID: 11400000, guid: f76cdbe067962334a926ef4503f4bbe5, type: 2}
   m_UseUCBPForAssetBundles: 0

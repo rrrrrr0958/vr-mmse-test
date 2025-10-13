@@ -17,7 +17,7 @@ r = sr.Recognizer()
 # ===== 工具 =====
 
 PRON = list("我我們你你們他她它大家")
-VERBS = ["是","有","要","想","在","買","吃","看","去","來","說","做","拿","走","坐","喝","學","寫","讀","玩","睡","聽","等","付"]
+VERBS = ["是","有","要","想","在","買","吃","看","去","來","說","做","拿","走","坐","喝","學","寫","讀","玩","睡","聽","等","付","愛","覺得"]
 FUNCTIONALS = list("了在著把被對於以及和而但呢嗎吧呀啊喔唉哎就還也很")
 
 def normalize_text(s: str) -> str:
@@ -41,8 +41,8 @@ def contains_subject_and_verb(text: str) -> bool:
     return has_pron and has_verb
 
 def is_understandable(text: str) -> bool:
-    """檢查是否可理解：至少4字，有詞彙"""
-    if len(text) < 4:
+    """檢查是否可理解：至少3字，有詞彙"""
+    if len(text) < 3:
         return False
     seg = list(jieba.cut(text))
     valid = sum(1 for w in seg if len(w.strip()) >= 1)
@@ -97,4 +97,4 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5003)
+    app.run(host="127.0.0.1", port=5003)

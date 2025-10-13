@@ -210,6 +210,7 @@ public class SingleTrialController : MonoBehaviour
                 if (subtitleText) subtitleText.text = $"{phase} {Mathf.RoundToInt(p * 100)}%";
             }
         ));
+        SceneFlowManager.instance.LoadNextScene();
     }
 
 }
