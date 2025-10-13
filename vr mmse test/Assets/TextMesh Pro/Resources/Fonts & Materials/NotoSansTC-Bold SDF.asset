@@ -1037,6 +1037,12 @@ MonoBehaviour:
       m_LigatureGlyphID: 1986
     - m_ComponentGlyphIDs: 5100000054000000
       m_LigatureGlyphID: 2044
+    - m_ComponentGlyphIDs: 15000000381c0000
+      m_LigatureGlyphID: 2095
+    - m_ComponentGlyphIDs: 15000000121d0000
+      m_LigatureGlyphID: 1808
+    - m_ComponentGlyphIDs: 15000000a3240000
+      m_LigatureGlyphID: 1960
     m_GlyphPairAdjustmentRecords:
     - m_FirstAdjustmentRecord:
         m_GlyphIndex: 9
@@ -27419,9 +27425,9 @@ Texture2D:
     Hash: 00000000000000000000000000000000
   m_IsAlphaChannelOptional: 0
   serializedVersion: 3
-  m_Width: 1024
-  m_Height: 1024
-  m_CompleteImageSize: 1048576
+  m_Width: 1
+  m_Height: 1
+  m_CompleteImageSize: 1
   m_MipsStripped: 0
   m_TextureFormat: 1
   m_MipCount: 1

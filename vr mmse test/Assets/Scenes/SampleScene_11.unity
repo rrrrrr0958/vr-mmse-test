@@ -7657,7 +7657,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &662157606
@@ -11830,6 +11830,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0065b8c927775d47ba03a7f66586476, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  clickedAnimalSequence: []
   panel1: {fileID: 43885818}
   confirmPanel: {fileID: 246740291}
   resultText: {fileID: 1860949563}
@@ -11842,11 +11843,9 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  loadFromPreviousScene: 1
-  correctAnswerSequence:
-  - "\u9CF3\u68A8"
-  - "\u860B\u679C"
-  - "\u8461\u8404"
+  audioSource: {fileID: 687051156}
+  clickSound: {fileID: 8300000, guid: 3100af0d09c2c9c43a03272b686606ec, type: 3}
+  saveFolder: Game_10
 --- !u!4 &1025793243
 Transform:
   m_ObjectHideFlags: 0
@@ -14598,7 +14597,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1288692706
 MonoBehaviour:
   m_ObjectHideFlags: 0

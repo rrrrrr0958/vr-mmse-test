@@ -104,6 +104,7 @@ public class QuizManager_6 : MonoBehaviour
         if (isLocked) return; // 已經鎖定，不再接受答案
 
         bool ok = targetId == currentAnswer;
+        int score = ok ? 1 : 0; 
 
         if (logEvaluationToConsole)
         {

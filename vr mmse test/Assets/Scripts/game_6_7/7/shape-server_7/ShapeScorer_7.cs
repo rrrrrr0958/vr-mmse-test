@@ -146,7 +146,7 @@ public class ShapeScorer_7 : MonoBehaviour
                 VRTracker1 tracker = FindFirstObjectByType<VRTracker1>();
                 if (tracker != null)
                 {
-                    tracker.SaveAndUploadTrajectory();
+                    tracker.SaveTrajectoryToCsv();
                 }
                 else
                 {

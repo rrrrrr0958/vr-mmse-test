@@ -1,27 +1,18 @@
 using System;
 using System.Collections.Generic;
 
-[Serializable]
-public class GameData
+[System.Serializable]
+public class GameMultiAttemptData
 {
-    public string playerId;
-    public string timestamp;
-    public List<string> clickedAnimalSequence;
-    public List<string> correctAnswerSequence;
-    public float accuracy;
-    public float timeUsed;
+    public List<string> correctAnswers = new List<string>();
+    public List<GameAttempt> attempts = new List<GameAttempt>();
+}
 
-    public GameData(string playerId,
-                    List<string> clicked,
-                    List<string> correct,
-                    float accuracy,
-                    float timeUsed)
-    {
-        this.playerId = playerId;
-        this.timestamp = DateTime.UtcNow.ToString("o");
-        this.clickedAnimalSequence = new List<string>(clicked);
-        this.correctAnswerSequence = new List<string>(correct);
-        this.accuracy = accuracy;
-        this.timeUsed = timeUsed;
-    }
+[System.Serializable]
+public class GameAttempt
+{
+    public int round;
+    public List<string> selected;
+    public int correctCount;
+    public float timeUsed;
 }

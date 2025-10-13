@@ -14,6 +14,6 @@ public class ResultManager : MonoBehaviour
     public void OnRoundFinished(List<string> clicked, List<string> correct, float accuracy, float timeUsed)
     {
         // 這裡可以擴充：寫檔 / 上傳 / 儲存到資料庫…
-        GameManager.instance.ConvertGameDataToJson("Player001", accuracy, timeUsed);
+        // GameManager.instance.ConvertGameDataToJson("Player001", accuracy, timeUsed);
     }
 }

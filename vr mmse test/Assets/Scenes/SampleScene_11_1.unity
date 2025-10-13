@@ -4263,7 +4263,7 @@ GameObject:
   - component: {fileID: 327106329}
   - component: {fileID: 327106328}
   m_Layer: 0
-  m_Name: Banana
+  m_Name: "\u9999\u8549"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4539,7 +4539,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 345045078}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1025793241}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &345045078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6347,7 +6359,7 @@ GameObject:
   - component: {fileID: 541137644}
   - component: {fileID: 541137643}
   m_Layer: 0
-  m_Name: Pineapple
+  m_Name: "\u9CF3\u68A8"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8513,7 +8525,7 @@ GameObject:
   - component: {fileID: 704325976}
   - component: {fileID: 704325975}
   m_Layer: 0
-  m_Name: Grapes
+  m_Name: "\u8461\u8404"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11991,6 +12003,9 @@ MonoBehaviour:
   confirmButton: {fileID: 345045077}
   retryButton: {fileID: 1912437675}
   animalButtons: []
+  audioSource: {fileID: 687051156}
+  clickSound: {fileID: 8300000, guid: 3100af0d09c2c9c43a03272b686606ec, type: 3}
+  saveFolder: Game_10
 --- !u!1001 &1027442125
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12141,7 +12156,7 @@ GameObject:
   - component: {fileID: 1029999450}
   - component: {fileID: 1029999449}
   m_Layer: 0
-  m_Name: Apple
+  m_Name: "\u860B\u679C"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13321,7 +13336,7 @@ GameObject:
   - component: {fileID: 1137635865}
   - component: {fileID: 1137635864}
   m_Layer: 0
-  m_Name: Orange
+  m_Name: "\u6A58\u5B50"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -17479,7 +17494,7 @@ GameObject:
   - component: {fileID: 1503430683}
   - component: {fileID: 1503430682}
   m_Layer: 0
-  m_Name: Watermelon
+  m_Name: "\u897F\u74DC"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
