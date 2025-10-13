@@ -8,6 +8,8 @@ using System.Text.RegularExpressions;
 using Firebase;
 using Firebase.Database;
 using System.Threading.Tasks;
+using System.IO; // 引入 System.IO 以處理檔案儲存
+using System;    // 引入 System.DateTime 以處理時間戳記
 
 public class QuestionManager : MonoBehaviour
 {
@@ -24,13 +26,16 @@ public class QuestionManager : MonoBehaviour
     public class QuestionData
     {
         public string questionText;
-        public AudioClip audioClip; // 🔹 這是第一題/起始的語音 (e.g., "花費XX元...")
-        public AudioClip nextAudioClip; // 🔹 【新增】這是第二/三題的語音 (e.g., "接下來再花費XX元...")
+        public AudioClip audioClip;
+        public AudioClip nextAudioClip;
         public GameObject cameraTarget;
         public GameObject vrCameraTarget;
         public GameObject numberObject;
         public GameObject bgObject;
         public GameObject recordingObject;
+
+        [Header("倒數計時 UI (GameObject)")]
+        public GameObject countdownGameObject;
     }
 
     [Header("所有題目資料")]
@@ -44,9 +49,12 @@ public class QuestionManager : MonoBehaviour
 
     [Header("伺服器設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
-    public float recordingDuration = 3.5f;
+    public float recordingDuration = 3.5f; // 錄音長度
 
     private AudioClip recordingClip;
+
+    // 用於確保倒數計時的整數更新
+    private int lastTimeLeft = 0;
 
     [System.Serializable]
     public class RecognitionResponse
@@ -60,17 +68,14 @@ public class QuestionManager : MonoBehaviour
     public GameObject moneyNumber5;
     public GameObject moneyBg5;
 
-    //public float cameraMoveSpeed = 3.0f;
-
-    // 新增這一行
     [Header("攝影機設定")]
-    public float cameraMoveDuration = 7.0f; // 設定移動需花費 1.5 秒
+    public float cameraMoveDuration = 7.0f;
 
     // VR 相關修正：新增 XR Origin 的引用
     [Header("VR 攝影機設定")]
     public Transform xrOriginTransform;
-    public Camera hmdCamera;   // 新增：XR Origin 裡的相機
-    public Transform initialSpawnPoint; // 新增：你希望玩家開始站的位置
+    public Camera hmdCamera;
+    public Transform initialSpawnPoint;
 
 
     void Start()
@@ -81,11 +86,10 @@ public class QuestionManager : MonoBehaviour
             return;
         }
 
-        // 🔹 方法一：計算 offset，把頭顯拉到指定初始位置
+        // 初始化 VR 攝影機位置和方向
         Vector3 offset = initialSpawnPoint.position - hmdCamera.transform.position;
         xrOriginTransform.position += offset;
 
-        // 🔹 只對齊 Yaw，不硬調 pitch/roll（避免暈）
         Vector3 camForward = Vector3.ProjectOnPlane(hmdCamera.transform.forward, Vector3.up).normalized;
         Vector3 tgtForward = Vector3.ProjectOnPlane(initialSpawnPoint.forward, Vector3.up).normalized;
         float yawDelta = Vector3.SignedAngle(camForward, tgtForward, Vector3.up);
@@ -95,7 +99,7 @@ public class QuestionManager : MonoBehaviour
         if (questionText == null || panelBackground == null || questionAudioSource == null ||
             initialMoneyAudio == null || mainCamera == null || initialCameraPosition == null ||
             moneyNumber5 == null || moneyBg5 == null || allQuestions.Count < 3 ||
-            xrOriginTransform == null) // 新增：檢查 xrOriginTransform
+            xrOriginTransform == null)
         {
             Debug.LogError("請確保所有公開變數都已在 Unity Inspector 中設定！");
             return;
@@ -121,14 +125,21 @@ public class QuestionManager : MonoBehaviour
         moneyBg5.SetActive(false);
         HideAllQuestionObjects();
         HideAllRecordingObjects();
+        // 初始化所有倒數 UI 為隱藏
+        HideAllCountdownObjects();
 
         StartCoroutine(StartGameSequence());
-        
-        // **【修正點】**
-        // 由於 SceneFlowManager 已改為啟動常駐伺服器，
-        // 且 StartServerForScene 方法已被移除，此處無需再呼叫。
-        // SceneFlowManager.instance.StartServerForScene("SampleScene_5"); 
     }
+
+    // 隱藏所有倒數物件的函式
+    void HideAllCountdownObjects()
+    {
+        foreach (var q in allQuestions)
+        {
+            if (q.countdownGameObject != null) q.countdownGameObject.SetActive(false);
+        }
+    }
+
 
     void HideAllQuestionObjects()
     {
@@ -181,7 +192,7 @@ public class QuestionManager : MonoBehaviour
         {
             QuestionData currentQuestionData = currentQuestionSequence[i];
             string currentQuestionText = currentQuestionData.questionText;
-            AudioClip currentAudioClip = null; // 🔹 新增：用於儲存當前要播放的語音
+            AudioClip currentAudioClip = null;
 
             Transform targetTransform = (xrOriginTransform != null && currentQuestionData.vrCameraTarget != null) ?
                 currentQuestionData.vrCameraTarget.transform :
@@ -192,55 +203,48 @@ public class QuestionManager : MonoBehaviour
                 yield return StartCoroutine(MoveCameraToTarget(targetTransform));
             }
 
-            // 🔹 根據題號 i 來決定要使用哪種版本的語音
+            // 根據題號 i 來決定要使用哪種版本的語音
             if (i == 0)
             {
-                // 第一題 (i=0): 使用原版語音和文字 (e.g., "花費XX元...")
                 currentAudioClip = currentQuestionData.audioClip;
-                // 不需要修改 currentQuestionText，它已經是 "花費XX元..."
             }
             else
             {
-                // 第二題 (i=1) 和之後的題目 (i>0):
-                // 1. 使用新增的 "接下來/再" 版語音
                 currentAudioClip = currentQuestionData.nextAudioClip;
-
-                // 2. 在文字上加上 "再"
                 currentQuestionText = "接下來再" + currentQuestionText;
             }
 
             questionText.text = currentQuestionText;
             Debug.Log("顯示題目: " + currentQuestionText);
 
-            if (currentAudioClip != null) // 🔹 改為判斷 currentAudioClip
+            if (currentAudioClip != null)
             {
-                questionAudioSource.clip = currentAudioClip; // 🔹 播放正確的語音
+                questionAudioSource.clip = currentAudioClip;
                 questionAudioSource.Play();
                 currentQuestionData.numberObject.SetActive(true);
                 currentQuestionData.bgObject.SetActive(true);
 
-                yield return new WaitForSeconds(currentAudioClip.length); // 🔹 等待正確語音的長度
+                yield return new WaitForSeconds(currentAudioClip.length);
                 currentQuestionData.numberObject.SetActive(false);
                 currentQuestionData.bgObject.SetActive(false);
             }
             else
             {
-                // 🔹 處理沒有設定語音的情況，並發出警告
                 Debug.LogWarning($"第 {i + 1} 題沒有設定 {(i == 0 ? "audioClip" : "nextAudioClip")}，將等待 {delayBetweenQuestions} 秒。");
                 yield return new WaitForSeconds(delayBetweenQuestions);
             }
 
-            yield return StartCoroutine(WaitForAnswer(currentQuestionData));
+            // 將當前題目的索引 i 傳入 WaitForAnswer
+            yield return StartCoroutine(WaitForAnswer(currentQuestionData, i));
         }
 
         Debug.Log("所有題目已顯示完畢！");
         questionText.text = "商品購買完畢！";
-        // 移除或註解掉這段程式碼
-        // Transform endTarget = (xrOriginTransform != null && vrEndPosition != null) ? vrEndPosition : initialCameraPosition;
-        // yield return StartCoroutine(MoveCameraToTarget(endTarget));
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
-        SceneFlowManager.instance.LoadNextScene();
+        // 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
+        SceneFlowManager.instance.LoadNextScene(); 
+        Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }
 
     IEnumerator MoveCameraToTarget(Transform target)
@@ -254,39 +258,65 @@ public class QuestionManager : MonoBehaviour
         float startTime = Time.time;
         Vector3 startPosition = xrOriginTransform.position;
         Quaternion startRotation = xrOriginTransform.rotation;
-
-        // 使用一個計時器來控制時間
         float elapsedTime = 0f;
 
-        // 只要尚未達到預設的移動時間，就持續移動
         while (elapsedTime < cameraMoveDuration)
         {
-            // fractionOfJourney 現在代表時間的進度 (0 到 1)
             float fractionOfJourney = elapsedTime / cameraMoveDuration;
-
-            // 【可選平滑化】使用 Mathf.SmoothStep 讓開始和結束時移動更平滑，減少眩暈
-            // float smoothStepProgress = Mathf.SmoothStep(0f, 1f, fractionOfJourney);
 
             xrOriginTransform.position = Vector3.Lerp(startPosition, target.position, fractionOfJourney);
             xrOriginTransform.rotation = Quaternion.Lerp(startRotation, target.rotation, fractionOfJourney);
 
-            elapsedTime += Time.deltaTime; // 累積經過的時間
+            elapsedTime += Time.deltaTime;
 
             yield return null;
         }
 
-        // 確保最終精確到達目標點
         xrOriginTransform.position = target.position;
         xrOriginTransform.rotation = target.rotation;
     }
 
     void GenerateRandomQuestions()
     {
-        //currentQuestionSequence = allQuestions.OrderBy(x => System.Guid.NewGuid()).Take(3).ToList();
         currentQuestionSequence = allQuestions.OrderBy(x => System.Guid.NewGuid()).ToList();
     }
 
-    IEnumerator WaitForAnswer(QuestionData currentQuestionData)
+    // ===============================================
+    // 倒數計時協程 (只負責文字更新)
+    // ===============================================
+    IEnumerator CountdownCoroutine(TextMeshPro countdownDisplay, float duration)
+    {
+        lastTimeLeft = (int)Mathf.Ceil(duration);
+        float startTime = Time.time;
+
+        // 初始化顯示為整數
+        if (countdownDisplay != null) countdownDisplay.text = lastTimeLeft.ToString();
+
+        while (Time.time < startTime + duration)
+        {
+            // 使用無條件進位確保倒數為整數 (5 -> 4 -> 3...)
+            int timeLeft = (int)Mathf.Ceil((startTime + duration) - Time.time);
+
+            if (timeLeft != lastTimeLeft && timeLeft >= 0)
+            {
+                if (countdownDisplay != null) countdownDisplay.text = timeLeft.ToString();
+                lastTimeLeft = timeLeft;
+            }
+            yield return null;
+        }
+
+        // 倒數結束，確保最後顯示 0 
+        if (countdownDisplay != null)
+        {
+            countdownDisplay.text = "0";
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
+
+    // ===============================================
+    // WaitForAnswer 整合倒數計時、子物件尋找和檔案儲存
+    // ===============================================
+    IEnumerator WaitForAnswer(QuestionData currentQuestionData, int questionIndex) // 接收 questionIndex
     {
         if (currentQuestionData.recordingObject != null)
         {
@@ -296,36 +326,130 @@ public class QuestionManager : MonoBehaviour
         Debug.Log("請說出你的答案...");
         questionText.text = "請說出你的答案...";
 
+        // 1. 嘗試從 GameObject 及其子物件中獲取 TextMeshPro
+        TextMeshPro countdownUI = null;
+        if (currentQuestionData.countdownGameObject != null)
+        {
+            countdownUI = currentQuestionData.countdownGameObject.GetComponentInChildren<TextMeshPro>();
+
+            if (countdownUI == null)
+            {
+                Debug.LogError($"⚠️ 題目 {currentQuestionData.questionText} 的倒數物件 {currentQuestionData.countdownGameObject.name} 及其子物件中缺少 TextMeshPro 元件！請檢查設定。");
+            }
+            else
+            {
+                // 啟用父物件，讓倒數 UI 顯示出來
+                currentQuestionData.countdownGameObject.SetActive(true);
+            }
+        }
+
+        // 2. 開始錄音和倒數
         if (Microphone.devices.Length > 0)
         {
             Debug.Log("開始錄音...");
+
+            // 啟動倒數計時協程
+            Coroutine countdownJob = null;
+            if (countdownUI != null)
+            {
+                countdownJob = StartCoroutine(CountdownCoroutine(countdownUI, recordingDuration));
+            }
+
+            // 開始錄音
             recordingClip = Microphone.Start(null, false, (int)recordingDuration, 44100);
+
+            // 等待錄音時間結束
             yield return new WaitForSeconds(recordingDuration);
+
+            // 停止倒數協程
+            if (countdownJob != null)
+            {
+                StopCoroutine(countdownJob);
+            }
+
             Microphone.End(null);
             Debug.Log("錄音結束。");
 
+            // 隱藏錄音提示物件
+            if (currentQuestionData.recordingObject != null)
+            {
+                currentQuestionData.recordingObject.SetActive(false);
+            }
+            // 隱藏倒數的父物件
+            if (currentQuestionData.countdownGameObject != null)
+            {
+                currentQuestionData.countdownGameObject.SetActive(false);
+            }
+
+            // 3. 語音處理 (儲存檔案和送去辨識)
+            byte[] wavData = ConvertAudioClipToWav(recordingClip);
+
+            // ⭐ 呼叫新的存檔函式，使用相對路徑
+            SaveWavFile(wavData, questionIndex + 1); // 題號從 1 開始
+
+            // 繼續語音辨識流程
+            yield return StartCoroutine(SendAudioToServer(wavData, currentQuestionSequence.IndexOf(currentQuestionData)));
+        }
+        else
+        {
+            // 沒有麥克風設備的錯誤處理
+            Debug.LogError("沒有找到麥克風設備！");
+            questionText.text = "沒有找到麥克風設備！";
+
+            // 隱藏相關提示物件
             if (currentQuestionData.recordingObject != null)
             {
                 currentQuestionData.recordingObject.SetActive(false);
             }
 
-            byte[] wavData = ConvertAudioClipToWav(recordingClip);
-            yield return StartCoroutine(SendAudioToServer(wavData, currentQuestionSequence.IndexOf(currentQuestionData)));
-        }
-        else
-        {
-            Debug.LogError("沒有找到麥克風設備！");
-            questionText.text = "沒有找到麥克風設備！";
-
-            if (currentQuestionData.recordingObject != null)
+            // 確保倒數 UI 被隱藏
+            if (currentQuestionData.countdownGameObject != null)
             {
-                currentQuestionData.recordingObject.SetActive(false);
+                currentQuestionData.countdownGameObject.SetActive(false);
             }
 
             UpdateMoneyAndCheckAnswer(string.Empty, currentQuestionSequence.IndexOf(currentQuestionData));
             yield return new WaitForSeconds(2.0f);
         }
     }
+
+    // 修正：WAV 檔案儲存函式 (使用相對路徑)
+    private void SaveWavFile(byte[] wavData, int questionNumber)
+    {
+        // 1. 構建目標路徑
+        string relativePath = "Scripts/game_5";
+        string directoryPath = Path.Combine(Application.dataPath, relativePath);
+
+        // 2. 建立資料夾
+        if (!Directory.Exists(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+            Debug.Log($"已建立資料夾: {directoryPath}");
+        }
+
+        // 3. 檔案命名 (時間戳記 + 題號)
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
+        string fileName = $"{timestamp}_game5_Q{questionNumber}.wav";
+        string filePath = Path.Combine(directoryPath, fileName);
+
+        // 4. 寫入檔案
+        try
+        {
+            File.WriteAllBytes(filePath, wavData);
+
+            // 僅在 Editor 環境下，強制 Unity 刷新 Asset Database，讓新檔案即時出現在 Project 面板
+#if UNITY_EDITOR
+        UnityEditor.AssetDatabase.Refresh();
+#endif
+
+            Debug.Log($"✅ 語音檔案儲存成功 (Assets/Scripts/game_5): {filePath}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"❌ 語音檔案儲存失敗。請檢查 {directoryPath} 是否存在且有寫入權限。錯誤訊息: {e.Message}");
+        }
+    }
+
 
     IEnumerator SendAudioToServer(byte[] audioData, int questionSequenceIndex)
     {
@@ -382,7 +506,7 @@ public class QuestionManager : MonoBehaviour
         string remainingMoneyStr = remainingMoney.ToString();
         string normalizedResponse = userResponse.Replace("。", "").Replace("元", "").Trim();
 
-        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\"");
+        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\""); //這邊錯誤&正確都要存到database
 
         if (normalizedResponse == remainingMoneyStr)
         {

@@ -16,7 +16,7 @@ public class BackgroundVoice2 : MonoBehaviour
 
     [Header("題目音檔")]
     public AudioClip clip1; 	// 海鮮折扣快來買
-    public AudioClip clip2; 	// 雞豬牛羊都有賣
+    // public AudioClip clip2; 	// 雞豬牛羊都有賣
     public AudioClip clip3; 	// 早起買菜精神好
 
     [Header("流程參數")]
@@ -26,7 +26,7 @@ public class BackgroundVoice2 : MonoBehaviour
 
     private readonly string[] sentences = {
         "海鮮折扣快來買",
-        "雞豬牛羊都有賣",
+        // "雞豬牛羊都有賣",
         "早起買菜精神好"
     };
 
@@ -59,8 +59,8 @@ public class BackgroundVoice2 : MonoBehaviour
         int index = UnityEngine.Random.Range(0, sentences.Length);
         // hostFlask.targetSentence = sentences[index]; // ⚠️ 移除此行：新的 AudioToServerSender 沒有這個欄位
         
-        // 你的題目音檔邏輯不完整，這裡為了演示，假設你確實有三個音檔
-        AudioClip qClip = (index == 0) ? clip1 : (index == 1) ? clip2 : clip3; 
+        // 對應題目音檔（已刪掉中間那題）
+        AudioClip qClip = (index == 0) ? clip1 : clip3;
         
         string currentQuestionText = sentences[index]; // 記住題目文字，雖然這裡沒用到，但流程需要
 

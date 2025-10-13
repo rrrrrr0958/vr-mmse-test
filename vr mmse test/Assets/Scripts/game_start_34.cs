@@ -9,6 +9,9 @@ using Firebase.Extensions;
 using UnityEngine.Networking;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.IO;
+using System;
+
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -54,6 +57,11 @@ public class game_start_34 : MonoBehaviour
     public AudioClip weaponStallAudioClip;
     public AudioClip breadStallAudioClip;
     public AudioClip meatStallAudioClip;
+
+    // 【新增】轉場提示音檔
+    [Header("轉場提示音檔")]
+    public AudioClip transitToFishStallAudioClip; // 前往魚攤
+    public AudioClip transitToBananaAudioClip; // 前往香蕉
 
     [Header("魚攤問題語音設定")]
     public AudioClip whatIsSellingAudioClip;
@@ -108,11 +116,6 @@ public class game_start_34 : MonoBehaviour
     [Header("Ray Origin（可選，沒設就用 Right Controller）")]
     public Transform rayOriginOverride;
 
-
-    // =========================================================================
-    // 私有變數 (腳本內部使用)
-    // =========================================================================
-
     private GameObject[] clickableStallObjects;
     private List<string> stallNames = new List<string>();
     private List<string> nonFishStallNames = new List<string>();
@@ -141,11 +144,6 @@ public class game_start_34 : MonoBehaviour
 #if ENABLE_INPUT_SYSTEM
     private bool lastTriggerPressed = false;
 #endif
-
-
-    // =========================================================================
-    // Unity 生命周期方法
-    // =========================================================================
 
     void Awake()
     {
@@ -233,9 +231,7 @@ public class game_start_34 : MonoBehaviour
 
     void Update()
     {
-        // -------------------------------------------------------------------------
         // --- 1. 取得 Ray 的來源 (VR 模式優先，否則退回滑鼠) ---
-        // -------------------------------------------------------------------------
 
         RaycastHit hoverHit = default;
         Ray hoverRay = default;
@@ -286,9 +282,7 @@ public class game_start_34 : MonoBehaviour
         }
 
 
-        // -------------------------------------------------------------------------
         // --- 2. 處理 Hover 偵測 (邏輯不變) ---
-        // -------------------------------------------------------------------------
         if (didRaycastHit)
         {
             // 此時 hoverHit 已經確定被賦值
@@ -327,9 +321,7 @@ public class game_start_34 : MonoBehaviour
             }
         }
 
-        // -------------------------------------------------------------------------
         // --- 3. 處理點擊邏輯 ---
-        // -------------------------------------------------------------------------
         if (!isWaitingForClickInput || hasClickedStall || string.IsNullOrEmpty(currentTargetStallName))
             return;
 
@@ -556,7 +548,7 @@ public class game_start_34 : MonoBehaviour
                 yield break;
             }
 
-            int randomIndex = Random.Range(0, tempNonFishStallNames.Count);
+            int randomIndex = UnityEngine.Random.Range(0, tempNonFishStallNames.Count);
             currentTargetStallName = tempNonFishStallNames[randomIndex];
 
             // --- 傳遞輪次資訊給語音播放函式 ---
@@ -604,7 +596,7 @@ public class game_start_34 : MonoBehaviour
         currentTargetStallName = "";
         isWaitingForClickInput = false;
 
-        Debug.Log($"點擊題目正確數: {correctAnswersCount}/3");
+        Debug.Log($"點擊題目正確數: {correctAnswersCount}/3"); //game_3的答對題數
 
         if (dbReference != null)
         {
@@ -661,6 +653,15 @@ public class game_start_34 : MonoBehaviour
             yield break;
         }
 
+        // ⭐ 需求 2: 撥放前往魚攤語音
+        if (transitToFishStallAudioClip != null)
+        {
+            voiceAudioSource.PlayOneShot(transitToFishStallAudioClip);
+            // 等待語音播放完畢 (加上一個小緩衝)
+            yield return new WaitForSeconds(transitToFishStallAudioClip.length + 0.5f);
+        }
+        // ⭐ 轉場語音結束
+
         yield return StartCoroutine(SmoothCameraMove(targetTransform.position, targetTransform.rotation));
         Debug.Log("攝影機已成功轉向魚攤。");
         StartCoroutine(FishStallQuestionSequence());
@@ -668,27 +669,29 @@ public class game_start_34 : MonoBehaviour
 
     IEnumerator FishStallQuestionSequence()
     {
-        // ... (Q1 保持不變) ...
         currentVoiceQuestionIndex = 0;
         yield return new WaitForSeconds(timeBetweenQuestions);
 
         // --- 第一個問題 (Q1) ---
-        // ... (Q1 邏輯不變) ...
         currentVoiceQuestionIndex = 1;
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsSellingAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "魚攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤", "祈雨" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "魚", "魚肉", "與", "雨", "雨肉", "雨攤", "魚攤", "雨肉攤", "與肉攤", "肉", "海鮮", "魚肉攤", "一", "一肉", "一攤", "一肉攤", "露", "魚露", "一露", "魚露攤", "一露攤", "旗魚攤", "旗魚", "旗一", "旗一攤", "及一", "及一攤", "及魚", "及魚攤", "祈雨", "祈雨攤" }));
 
         yield return new WaitForSeconds(timeBetweenQuestions);
 
-        // ----------------------------------------------------
-        // --- 第二個問題 (Q2: 問香蕉是什麼) ---
-        // ----------------------------------------------------
-
-        // ... (轉向鏡頭邏輯保持不變) ...
+        // ⭐ 需求 3: Q1 到 Q2 的轉場語音與攝影機移動
         if (cameraTarget_banana_3 != null)
         {
             Debug.Log("攝影機開始轉向第二題目標（香蕉）...");
-            //float fixedDuration = 10.0f;
+
+            // 撥放轉場語音：我們要換到水果攤了！
+            if (transitToBananaAudioClip != null)
+            {
+                voiceAudioSource.PlayOneShot(transitToBananaAudioClip);
+                // 等待語音播放完畢 (加上一個小緩衝)
+                yield return new WaitForSeconds(transitToBananaAudioClip.length + 0.5f);
+            }
+
             yield return StartCoroutine(SmoothCameraMove(cameraTarget_banana_3.position, cameraTarget_banana_3.rotation));
             if (banana_bg_4 != null)
             {
@@ -697,76 +700,25 @@ public class game_start_34 : MonoBehaviour
             }
         }
         yield return new WaitForSeconds(timeBetweenQuestions);
+        // ⭐ 轉場語音與移動結束
 
-
-        // --- 執行第二個問題 ---
+        // --- 第二個問題 (Q2: 問香蕉是什麼) ---
         currentVoiceQuestionIndex = 2;
-        Debug.Log("Console 問題 2: 那個是什麼？ (原來的 Q3)");
+        Debug.Log("Console 問題 2: 那個水果是什麼？");
         ShowHighlightCircle();
         yield return StartCoroutine(PlayAudioClipAndThenWait(whatIsThatAudioClip));
-        yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉" , "芭蕉" }));
+        yield return StartCoroutine(WaitForAnswer(new List<string> { "香蕉", "芭蕉" }));
         HideHighlightCircle();
-
-
-        // >>> 【新增】 Q2 結束時，手動隱藏錄音提示字板，為 Q3 語音做準備
-        //if (question3_VoiceText != null)
-        //{
-        //    question3_VoiceText.gameObject.SetActive(false);
-        //    Debug.Log("Q2 回答後，錄音提示字板已隱藏。");
-        //}
-        //// <<<
-
-        //yield return new WaitForSeconds(timeBetweenQuestions);
-
-
-        // ----------------------------------------------------
-        // --- 第三個問題 (Q3: 問香蕉的顏色) ---
-        // ----------------------------------------------------
-
-        //if (banana_bg_4 != null)
-        //{
-        //    banana_bg_4.SetActive(true);
-        //    Debug.Log("banana_bg_4 (香蕉物件) 已再次啟用，準備第三題。");
-        //}
-
-        // 此處不等待，直接開始播放語音
-
-        // --- 執行第三個問題 ---
-        //currentVoiceQuestionIndex = 3;
-        //Debug.Log("Console 問題 3: 香蕉的顏色是什麼？");
-        //ShowHighlightCircle();
-
-        //// 【重點】語音播放時，錄音提示字板保持隱藏
-        //if (bananaColorAudioClip != null)
-        //{
-        //    yield return StartCoroutine(PlayAudioClipAndThenWait(bananaColorAudioClip));
-        //    // PlayAudioClipAndThenWait 結束後，流程進入 WaitForAnswer
-        //    // WaitForAnswer 會判斷 currentVoiceQuestionIndex = 3，並開啟 question3_VoiceText
-        //    yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
-        //}
-        //else
-        //{
-        //    // ... (錯誤處理邏輯不變) ...
-        //    yield return new WaitForSeconds(1.0f);
-        //    yield return StartCoroutine(WaitForAnswer(new List<string> { "黃色", "黃", "王色", "王" }));
-        //}
-
-
-        HideHighlightCircle();
-
-        // ==========================================================
 
         Debug.Log("Console: 所有魚攤問題已完成！");
-        Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/2");
+        Debug.Log($"語音題目正確數: {voiceCorrectAnswersCount}/2"); // game_4 總題數 = 2
 
-        currentVoiceQuestionIndex = 0; // 重置問題編號
+        currentVoiceQuestionIndex = 0;
 
         UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
     }
 
-
-    //"黃色", "黃", "王色", "王"
 
     IEnumerator PlayAudioClipAndThenWait(AudioClip clip)
     {
@@ -802,7 +754,7 @@ public class game_start_34 : MonoBehaviour
             {
                 if (task.IsCompleted)
                 {
-                    Debug.Log($"成功將語音分數寫入 Firebase: 正確 {score}/3");
+                    Debug.Log($"成功將語音分數寫入 Firebase: {score}");
                 }
                 else if (task.IsFaulted)
                 {
@@ -1015,6 +967,7 @@ public class game_start_34 : MonoBehaviour
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
+            SaveWavFile(wavData, currentVoiceQuestionIndex);
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
         }
         else
@@ -1090,6 +1043,43 @@ public class game_start_34 : MonoBehaviour
         StartCoroutine(ShowResultAndContinue(isCorrect));
     }
 
+
+    // ===============================================
+    // ⭐ 新增：WAV 檔案儲存函式 (寫入 Assets/Scripts/game_4)
+    // ===============================================
+    private void SaveWavFile(byte[] wavData, int questionNumber)
+    {
+        string relativePath = "Scripts/game_4";
+        string directoryPath = Path.Combine(Application.dataPath, relativePath);
+
+        // 建立資料夾
+        if (!Directory.Exists(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+            Debug.Log($"已建立資料夾: {directoryPath}");
+        }
+
+        // 檔案命名：時間戳記 + Q1/Q2/Q3... (取自 currentVoiceQuestionIndex)
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
+        string fileName = $"{timestamp}_game4_Q{questionNumber}.wav"; 
+        string filePath = Path.Combine(directoryPath, fileName);
+
+        try
+        {
+            File.WriteAllBytes(filePath, wavData);
+
+#if UNITY_EDITOR
+        UnityEditor.AssetDatabase.Refresh();
+#endif
+
+            Debug.Log($"✅ 語音檔案儲存成功 (Assets/Scripts/game_4): {filePath}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"❌ 語音檔案儲存失敗。錯誤訊息: {e.Message}");
+        }
+    }
+
     IEnumerator ShowResultAndContinue(bool isCorrect)
     {
         if (isCorrect)
@@ -1097,8 +1087,6 @@ public class game_start_34 : MonoBehaviour
             voiceCorrectAnswersCount++;
         }
 
-        // 可選：在這裡顯示正確或錯誤的視覺提示（例如：文字板閃爍顏色）
-        // ...
 
         yield return new WaitForSeconds(timeBetweenQuestions);
 

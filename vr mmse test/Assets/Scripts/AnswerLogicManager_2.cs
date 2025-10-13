@@ -9,7 +9,7 @@ public class AnswerLogicManager : MonoBehaviour
 
     private readonly string[] correctAnswers = { 
         "海鮮折扣快來買",      
-        "雞豬牛羊都有賣",      
+        // "雞豬牛羊都有賣",      
         "早起買菜精神好"       
     };
 

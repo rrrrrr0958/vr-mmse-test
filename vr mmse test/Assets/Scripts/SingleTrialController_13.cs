@@ -10,29 +10,35 @@ public class SingleTrialController : MonoBehaviour
     public AsrClient client;
 
     [Header("UI")]
-    public TextMeshProUGUI titleText;     // Title（可保留提示用）
+    public TextMeshProUGUI titleText;     // 標題
     public TextMeshProUGUI subtitleText;  // 狀態/倒數
     public Image countdownFill;           // Image: Filled/Radial
     public Image levelFill;               // Image: Filled/Horizontal
-    // public GameObject resultPanel;     // ← 不再使用
-    // public TextMeshProUGUI resultText; // ← 不再使用
 
     [Header("Config")]
     public float maxSeconds = 10f;
 
     [Header("Auto flow")]
-    public bool autoStartOnSceneLoad = true;   // 場景載入就自動流程
-    public AudioSource promptSource;           // 場景裡的 AudioSource
-    public AudioClip promptClip;               // 要播放的提示音
-    public float delayBeforePrompt = 0.2f;     // 場景穩定一下再播
-    public float delayAfterPrompt = 0.15f;     // 播完留個短緩衝再開錄
+    public bool autoStartOnSceneLoad = true;  // 場景載入自動流程
+    public AudioSource promptSource;          // 播題目用 AudioSource
+    public AudioClip promptClip;              // 題目音檔
+    public float delayBeforePrompt = 0.2f;    // 場景穩定一下再播
+    public float delayAfterPrompt = 0.0f;     // 題目播完後緩衝（你希望立刻錄音就設 0）
+
+    [Header("DSP Scheduling")]
+    public bool useDspScheduling = true;      // 使用 DSP 精準排程讓題目一結束就錄音
+    public double dspLeadIn = 0.03;           // 預留少量啟動緩衝
+
+    [Header("Diagnostics")]
+    public bool verboseLog = true;
+    public float waitMaxGuardSeconds = 10f;
 
     private float tRemain;
     private bool recording;
 
     void Start()
     {
-        if (titleText) titleText.text = "請說出一句完整的句子";
+        if (titleText) titleText.text = "請聽題目";
         if (subtitleText) subtitleText.text = "準備中…";
 
         if (countdownFill)
@@ -50,8 +56,15 @@ public class SingleTrialController : MonoBehaviour
 
         if (recorder != null)
         {
-            recorder.OnLevel += (lv) => { if (levelFill) levelFill.fillAmount = Mathf.Clamp01(lv); };
-            recorder.OnWavReady += OnWavReady;
+            recorder.OnLevel += (lv) =>
+            {
+                if (levelFill) levelFill.fillAmount = Mathf.Clamp01(lv);
+            };
+            recorder.OnWavReady += OnWavReady;  // 錄完觸發
+        }
+        else
+        {
+            Debug.LogError("[SingleTrial] Recorder is NULL.");
         }
 
         if (autoStartOnSceneLoad)
@@ -62,44 +75,84 @@ public class SingleTrialController : MonoBehaviour
 
     IEnumerator AutoFlowRoutine()
     {
-        if (delayBeforePrompt > 0f) yield return new WaitForSecondsRealtime(delayBeforePrompt);
+        if (delayBeforePrompt > 0f)
+            yield return new WaitForSecondsRealtime(delayBeforePrompt);
 
         if (promptSource && promptClip)
         {
-            if (titleText) titleText.text = "請先聽範例語句";
+            if (titleText) titleText.text = "請聽題目";
             if (subtitleText) subtitleText.text = "播放中…";
 
+            // --- 播放設定 ---
             promptSource.Stop();
             promptSource.clip = promptClip;
-            promptSource.Play();
+            promptSource.loop = false;
 
-            yield return new WaitWhile(() => promptSource.isPlaying);
+            // 1) 計算實際播放秒數（考慮 pitch）
+            double duration = promptClip.length / Mathf.Max(0.01f, promptSource.pitch);
+            if (verboseLog) Debug.Log($"[SingleTrial] clip='{promptClip.name}', len={promptClip.length:F3}s, pitch={promptSource.pitch:F3}, dur={duration:F3}s");
 
-            if (delayAfterPrompt > 0f) yield return new WaitForSecondsRealtime(delayAfterPrompt);
+            // 2) 用 DSP 播，但用固定秒數等待（Hybrid）
+            double startDsp = AudioSettings.dspTime + dspLeadIn; // 小緩衝避免丟頭
+            promptSource.PlayScheduled(startDsp);
+
+            // 等待「題目長度」這麼久（不受 timescale 影響）
+            yield return new WaitForSecondsRealtime((float)duration + (float)dspLeadIn);
+
+            // 3) 尾端保險：最多再等 0.2s 或直到不再播放
+            float tailGuard = 0f;
+            while (promptSource.isPlaying && tailGuard < 0.2f)
+            {
+                tailGuard += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            // 4) 你若真的要 0 延遲，將 delayAfterPrompt 設 0
+            if (delayAfterPrompt > 0f)
+                yield return new WaitForSecondsRealtime(delayAfterPrompt);
+        }
+        else
+        {
+            Debug.LogWarning("[SingleTrial] Missing promptSource or promptClip. Skipping prompt.");
         }
 
-        StartTrial();
+        StartTrial(); // 題目結束 → 立刻開始錄音
     }
 
     void StartTrial()
     {
         if (recording) return;
+        if (promptSource && promptSource.isPlaying) return; // 保險
 
         recording = true;
         tRemain = maxSeconds;
 
-        if (titleText) titleText.text = "請說出一句完整的句子";
+        if (titleText) titleText.text = "請說出你的答案";
         if (subtitleText) subtitleText.text = $"錄音中… {Mathf.CeilToInt(tRemain)} 秒";
         if (countdownFill) countdownFill.fillAmount = 0f;
 
-        recorder.StartRecord();
+        if (recorder != null)
+        {
+            if (verboseLog) Debug.Log("[SingleTrial] StartRecord()");
+            recorder.StartRecord();
+        }
+        else
+        {
+            Debug.LogError("[SingleTrial] Recorder is null; cannot start recording.");
+        }
     }
 
     void StopTrial()
     {
         if (!recording) return;
         recording = false;
-        recorder.StopRecord();
+
+        if (recorder != null)
+        {
+            if (verboseLog) Debug.Log("[SingleTrial] StopRecord()");
+            recorder.StopRecord();
+        }
+
         if (subtitleText) subtitleText.text = "上傳中…";
     }
 
@@ -109,34 +162,44 @@ public class SingleTrialController : MonoBehaviour
 
         tRemain -= Time.deltaTime;
         float progress = Mathf.Clamp01(1f - tRemain / maxSeconds);
+
         if (countdownFill) countdownFill.fillAmount = progress;
         if (subtitleText) subtitleText.text = $"錄音中… {Mathf.CeilToInt(Mathf.Max(0, tRemain))} 秒";
 
-        if (tRemain <= 0f) StopTrial();
+        if (tRemain <= 0f)
+            StopTrial();
     }
 
     void OnWavReady(byte[] wav)
     {
+        if (client == null)
+        {
+            Debug.LogError("[SingleTrial] AsrClient is null.");
+            if (titleText) titleText.text = "上傳失敗";
+            if (subtitleText) subtitleText.text = "沒有 ASR 客戶端";
+            return;
+        }
+
+        // 先存 WAV 到 Assets/Scripts/game_13（Editor）或 persistentDataPath/game_13（裝置）
+        string savedWavPath = AsrResultLogger.SaveWav(wav);
+
         StartCoroutine(client.UploadWav(
             wav,
             onDone: (resp) =>
             {
-                // 取得文字（/score 或 /recognize_speech）
-                string text = (resp != null)
-                              ? (!string.IsNullOrEmpty(resp.transcript) ? resp.transcript : resp?.transcription)
-                              : null;
+                string text = resp?.transcript ?? resp?.transcription;
                 int score = resp?.score ?? 0;
 
-                // 存檔 + Console
-                AsrResultLogger.Append(text ?? "", score);
+                // CSV：Assets/Scripts/game_13/results_13.csv
+                AsrResultLogger.Append(text ?? "", score, savedWavPath);
 
                 if (titleText) titleText.text = "錄音完成";
                 if (subtitleText) subtitleText.text = "完成";
             },
             onError: (err) =>
             {
-                // 失敗也寫一筆（score = -1）
-                AsrResultLogger.Append($"<ERROR> {err}", -1);
+                // 失敗也寫一筆（score = -1），保留 wav 路徑
+                AsrResultLogger.Append($"<ERROR> {err}", -1, savedWavPath);
 
                 if (titleText) titleText.text = "連線失敗";
                 if (subtitleText) subtitleText.text = "請確認伺服器與IP";
@@ -149,4 +212,5 @@ public class SingleTrialController : MonoBehaviour
         ));
         SceneFlowManager.instance.LoadNextScene();
     }
+
 }

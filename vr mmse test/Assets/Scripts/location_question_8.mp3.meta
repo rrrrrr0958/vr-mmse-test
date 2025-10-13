@@ -1,0 +1,27 @@
+fileFormatVersion: 2
+<<<<<<<< HEAD:vr mmse test/Assets/Scripts/location_question_8.mp3.meta
+guid: fe8773f195a5fb44fb47ccb2afce9b6f
+========
+guid: 8ca8da01387b81f46b8da783e14c3e5f
+>>>>>>>> main:vr mmse test/Assets/Scripts/11_1.wav.meta
+AudioImporter:
+  externalObjects: {}
+  serializedVersion: 8
+  defaultSettings:
+    serializedVersion: 2
+    loadType: 0
+    sampleRateSetting: 0
+    sampleRateOverride: 44100
+    compressionFormat: 1
+    quality: 1
+    conversionMode: 0
+    preloadAudioData: 0
+  platformSettingOverrides: {}
+  forceToMono: 0
+  normalize: 1
+  loadInBackground: 0
+  ambisonic: 0
+  3D: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
