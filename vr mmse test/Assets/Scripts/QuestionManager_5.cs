@@ -243,7 +243,7 @@ public class QuestionManager : MonoBehaviour
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
         // 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
-        // SceneFlowManager.instance.LoadNextScene(); 
+        SceneFlowManager.instance.LoadNextScene(); 
         Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }
 

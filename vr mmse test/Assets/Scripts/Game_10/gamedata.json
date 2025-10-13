@@ -1,29 +1,29 @@
 {
     "correctAnswers": [
-        "蘋果",
-        "鳳梨",
-        "葡萄"
+        "西瓜",
+        "葡萄",
+        "鳳梨"
     ],
     "attempts": [
         {
             "round": 1,
             "selected": [
-                "葡萄",
-                "橘子",
-                "鳳梨"
+                "鳳梨",
+                "西瓜",
+                "橘子"
             ],
             "correctCount": 2,
-            "timeUsed": 5.291220664978027
+            "timeUsed": 4.2406005859375
         },
         {
             "round": 2,
             "selected": [
                 "西瓜",
-                "香蕉",
-                "葡萄"
+                "橘子",
+                "鳳梨"
             ],
-            "correctCount": 1,
-            "timeUsed": 6.308784484863281
+            "correctCount": 2,
+            "timeUsed": 6.067047119140625
         }
     ]
 }
