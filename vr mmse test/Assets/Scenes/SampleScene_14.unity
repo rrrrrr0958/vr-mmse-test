@@ -10100,6 +10100,12 @@ MonoBehaviour:
   audioSource: {fileID: 750978935}
   correctSFX: {fileID: 0}
   incorrectSFX: {fileID: 0}
+  startTestAudio: {fileID: 8300000, guid: c9ca692e16a90fb478f3f918c16ca4ed, type: 3}
+  yearQuestionAudio: {fileID: 8300000, guid: 8c4381516db224144ab73c41f872bb49, type: 3}
+  monthQuestionAudio: {fileID: 8300000, guid: 37d57295bc8b7c941949aeaf6a30e66e, type: 3}
+  dayQuestionAudio: {fileID: 8300000, guid: 14f1948105188af4db6181668da31973, type: 3}
+  dayOfWeekQuestionAudio: {fileID: 8300000, guid: 24f559e17e9df1b40a8da8d9e8c95aa0, type: 3}
+  hourQuestionAudio: {fileID: 8300000, guid: 37bbfce81fda5434da2af22db081f35c, type: 3}
   springAmbience: {fileID: 8300000, guid: c5f35959f4ec6bc49a23f80f0fa245d3, type: 3}
   summerAmbience: {fileID: 8300000, guid: 93549c46314335a4491baf4f5538106c, type: 3}
   autumnAmbience: {fileID: 8300000, guid: fe12df2d21dc0d34d8042dfbd35ec71c, type: 3}
@@ -11942,7 +11948,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u78BA\u8A8D"
+  m_Text: "\u4E0B\u4E00\u984C"
 --- !u!222 &880485970
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -15862,7 +15868,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.06999993
+      value: -2.36
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.z
