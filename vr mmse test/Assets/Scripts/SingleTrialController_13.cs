@@ -180,10 +180,8 @@ public class SingleTrialController : MonoBehaviour
             return;
         }
 
-        // 先保存 WAV 檔到 Assets/Scripts（Editor）或 persistentDataPath/Exports（裝置）
+        // 先存 WAV 到 Assets/Scripts/game_13（Editor）或 persistentDataPath/game_13（裝置）
         string savedWavPath = AsrResultLogger.SaveWav(wav);
-
-        if (verboseLog) Debug.Log($"[SingleTrial] OnWavReady: {wav?.Length ?? 0} bytes. Saved: {savedWavPath}. Uploading…");
 
         StartCoroutine(client.UploadWav(
             wav,
@@ -192,16 +190,15 @@ public class SingleTrialController : MonoBehaviour
                 string text = resp?.transcript ?? resp?.transcription;
                 int score = resp?.score ?? 0;
 
-                // CSV 追加一筆，含 WAV 路徑
+                // CSV：Assets/Scripts/game_13/results_13.csv
                 AsrResultLogger.Append(text ?? "", score, savedWavPath);
 
                 if (titleText) titleText.text = "錄音完成";
                 if (subtitleText) subtitleText.text = "完成";
-                if (verboseLog) Debug.Log($"[SingleTrial] Upload done. text={text}, score={score}");
             },
             onError: (err) =>
             {
-                // 失敗也寫一筆（score = -1），並保留 wav 路徑方便重傳
+                // 失敗也寫一筆（score = -1），保留 wav 路徑
                 AsrResultLogger.Append($"<ERROR> {err}", -1, savedWavPath);
 
                 if (titleText) titleText.text = "連線失敗";
@@ -215,4 +212,5 @@ public class SingleTrialController : MonoBehaviour
         ));
         SceneFlowManager.instance.LoadNextScene();
     }
+
 }
