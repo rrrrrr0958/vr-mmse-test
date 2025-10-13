@@ -938,67 +938,6 @@ MonoBehaviour:
   company: Unity
   priority: 0
   required: 0
---- !u!114 &1275414250266211246
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 486b5e28864f9a94b979b9620ce5006d, type: 3}
-  m_Name: ConformanceAutomationFeature Android
-  m_EditorClassIdentifier: 
-  m_enabled: 0
-  nameUi: Conformance Automation
-  version: 0.0.1
-  featureIdInternal: com.unity.openxr.feature.conformance
-  openxrExtensionStrings: XR_EXT_conformance_automation
-  company: Unity
-  priority: 0
-  required: 0
---- !u!114 &1331798445379771841
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f928d0d73a35f294fbe357ca17aa3547, type: 3}
-  m_Name: MicrosoftHandInteraction Android
-  m_EditorClassIdentifier: 
-  m_enabled: 0
-  nameUi: Microsoft Hand Interaction Profile
-  version: 0.0.1
-  featureIdInternal: com.unity.openxr.feature.input.handtracking
-  openxrExtensionStrings: XR_MSFT_hand_interaction
-  company: Unity
-  priority: 0
-  required: 0
---- !u!114 &1355632066525369935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e573a2aed6698b047aff95224499b722, type: 3}
-  m_Name: MetaXREyeTrackedFoveationFeature Android
-  m_EditorClassIdentifier: 
-  m_enabled: 0
-  nameUi: Meta XR Eye Tracked Foveation
-  version: 0.0.1
-  featureIdInternal: com.meta.openxr.feature.eyetrackedfoveation
-  openxrExtensionStrings: XR_META_foveation_eye_tracked XR_FB_eye_tracking_social
-    XR_META_vulkan_swapchain_create_info
-  company: Meta
-  priority: 0
-  required: 0
 --- !u!114 &905769641913035865
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1059,6 +998,26 @@ MonoBehaviour:
   m_optimizeBufferDiscards: 0
   m_symmetricProjection: 0
   m_foveatedRenderingApi: 0
+--- !u!114 &1275414250266211246
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486b5e28864f9a94b979b9620ce5006d, type: 3}
+  m_Name: ConformanceAutomationFeature Android
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: Conformance Automation
+  version: 0.0.1
+  featureIdInternal: com.unity.openxr.feature.conformance
+  openxrExtensionStrings: XR_EXT_conformance_automation
+  company: Unity
+  priority: 0
+  required: 0
 --- !u!114 &1311762051624183772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1079,7 +1038,7 @@ MonoBehaviour:
   company: Unity Technologies
   priority: 0
   required: 0
---- !u!114 &2060067121930653823
+--- !u!114 &1331798445379771841
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1088,15 +1047,36 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 651d103057d74c4d8e51d0b368d3d98b, type: 3}
-  m_Name: ColocationDiscoveryFeature Standalone
+  m_Script: {fileID: 11500000, guid: f928d0d73a35f294fbe357ca17aa3547, type: 3}
+  m_Name: MicrosoftHandInteraction Android
   m_EditorClassIdentifier: 
   m_enabled: 0
-  nameUi: 'Meta Quest: Colocation Discovery'
-  version: 1.0.0
-  featureIdInternal: com.unity.openxr.feature.meta-colocation-discovery
-  openxrExtensionStrings: XR_META_colocation_discovery
-  company: Unity Technologies
+  nameUi: Microsoft Hand Interaction Profile
+  version: 0.0.1
+  featureIdInternal: com.unity.openxr.feature.input.handtracking
+  openxrExtensionStrings: XR_MSFT_hand_interaction
+  company: Unity
+  priority: 0
+  required: 0
+--- !u!114 &1355632066525369935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e573a2aed6698b047aff95224499b722, type: 3}
+  m_Name: MetaXREyeTrackedFoveationFeature Android
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: Meta XR Eye Tracked Foveation
+  version: 0.0.1
+  featureIdInternal: com.meta.openxr.feature.eyetrackedfoveation
+  openxrExtensionStrings: XR_META_foveation_eye_tracked XR_FB_eye_tracking_social
+    XR_META_vulkan_swapchain_create_info
+  company: Meta
   priority: 0
   required: 0
 --- !u!114 &1553855214485372170
@@ -1204,6 +1184,26 @@ MonoBehaviour:
   company: Unity Technologies
   priority: 0
   required: 0
+--- !u!114 &2060067121930653823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 651d103057d74c4d8e51d0b368d3d98b, type: 3}
+  m_Name: ColocationDiscoveryFeature Standalone
+  m_EditorClassIdentifier: 
+  m_enabled: 0
+  nameUi: 'Meta Quest: Colocation Discovery'
+  version: 1.0.0
+  featureIdInternal: com.unity.openxr.feature.meta-colocation-discovery
+  openxrExtensionStrings: XR_META_colocation_discovery
+  company: Unity Technologies
+  priority: 0
+  required: 0
 --- !u!114 &2246487836269652658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1301,8 +1301,8 @@ MonoBehaviour:
   - {fileID: 2246487836269652658}
   - {fileID: -8887989418194658904}
   - {fileID: 9054281272014512859}
-  - {fileID: -8792637005718921839}
-  - {fileID: -6590713823443356214}
+  - {fileID: 1311762051624183772}
+  - {fileID: 1355632066525369935}
   - {fileID: -4017842409376407483}
   - {fileID: -748748698639519079}
   - {fileID: -8252298369442276978}
@@ -1542,44 +1542,44 @@ MonoBehaviour:
   m_Name: Standalone
   m_EditorClassIdentifier: 
   features:
-  - {fileID: 6728111371141662078}
-  - {fileID: 7630879180335453241}
-  - {fileID: -5885080863754774923}
-  - {fileID: 7419722035351768812}
-  - {fileID: -2306749780779287918}
-  - {fileID: -6259876762781845697}
-  - {fileID: -2137129045659167960}
-  - {fileID: 739704201040182693}
-  - {fileID: 8106020534418339092}
-  - {fileID: -8964904297071335373}
-  - {fileID: -1014658301251190276}
-  - {fileID: -2444013570649557834}
-  - {fileID: -2651543887510358298}
-  - {fileID: -6228048766998775042}
-  - {fileID: 3199868124744355412}
-  - {fileID: -1291218617633452370}
-  - {fileID: 5161807561509444643}
-  - {fileID: 6172890459356242906}
-  - {fileID: 2154354697099922015}
-  - {fileID: 8950614656400749369}
-  - {fileID: 6530574036769345664}
-  - {fileID: 3432326705145046065}
-  - {fileID: -6511146807778183488}
-  - {fileID: 3010162488864020686}
-  - {fileID: -1471683351402506639}
-  - {fileID: -5149713685157446065}
-  - {fileID: 5378487527785498311}
-  - {fileID: 5767268179339812031}
-  - {fileID: -6191335139753161459}
-  - {fileID: 8119381391481584431}
-  - {fileID: 8090851409594443448}
-  - {fileID: 6106701812872149157}
-  - {fileID: 3930606753771960614}
-  - {fileID: 5900919195147937807}
-  - {fileID: 6647758216563200005}
-  - {fileID: -4042913545641005006}
-  - {fileID: 7276674260087958922}
-  - {fileID: 8773999601652957070}
+  - {fileID: -5341021118562747271}
+  - {fileID: 901921900396385093}
+  - {fileID: -4904478454686242294}
+  - {fileID: 6963256584374101872}
+  - {fileID: -4825891018197077131}
+  - {fileID: -2668959762633171353}
+  - {fileID: 1715887305327231528}
+  - {fileID: -6826046682580062944}
+  - {fileID: 6586286850250121118}
+  - {fileID: 6623388125558990696}
+  - {fileID: 3596563644878907881}
+  - {fileID: 5048100275774869878}
+  - {fileID: -4041146833006131411}
+  - {fileID: 5617463367918275119}
+  - {fileID: -521471078080196792}
+  - {fileID: -4006030249309353452}
+  - {fileID: -2005391243198730782}
+  - {fileID: -5754493333325130723}
+  - {fileID: 2060067121930653823}
+  - {fileID: 2515196235904472664}
+  - {fileID: 4491075897368876426}
+  - {fileID: -5091372330426002856}
+  - {fileID: -2628982185409519350}
+  - {fileID: 2054313812700870836}
+  - {fileID: -1435054751855083396}
+  - {fileID: -7965659572464382600}
+  - {fileID: -3886960662183080178}
+  - {fileID: 8103519574723125325}
+  - {fileID: -7802604271137796323}
+  - {fileID: 6508648342586616320}
+  - {fileID: 184875882824906893}
+  - {fileID: 8387141175242341567}
+  - {fileID: 4351255294733181862}
+  - {fileID: -8334292743448039338}
+  - {fileID: 8936106797270286559}
+  - {fileID: -5743791122938887804}
+  - {fileID: 2263216349752435830}
+  - {fileID: -6925626156415681771}
   m_renderMode: 1
   m_latencyOptimization: 0
   m_autoColorSubmissionMode: 1

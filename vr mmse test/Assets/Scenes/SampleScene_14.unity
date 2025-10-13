@@ -10100,7 +10100,7 @@ MonoBehaviour:
   audioSource: {fileID: 750978935}
   correctSFX: {fileID: 0}
   incorrectSFX: {fileID: 0}
-  startTestAudio: {fileID: 8300000, guid: c9ca692e16a90fb478f3f918c16ca4ed, type: 3}
+  startTestAudio: {fileID: 8300000, guid: 7e8bf56c87537d9428d2d36eed490120, type: 3}
   yearQuestionAudio: {fileID: 8300000, guid: 8c4381516db224144ab73c41f872bb49, type: 3}
   monthQuestionAudio: {fileID: 8300000, guid: 37d57295bc8b7c941949aeaf6a30e66e, type: 3}
   dayQuestionAudio: {fileID: 8300000, guid: 14f1948105188af4db6181668da31973, type: 3}
