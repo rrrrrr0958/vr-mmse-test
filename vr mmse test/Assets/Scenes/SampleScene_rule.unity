@@ -17716,6 +17716,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   xrOrigin: {fileID: 1481550018}
   vrCameraTransform: {fileID: 237878324}
+  leftHandInteractor: {fileID: 1885335851}
+  rightHandInteractor: {fileID: 583682062}
   RuleText_rule: {fileID: 1250203569}
   treasurebg_rule: {fileID: 1575020187}
   confirmationButton: {fileID: 981975660}

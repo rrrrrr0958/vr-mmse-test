@@ -2,7 +2,8 @@
 using System.Collections;
 using TMPro;
 using Unity.XR.CoreUtils;
-using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit; // ✅ 用 XRI 的 Interactor 狀態
+using UnityEngine.XR.Interaction.Toolkit.Interactors;      // ✅ 新增這行
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using System.Text;
@@ -13,9 +14,12 @@ public class Rule_script : MonoBehaviour
     public XROrigin xrOrigin;
     public Transform vrCameraTransform;
 
-    [Header("VR 輸入設定")]
-    private ActionBasedController leftHandController;
-    private ActionBasedController rightHandController;
+    // ====== ✅ 直接拖拽左右手 Interactor（Ray 或 Direct 皆可，需繼承 XRBaseControllerInteractor） ======
+    [Header("Hand Interactors (拖拽 XR Origin 子物件上的 Interactor)")]
+    [Tooltip("拖左手的 XR Ray Interactor 或 XR Direct Interactor")]
+    public XRBaseInputInteractor leftHandInteractor;
+    [Tooltip("拖右手的 XR Ray Interactor 或 XR Direct Interactor")]
+    public XRBaseInputInteractor rightHandInteractor;
 
     [Header("UI & 3D 物件")]
     public TextMeshPro RuleText_rule;
@@ -63,18 +67,18 @@ public class Rule_script : MonoBehaviour
         "歡迎來到VR樂園",
         "我們準備了一系列的挑戰任務",
         "所有任務完成後  可以開啟寶箱",
-        "現在先來知道       挑戰的規則",
-        "第一：請勿移動   和大幅度轉頭",
+        "現在先來知道       挑戰的規則",
+        "第一：請勿移動   和大幅度轉頭",
         "第二：若在遊戲過程中感到任何不適",
-        "請立即告知              身旁的護理人員",
-        "第三：遊戲任務   如果需要點選物品",
-        "請使用食指           按下扳機鍵",
+        "請立即告知              身旁的護理人員",
+        "第三：遊戲任務   如果需要點選物品",
+        "請使用食指           按下扳機鍵",
         "現在請使用扳機鍵對準按鈕並按下",
-        "第四：若遊戲       任務需要作答",
+        "第四：若遊戲       任務需要作答",
         "請在題目播放完畢後直接說出答案",
-        "或是依照                題目指令回答",
-        "現在請說出：          「我知道了」", // Index 13
-        "接下來開始遊戲吧！"      // Index 14
+        "或是依照                題目指令回答",
+        "現在請說出：          「我知道了」", // Index 13
+        "接下來開始遊戲吧！"      // Index 14
     };
 
     private bool buttonWasPressed = false;
@@ -89,15 +93,12 @@ public class Rule_script : MonoBehaviour
 
     void Start()
     {
-        var controllers = FindObjectsOfType<ActionBasedController>();
-        foreach (var c in controllers)
+        // 檢查左右手 Interactor 是否已指定
+        if (leftHandInteractor == null || rightHandInteractor == null)
         {
-            if (c.name.ToLower().Contains("left")) leftHandController = c;
-            else if (c.name.ToLower().Contains("right")) rightHandController = c;
+            Debug.LogWarning("⚠️ 尚未在 Inspector 指定左右手的 XRBaseControllerInteractor（XR Ray/Direct Interactor）。" +
+                             "請在 XR Origin 的子物件上找到 Interactor，拖到本腳本的欄位。");
         }
-
-        if (leftHandController == null && rightHandController == null)
-            Debug.LogWarning("⚠️ 未找到任何 Action-Based Controller，請確認 XR Rig 設置正確。");
 
         // UI 初始化
         RuleText_rule?.gameObject.SetActive(false);
@@ -125,10 +126,8 @@ public class Rule_script : MonoBehaviour
         if (successClip == null) Debug.LogWarning("⚠️ successClip 未設定。");
         if (failureClip == null) Debug.LogWarning("⚠️ failureClip 未設定。");
 
-
         ApplyCameraRotationToOrigin();
         StartCoroutine(WaitForStartThenBegin());
-
     }
 
     public void ApplyCameraRotationToOrigin()
@@ -240,7 +239,6 @@ public class Rule_script : MonoBehaviour
         if (voiceAudioSource != null && startClip != null)
         {
             voiceAudioSource.PlayOneShot(startClip);
-            // 播放完畢後，語音會自動停止，我們繼續等待輸入
         }
         else
         {
@@ -250,17 +248,15 @@ public class Rule_script : MonoBehaviour
         // 3. 等待開始輸入 (UI 按鈕點擊 或 扳機鍵按下)
         while (!gameStarted)
         {
-            // 偵測左右手扳機啟動 (IsAnyTriggerPressed() 已經處理了按壓的瞬間)
-            if (IsAnyTriggerPressed())
+            if (IsAnyTriggerPressed()) // ✅ 用 Interactor 狀態判斷
             {
                 gameStarted = true;
-                Debug.Log("🟢 透過 VR 板機開始流程。");
+                Debug.Log("🟢 透過 VR 扳機開始流程。");
             }
             yield return null;
         }
 
         // 4. 開始流程後的清理
-        // 停止可能還在播放的開始語音
         voiceAudioSource.Stop();
         startButton?.SetActive(false);
         RuleText_rule.gameObject.SetActive(false);
@@ -272,7 +268,7 @@ public class Rule_script : MonoBehaviour
     IEnumerator WaitForButtonPress()
     {
         buttonWasPressed = false;
-        Debug.Log("🕹️ 等待玩家按下 VR 板機鍵或按鈕...");
+        Debug.Log("🕹️ 等待玩家按下 VR 扳機鍵或按鈕...");
 
         Button btn = confirmationButton.GetComponent<Button>();
         if (btn != null)
@@ -282,13 +278,12 @@ public class Rule_script : MonoBehaviour
 
         while (!buttonWasPressed)
         {
-            // 🌟 只要任一控制器的扳機按下即可
             if (IsAnyTriggerPressed())
             {
                 if (!triggerHeld)
                 {
                     buttonWasPressed = true;
-                    Debug.Log("🎮 任一 VR 板機鍵按下偵測到。");
+                    Debug.Log("🎮 任一 VR 扳機鍵按下偵測到。");
                 }
                 triggerHeld = true;
             }
@@ -304,25 +299,27 @@ public class Rule_script : MonoBehaviour
             btn.onClick.RemoveListener(ConfirmButtonClick);
     }
 
+    // ====== ✅ 核心：用 Interactor 的互動狀態判斷「是否按下」 ======
+    // Activate：通常對應 Trigger；UI Press：用來按 Unity UI
+// 取代你現在的 IsAnyTriggerPressed()
     private bool IsAnyTriggerPressed()
     {
-        bool leftTrigger = false;
-        bool rightTrigger = false;
+        bool left = leftHandInteractor != null &&
+                    (leftHandInteractor.logicalActivateState.active
+                    /* || leftHandInteractor.logicalSelectState.active  // 若需要把抓取也算進去，解開註解 */);
 
-        if (leftHandController != null)
-            leftTrigger = leftHandController.activateAction.action.ReadValue<float>() > 0.1f;
+        bool right = rightHandInteractor != null &&
+                    (rightHandInteractor.logicalActivateState.active
+                    /* || rightHandInteractor.logicalSelectState.active */);
 
-        if (rightHandController != null)
-            rightTrigger = rightHandController.activateAction.action.ReadValue<float>() > 0.1f;
-
-        return leftTrigger || rightTrigger;
+        return left || right;
     }
 
+
     // ===============================================
-    // 🌟 語音錄製與辨識邏輯
+    // 🌟 語音錄製與辨識邏輯（以下原樣保留）
     // ===============================================
 
-    // 新增狀態列舉，更精確地傳遞錄音結果
     public enum RecordingStatus
     {
         NotStarted,
@@ -338,34 +335,29 @@ public class Rule_script : MonoBehaviour
         public float clipDuration;
     }
 
-    // 【修正需求 1 & 2】調整 StartRecordingAndRecognize 
     IEnumerator StartRecordingAndRecognize(System.Action<RecordingResult> callback)
     {
         RecordingResult result = new RecordingResult { status = RecordingStatus.TooShort, clipDuration = 0f };
 
-        // 1. 檢查是否有麥克風
         if (Microphone.devices.Length == 0)
         {
             Debug.LogError("🔴 找不到麥克風設備！無法進行錄音。");
             result.status = RecordingStatus.NoMic;
             callback(result);
-            yield break; // 結束錄音流程
+            yield break;
         }
 
         string deviceName = Microphone.devices[0];
         Debug.Log($"🎙️ 開始錄音，使用設備: {deviceName}");
 
-        // 2. 開始錄音
-        RuleText_rule.text = "錄音中... (剩餘 " + ((int)maxRecordingTime) + " 秒)"; // 初始化為整數
-        lastTimeLeft = (int)maxRecordingTime; // 重置計時器
+        RuleText_rule.text = "錄音中... (剩餘 " + ((int)maxRecordingTime) + " 秒)";
+        lastTimeLeft = (int)maxRecordingTime;
 
         AudioClip recordingClip = Microphone.Start(deviceName, false, (int)maxRecordingTime, SAMPLE_RATE);
         float startTime = Time.time;
 
-        // 3. 等待錄音結束 (達到最大時間)
         while (Microphone.IsRecording(deviceName) && (Time.time - startTime < maxRecordingTime))
         {
-            // 【修正需求 1】錄音中的時候，字幕會倒數秒數 (整數)
             int timeLeft = (int)Mathf.Ceil(maxRecordingTime - (Time.time - startTime));
 
             if (timeLeft != lastTimeLeft && timeLeft >= 0)
@@ -376,7 +368,6 @@ public class Rule_script : MonoBehaviour
             yield return null;
         }
 
-        // 4. 停止錄音
         Microphone.End(deviceName);
         float endTime = Time.time;
         float clipLength = endTime - startTime;
@@ -384,108 +375,81 @@ public class Rule_script : MonoBehaviour
         Debug.Log($"✅ 錄音停止，錄音長度: {clipLength:F2} 秒");
         RuleText_rule.text = "處理中...";
 
-        // 5. 處理錄製的音訊 (只取有效的長度)
-        if (clipLength > 0.1f) // 確保有錄到聲音 (避免空音訊)
+        if (clipLength > 0.1f)
         {
             AudioClip finalClip = TrimAudioClip(recordingClip, clipLength);
             result.clipDuration = clipLength;
 
-            // 6. 將音訊上傳並等待辨識結果
-            RecordingStatus uploadStatus = RecordingStatus.ConnectionOrServerError; // 預設為連線失敗
+            RecordingStatus uploadStatus = RecordingStatus.ConnectionOrServerError;
 
-            // UploadAudio 現在會判斷並回傳連線/伺服器錯誤
             yield return StartCoroutine(UploadAudio(finalClip, status => { uploadStatus = status; }));
 
-            // 釋放記憶體
             Destroy(finalClip);
 
-            // 7. 根據 UploadAudio 的結果設定最終狀態
-            if (uploadStatus == RecordingStatus.Success)
-            {
-                // 錄音長度足夠 且 連線/伺服器回應成功 (滿足需求 2)
-                result.status = RecordingStatus.Success;
-            }
-            else
-            {
-                // 錄音長度足夠 但 連線/伺服器失敗 (屬於需求 3 的「連線失敗或伺服器回應失敗」)
-                result.status = RecordingStatus.ConnectionOrServerError;
-            }
+            result.status = (uploadStatus == RecordingStatus.Success)
+                            ? RecordingStatus.Success
+                            : RecordingStatus.ConnectionOrServerError;
         }
         else
         {
-            // 錄音長度不足 (屬於需求 3 的「語音沒錄到/錄到空語音」)
             result.status = RecordingStatus.TooShort;
         }
 
         callback(result);
     }
 
-    // 協助函式: 截取錄音片段
     private AudioClip TrimAudioClip(AudioClip originalClip, float clipLength)
     {
         int samples = (int)(clipLength * originalClip.frequency);
         float[] data = new float[samples];
         originalClip.GetData(data, 0);
 
-        // 創建一個新的 AudioClip
         AudioClip newClip = AudioClip.Create("TrimmedClip", samples, originalClip.channels, originalClip.frequency, false);
         newClip.SetData(data, 0);
         return newClip;
     }
 
-    // ===============================================
-    // 🌟 將 AudioClip 轉為 WAV 格式的 Byte 陣列
-    // ===============================================
     private byte[] AudioClipToWav(AudioClip clip)
     {
         int channels = clip.channels;
         int sampleRate = clip.frequency;
         int samples = clip.samples;
 
-        // 取得 PCM 格式的 float 陣列
         float[] data = new float[samples * channels];
         clip.GetData(data, 0);
 
-        // 將 float 轉換為 16-bit short
         short[] intData = new short[data.Length];
         byte[] bytesData = new byte[data.Length * 2];
 
-        int rescaleFactor = 32767; // 2^15 - 1
+        int rescaleFactor = 32767;
         for (int i = 0; i < data.Length; i++)
         {
             intData[i] = (short)(data[i] * rescaleFactor);
-            // 將 short 轉為 little-endian byte 陣列 (LOBYTE, HIBYTE)
             bytesData[i * 2] = (byte)(intData[i]);
             bytesData[i * 2 + 1] = (byte)(intData[i] >> 8);
         }
 
-        // WAV 標頭大小是 44 bytes
         int headerSize = 44;
         int totalLength = headerSize + bytesData.Length;
 
         System.IO.MemoryStream stream = new System.IO.MemoryStream(totalLength);
         System.IO.BinaryWriter writer = new System.IO.BinaryWriter(stream);
 
-        // 1. RIFF 標頭
-        writer.Write(Encoding.UTF8.GetBytes("RIFF")); // Chunk ID
-        writer.Write(totalLength - 8); // Chunk Size (檔案總長度 - 8)
-        writer.Write(Encoding.UTF8.GetBytes("WAVE")); // Format
+        writer.Write(Encoding.UTF8.GetBytes("RIFF"));
+        writer.Write(totalLength - 8);
+        writer.Write(Encoding.UTF8.GetBytes("WAVE"));
 
-        // 2. fmt 副標頭
-        writer.Write(Encoding.UTF8.GetBytes("fmt ")); // Sub-chunk 1 ID
-        writer.Write(16); // Sub-chunk 1 Size (PCM 為 16)
-        writer.Write((ushort)1); // Audio Format (PCM = 1)
-        writer.Write((ushort)channels); // Channels
-        writer.Write(sampleRate); // Sample Rate
-        writer.Write(sampleRate * channels * 2); // Byte Rate (SampleRate * Channels * BitsPerSample/8)
-        writer.Write((ushort)(channels * 2)); // Block Align (Channels * BitsPerSample/8)
-        writer.Write((ushort)16); // Bits Per Sample (16-bit)
+        writer.Write(Encoding.UTF8.GetBytes("fmt "));
+        writer.Write(16);
+        writer.Write((ushort)1);
+        writer.Write((ushort)channels);
+        writer.Write(sampleRate);
+        writer.Write(sampleRate * channels * 2);
+        writer.Write((ushort)(channels * 2));
+        writer.Write((ushort)16);
 
-        // 3. data 副標頭
-        writer.Write(Encoding.UTF8.GetBytes("data")); // Sub-chunk 2 ID
-        writer.Write(bytesData.Length); // Sub-chunk 2 Size (實際音訊資料長度)
-
-        // 4. 音訊資料
+        writer.Write(Encoding.UTF8.GetBytes("data"));
+        writer.Write(bytesData.Length);
         writer.Write(bytesData);
 
         byte[] wavData = stream.ToArray();
@@ -495,9 +459,6 @@ public class Rule_script : MonoBehaviour
         return wavData;
     }
 
-
-    // 協助函式: 執行上傳及語音辨識
-    // 修正：回傳 RecordingStatus，以便 StartRecordingAndRecognize 判斷最終的成功或失敗。
     IEnumerator UploadAudio(AudioClip clip, System.Action<RecordingStatus> callback)
     {
         byte[] wavData = AudioClipToWav(clip);
@@ -509,18 +470,15 @@ public class Rule_script : MonoBehaviour
         {
             yield return www.SendWebRequest();
 
-            // 預設失敗狀態
             RecordingStatus finalStatus = RecordingStatus.ConnectionOrServerError;
 
             if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
             {
-                // 【修正需求 2】連線或伺服器回應失敗 -> 失敗
                 Debug.LogError($"🔴 語音辨識伺服器錯誤: {www.error}");
                 finalStatus = RecordingStatus.ConnectionOrServerError;
             }
             else
             {
-                // 成功接收回應 (不論辨識結果是否為「我知道了」，只要連線成功就算連線成功)
                 try
                 {
                     string jsonResponse = www.downloadHandler.text;
@@ -529,25 +487,21 @@ public class Rule_script : MonoBehaviour
                     if (response.transcription != null)
                     {
                         Debug.Log($"🗣️ 辨識結果 (Transcription): {response.transcription}");
-                        // 成功連線並取得辨識內容
                         finalStatus = RecordingStatus.Success;
                     }
                     else if (response.error != null)
                     {
-                        // 辨識失敗，但伺服器有回傳錯誤 (如：聽不到聲音)
                         Debug.LogWarning($"⚠️ 語音辨識錯誤: {response.error}");
-                        finalStatus = RecordingStatus.Success; // 根據需求 2，連線成功且有音訊就視為流程成功
+                        finalStatus = RecordingStatus.Success; // 依你的需求：連線成功就算成功流程
                     }
                     else
                     {
-                        // 伺服器回傳格式不正確或無內容，視為伺服器回應錯誤
                         Debug.LogError($"🔴 伺服器回應格式錯誤: {jsonResponse}");
                         finalStatus = RecordingStatus.ConnectionOrServerError;
                     }
                 }
                 catch (System.Exception e)
                 {
-                    // 解析伺服器回應失敗
                     Debug.LogError($"🔴 解析伺服器回應失敗: {e.Message}");
                     finalStatus = RecordingStatus.ConnectionOrServerError;
                 }
