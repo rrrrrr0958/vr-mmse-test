@@ -2,27 +2,41 @@ using System;
 using System.IO;
 using System.Text;
 using UnityEngine;
+using System.Collections.Generic;
 
 public static class AsrResultLogger
 {
+    // === 儲存結果的結構體 (JSON 格式) ===
+    [Serializable]
+    public class LogEntry
+    {
+        public string timestamp;
+        public int score;
+        public string wav_path;
+        public string transcript;
+        public string error;
+        public AsrClient.Reasons reasons;
+    }
+    
+    // JSON 陣列的容器
+    [Serializable]
+    private class LogContainer { public List<LogEntry> entries = new List<LogEntry>(); }
+
     // === 目錄規範 ===
-    // Editor：Assets/Scripts/game_13
-    // Build（Quest/Android/Standalone Player）：<persistentDataPath>/game_13
 #if UNITY_EDITOR
     private static readonly string BaseDir = Path.Combine(Application.dataPath, "Scripts", "game_13");
 #else
     private static readonly string BaseDir = Path.Combine(Application.persistentDataPath, "game_13");
 #endif
 
-    private const string CsvFileName = "results_13.csv";
-    private static string CsvPath => Path.Combine(BaseDir, CsvFileName);
-
-    // Excel/記事本友好：UTF-8 with BOM
-    private static readonly Encoding Utf8Bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+    private const string JsonFileName = "results_13.json";
+    private static string JsonPath => Path.Combine(BaseDir, JsonFileName);
 
     public static string GetOutputDirectory() => BaseDir;
 
+    /// <summary>
     /// 保存此次錄音的 WAV 檔到指定目錄；回傳完整路徑
+    /// </summary>
     public static string SaveWav(byte[] wavBytes, string preferredName = null)
     {
         try
@@ -47,119 +61,54 @@ public static class AsrResultLogger
         }
     }
 
-    /// 追加一筆結果到 CSV（自動建立資料夾、檔案、表頭；舊檔會自動轉 BOM）
-    /// 欄位：timestamp,score,wav_path,transcript
-    public static void Append(string transcript, int score, string wavPath = null)
+    /// <summary>
+    /// 【新功能】追加一筆結果到 JSON 檔案
+    /// </summary>
+    public static void AppendJson(AsrClient.GoogleASRResponse response, string wavPath = null)
     {
         try
         {
             Directory.CreateDirectory(BaseDir);
-            EnsureCsvReady();
-
-            using (var fs = new FileStream(CsvPath, FileMode.Append, FileAccess.Write, FileShare.Read))
-            using (var sw = new StreamWriter(fs, Utf8Bom))
+            
+            // 1. 讀取現有 JSON 內容
+            LogContainer container = new LogContainer();
+            if (File.Exists(JsonPath))
             {
-                string ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                sw.WriteLine($"{CsvEscape(ts)},{score},{CsvEscape(wavPath ?? "")},{CsvEscape(transcript ?? "")}");
+                string jsonText = File.ReadAllText(JsonPath);
+                if (!string.IsNullOrEmpty(jsonText))
+                {
+                    // 為了避免讀取整個陣列的麻煩，我們用包裝器來讀取
+                    container = JsonUtility.FromJson<LogContainer>(jsonText) ?? new LogContainer();
+                }
             }
+            
+            // 2. 建立新的紀錄項目
+            LogEntry newEntry = new LogEntry
+            {
+                timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                score = response.score,
+                wav_path = wavPath ?? "",
+                transcript = response.Text ?? "",
+                error = response.error,
+                reasons = response.reasons
+            };
+            
+            // 3. 加入新項目
+            container.entries.Add(newEntry);
+
+            // 4. 寫回 JSON 檔案
+            string finalJson = JsonUtility.ToJson(container, true); // true 表示美化輸出
+            File.WriteAllText(JsonPath, finalJson);
+
+            Debug.Log($"[AsrResultLogger] JSON appended: {JsonPath}, score: {response.score}");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[AsrResultLogger] Append failed: {ex.Message}");
+            Debug.LogError($"[AsrResultLogger] AppendJson failed: {ex.Message}");
         }
     }
 
-    // ===== 內部 =====
-
-    private static void EnsureCsvReady()
-    {
-        if (!File.Exists(CsvPath) || new FileInfo(CsvPath).Length == 0)
-        {
-            WriteHeader();
-            return;
-        }
-
-        // 舊檔轉為 UTF-8 with BOM（一次性）
-        if (!HasUtf8Bom(CsvPath))
-        {
-            try
-            {
-                byte[] bytes = File.ReadAllBytes(CsvPath);
-                string text = new UTF8Encoding(false, false).GetString(bytes);
-
-                using (var fs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-                using (var sw = new StreamWriter(fs, Utf8Bom))
-                {
-                    sw.Write(text);
-                }
-                Debug.Log("[AsrResultLogger] Migrated results_13.csv to UTF-8 with BOM.");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[AsrResultLogger] CSV BOM migration failed: {ex.Message}");
-            }
-        }
-
-        // 無表頭就補上
-        EnsureHeaderExists();
-    }
-
-    private static void WriteHeader()
-    {
-        using (var fs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-        using (var sw = new StreamWriter(fs, Utf8Bom))
-        {
-            sw.WriteLine("timestamp,score,wav_path,transcript");
-        }
-    }
-
-    private static void EnsureHeaderExists()
-    {
-        try
-        {
-            using (var fs = new FileStream(CsvPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (var sr = new StreamReader(fs, detectEncodingFromByteOrderMarks: true))
-            {
-                string firstLine = sr.ReadLine();
-                if (string.IsNullOrEmpty(firstLine) ||
-                    !firstLine.Contains("timestamp") || !firstLine.Contains("transcript"))
-                {
-                    string rest = sr.ReadToEnd();
-                    using (var wfs = new FileStream(CsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-                    using (var sw = new StreamWriter(wfs, Utf8Bom))
-                    {
-                        sw.WriteLine("timestamp,score,wav_path,transcript");
-                        if (!string.IsNullOrEmpty(firstLine)) sw.WriteLine(firstLine);
-                        if (!string.IsNullOrEmpty(rest)) sw.Write(rest);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.LogWarning($"[AsrResultLogger] EnsureHeaderExists warn: {ex.Message}");
-        }
-    }
-
-    private static bool HasUtf8Bom(string path)
-    {
-        try
-        {
-            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                if (fs.Length < 3) return false;
-                int b1 = fs.ReadByte(), b2 = fs.ReadByte(), b3 = fs.ReadByte();
-                return (b1 == 0xEF && b2 == 0xBB && b3 == 0xBF);
-            }
-        }
-        catch { return false; }
-    }
-
-    private static string CsvEscape(string s)
-    {
-        if (s == null) return "\"\"";
-        return "\"" + s.Replace("\"", "\"\"") + "\"";
-    }
+    // ===== 內部工具函式 (僅保留 SanitizeFileName) =====
 
     private static string SanitizeFileName(string name)
     {

@@ -33,7 +33,7 @@ public class Rule_script : MonoBehaviour
     // 新增開始提示的語音和文字
     [Header("開始提示語音與文字")]
     public AudioClip startClip;
-    public string startText = "請用控制器任意鍵點選下方按鈕";
+    public string startText = "請使用食指按下\n扳機鍵點選按鈕";
 
     private bool gameStarted = false;
 
@@ -66,18 +66,18 @@ public class Rule_script : MonoBehaviour
     {
         "歡迎來到VR樂園",
         "我們準備了一系列的挑戰任務",
-        "所有任務完成後  可以開啟寶箱",
-        "現在先來知道       挑戰的規則",
-        "第一：請勿移動   和大幅度轉頭",
+        "所有任務完成後\n可以開啟寶箱",
+        "現在先來知道\n挑戰的規則",
+        "第一：請勿移動\n和大幅度轉頭",
         "第二：若在遊戲過程中感到任何不適",
-        "請立即告知              身旁的護理人員",
-        "第三：遊戲任務   如果需要點選物品",
-        "請使用食指           按下扳機鍵",
+        "請立即告知\n身旁的護理人員",
+        "第三：遊戲任務\n如果需要點選物品",
+        "請使用食指\n按下扳機鍵",
         "現在請使用扳機鍵對準按鈕並按下",
-        "第四：若遊戲       任務需要作答",
+        "第四：若遊戲\n任務需要作答",
         "請在題目播放完畢後直接說出答案",
-        "或是依照                題目指令回答",
-        "現在請說出：          「我知道了」", // Index 13
+        "或是依照\n題目指令回答",
+        "現在請說出：\n「我知道了」", // Index 13
         "接下來開始遊戲吧！"      // Index 14
     };
 
@@ -350,7 +350,7 @@ public class Rule_script : MonoBehaviour
         string deviceName = Microphone.devices[0];
         Debug.Log($"🎙️ 開始錄音，使用設備: {deviceName}");
 
-        RuleText_rule.text = "錄音中... (剩餘 " + ((int)maxRecordingTime) + " 秒)";
+        RuleText_rule.text = "錄音中...\n(剩餘 " + ((int)maxRecordingTime) + " 秒)";
         lastTimeLeft = (int)maxRecordingTime;
 
         AudioClip recordingClip = Microphone.Start(deviceName, false, (int)maxRecordingTime, SAMPLE_RATE);
@@ -362,7 +362,7 @@ public class Rule_script : MonoBehaviour
 
             if (timeLeft != lastTimeLeft && timeLeft >= 0)
             {
-                RuleText_rule.text = $"錄音中...                  (剩餘 {timeLeft} 秒)";
+                RuleText_rule.text = $"錄音中...\n(剩餘 {timeLeft} 秒)";
                 lastTimeLeft = timeLeft;
             }
             yield return null;

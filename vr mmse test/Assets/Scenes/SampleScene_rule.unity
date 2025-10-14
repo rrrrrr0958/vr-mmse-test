@@ -14376,7 +14376,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u8ACB\u7528\u63A7\u5236\u5668\u4EFB\u610F\u9375\u9EDE\u9078\u6309\u9215"
+  m_text: "\u8ACB\u4F7F\u7528\u98DF\u6307\u6309\u4E0B\\n\u6273\u6A5F\u9375\u9EDE\u9078\u6309\u9215"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
@@ -17724,7 +17724,7 @@ MonoBehaviour:
   vr_hand: {fileID: 1184802323}
   startButton: {fileID: 1793341860}
   startClip: {fileID: 8300000, guid: b8ae31094c1b43149827b5e335d9e796, type: 3}
-  startText: "\u8ACB\u7528\u63A7\u5236\u5668\u4EFB\u610F\u9375\u9EDE\u9078\u4E0B\u65B9\u6309\u9215"
+  startText: "\u8ACB\u4F7F\u7528\u98DF\u6307\u6309\u4E0B\\n\u6273\u6A5F\u9375\u9EDE\u9078\u6309\u9215"
   recognitionServerURL: http://localhost:5000/recognize_speech
   maxRecordingTime: 5
   voiceAudioSource: {fileID: 1543986642}
