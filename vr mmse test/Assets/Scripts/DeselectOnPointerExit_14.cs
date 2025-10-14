@@ -1,26 +1,21 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 /// <summary>
-/// 【優化版】
-/// 這個元件的功能是：當滑鼠指標離開它所在的 UI 物件時，
-/// 檢查滑鼠左鍵是否仍處於按下的狀態。
-/// 如果是，則判定為「拖曳取消」操作，並清除 EventSystem 中的「目前選定物件」。
-/// 如果滑鼠左鍵已放開，則不做任何事，以保留正常點擊後應有的選定狀態。
+/// 滑鼠/指標離開按鈕時，取消目前的選取高亮（避免 Button 一直維持選取狀態）
 /// </summary>
 public class DeselectOnPointerExit : MonoBehaviour, IPointerExitHandler
 {
     public void OnPointerExit(PointerEventData eventData)
     {
-        // ▼▼▼ 這是唯一的修改處 ▼▼▼
-        // Input.GetMouseButton(0) 會檢查滑鼠左鍵是否「當前正被按著」
-        if (Input.GetMouseButton(0))
+        // 沒有 EventSystem 就不處理
+        if (EventSystem.current == null) return;
+
+        // 只有在這個物件本來就是被選取時才清掉
+        if (EventSystem.current.currentSelectedGameObject == gameObject)
         {
-            // 只有在滑鼠移開的同時，左鍵還按著（代表是拖曳操作），才清除選取
-            if (EventSystem.current.currentSelectedGameObject == gameObject)
-            {
-                EventSystem.current.SetSelectedGameObject(null);
-            }
+            EventSystem.current.SetSelectedGameObject(null);
         }
     }
 }
