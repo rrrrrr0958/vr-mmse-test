@@ -27,3 +27,31 @@ MonoBehaviour:
     fadeInSeconds: 0.5
     fadeOutSeconds: 0.5
     enabled: 1
+  - sceneName: SentenceGame_13
+    message: "\u7B2C\u4E09\u95DC"
+    voiceClip: {fileID: 8300000, guid: 4ba67ab414d4e4e0a8db80e70fb1edc6, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
+  - sceneName: SampleScene_3
+    message: "\u7B2C\u56DB\u95DC"
+    voiceClip: {fileID: 8300000, guid: 10bf0b907f2ec45d48211cabc6a73c4b, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
+  - sceneName: SampleScene_2
+    message: "\u7B2C\u4E94\u95DC"
+    voiceClip: {fileID: 8300000, guid: 591a8a879110744338c4861fc787dd59, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
+  - sceneName: SampleScene_5
+    message: "\u7B2C\u516D\u95DC"
+    voiceClip: {fileID: 8300000, guid: 7f7385d94307a485b80fb185ed77b17f, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
