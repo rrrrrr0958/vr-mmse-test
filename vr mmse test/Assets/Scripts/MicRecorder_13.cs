@@ -14,8 +14,8 @@ public class MicRecorder : MonoBehaviour
     private bool _recording;
     private int _pos;
 
-    public event Action<float> OnLevel;     // 0..1 音量
-    public event Action OnTick;             // 每幀回呼
+    public event Action<float> OnLevel; 	// 0..1 音量
+    public event Action OnTick; 			// 每幀回呼
     public event Action<byte[]> OnWavReady; // 錄完給 wav bytes
 
     void Awake()
@@ -23,12 +23,12 @@ public class MicRecorder : MonoBehaviour
         if (Microphone.devices.Length > 0)
         {
             selectedDevice = Microphone.devices[0];
-            Debug.Log($"[MicRecorder] Using device: {selectedDevice}");
+            Debug.Log($"[MicRecorder] Using device: {selectedDevice}"); // 日誌
         }
         else
         {
             selectedDevice = null;
-            Debug.LogWarning("[MicRecorder] No microphone detected. Will use dummy audio for demo.");
+            Debug.LogWarning("[MicRecorder] No microphone detected. Will use dummy audio for demo."); // 日誌
         }
     }
 
@@ -39,6 +39,7 @@ public class MicRecorder : MonoBehaviour
         _samples = new float[sampleRate * maxRecordSeconds];
         _pos = 0;
         _recording = true;
+        Debug.Log($"[MicRecorder] Start recording on device '{selectedDevice ?? "Dummy"}'. Max duration: {maxRecordSeconds}s."); // 日誌
 
         if (selectedDevice != null)
         {
@@ -48,7 +49,7 @@ public class MicRecorder : MonoBehaviour
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[MicRecorder] Microphone.Start failed, fallback to dummy. {e.Message}");
+                Debug.LogWarning($"[MicRecorder] Microphone.Start failed, fallback to dummy. {e.Message}"); // 日誌
                 _clip = CreateDummyClip();
             }
         }
@@ -69,7 +70,7 @@ public class MicRecorder : MonoBehaviour
         int length = Mathf.Clamp(_pos, 0, _samples?.Length ?? 0);
         if (length <= 0)
         {
-            Debug.LogWarning("[MicRecorder] No data captured, output 1s silence.");
+            Debug.LogWarning("[MicRecorder] No data captured, output 1s silence."); // 日誌
             _samples = new float[sampleRate];
             length = _samples.Length;
         }
@@ -79,7 +80,7 @@ public class MicRecorder : MonoBehaviour
 
         var wav = WavUtility.FromAudioFloat(data, sampleRate);
         OnWavReady?.Invoke(wav);
-        Debug.Log($"[MicRecorder] Done. {length} samples ({length / (float)sampleRate:0.00}s)");
+        Debug.Log($"[MicRecorder] Done. {length} samples ({length / (float)sampleRate:0.00}s). WAV ready."); // 日誌
     }
 
     void Update()
@@ -136,43 +137,5 @@ public class MicRecorder : MonoBehaviour
         clip.SetData(data, 0);
         clip.hideFlags |= HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
         return clip;
-    }
-}
-
-public static class WavUtility
-{
-    public static byte[] FromAudioFloat(float[] samples, int sampleRate)
-    {
-        short[] intData = new short[samples.Length];
-        byte[] bytesData = new byte[intData.Length * 2];
-
-        const float rescale = 32767f;
-        for (int i = 0; i < samples.Length; i++)
-            intData[i] = (short)Mathf.Clamp(samples[i] * rescale, short.MinValue, short.MaxValue); // ✅ 修正這行
-
-        Buffer.BlockCopy(intData, 0, bytesData, 0, bytesData.Length);
-
-        using var ms = new MemoryStream();
-        using var bw = new BinaryWriter(ms);
-        int byteRate = sampleRate * 2; // mono 16-bit
-
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-        bw.Write(36 + bytesData.Length);
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
-        bw.Write(16);
-        bw.Write((short)1);             // PCM
-        bw.Write((short)1);             // channels
-        bw.Write(sampleRate);
-        bw.Write(byteRate);
-        bw.Write((short)2);             // block align
-        bw.Write((short)16);            // bits
-
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-        bw.Write(bytesData.Length);
-        bw.Write(bytesData);
-        bw.Flush();
-        return ms.ToArray();
     }
 }

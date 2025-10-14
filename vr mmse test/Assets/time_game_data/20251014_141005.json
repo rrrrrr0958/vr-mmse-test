@@ -1,0 +1,32 @@
+﻿{
+  "PlayerId": "001",
+  "Timestamp": "2025-10-14 14:10:05",
+  "Questions": [
+    {
+      "Key": "Year",
+      "CorrectAnswer": "2025",
+      "PlayerAnswer": "2023"
+    },
+    {
+      "Key": "Month",
+      "CorrectAnswer": "10月",
+      "PlayerAnswer": "6月"
+    },
+    {
+      "Key": "Day",
+      "CorrectAnswer": "14",
+      "PlayerAnswer": "14"
+    },
+    {
+      "Key": "DayOfWeek",
+      "CorrectAnswer": "星期二",
+      "PlayerAnswer": "星期六"
+    },
+    {
+      "Key": "Hour",
+      "CorrectAnswer": "下午 2:00",
+      "PlayerAnswer": "下午 2:00"
+    }
+  ],
+  "TotalCorrect": 2
+}

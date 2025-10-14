@@ -19,6 +19,7 @@ public class MainScene : MonoBehaviour
     [SerializeField] GameObject UserGenderPanel;
     [SerializeField] GameObject UserAgePanel;
     [SerializeField] GameObject UserPanelDisplay;
+    [SerializeField] GameObject AnotherInfoObject; // 【新增】與 InfoPanel 同時出現的物件
 
     [Header("UI Texts")]
     [SerializeField] Text textEmail;
@@ -71,6 +72,10 @@ public class MainScene : MonoBehaviour
         InputAge.text = "";
         InputEmail.text = "";
         InputPassword.text = "";
+        
+        // 登出時，隱藏 InfoPanel 和新增的物件
+        InfoPanel.SetActive(false);
+        if (AnotherInfoObject != null) AnotherInfoObject.SetActive(false); // 【新增】
     }
 
     public void CheckInfo()
@@ -79,6 +84,7 @@ public class MainScene : MonoBehaviour
         StartCoroutine(LoadAgeTask());
         StartCoroutine(LoadGenderTask());
         InfoPanel.SetActive(false);
+        if (AnotherInfoObject != null) AnotherInfoObject.SetActive(false); // 【修改】隱藏新增的物件
         UserPanelDisplay.SetActive(true);
     }
 
@@ -87,6 +93,7 @@ public class MainScene : MonoBehaviour
         PlayButtonSound(); // 🔊 播放音效
         UserPanelDisplay.SetActive(false);
         InfoPanel.SetActive(true);
+        if (AnotherInfoObject != null) AnotherInfoObject.SetActive(true); // 【修改】顯示新增的物件
     }
 
     public void SaveAge()
@@ -95,6 +102,7 @@ public class MainScene : MonoBehaviour
         FirebaseManager.SaveAge(InputAge.text);
         UserAgePanel.SetActive(false);
         InfoPanel.SetActive(true);
+        if (AnotherInfoObject != null) AnotherInfoObject.SetActive(true); // 【修改】顯示新增的物件
     }
 
     public void SaveMaleGender()
@@ -134,19 +142,22 @@ public class MainScene : MonoBehaviour
         }
     }
 
-    // ----------------- 其餘原有程式不變 -----------------
+    // ----------------- 狀態切換邏輯 -----------------
     void AuthStateChanged(object sender, System.EventArgs eventArgs)
     {
         if (FirebaseManager.user == null)
         {
+            // 未登入狀態
             textEmail.text = "";
             textAge.text = "";
             textGender.text = "";
             LoginPanel.SetActive(true);
             InfoPanel.SetActive(false);
+            if (AnotherInfoObject != null) AnotherInfoObject.SetActive(false); // 【修改】未登入時隱藏
         }
         else
         {
+            // 已登入狀態
             textEmail.text = FirebaseManager.user.Email;
             LoginPanel.SetActive(false);
 
@@ -159,6 +170,7 @@ public class MainScene : MonoBehaviour
         FirebaseManager.auth.StateChanged -= AuthStateChanged;
     }
 
+    // ----------------- 其餘原有程式不變 -----------------
     IEnumerator LoadAgeTask()
     {
         var task = FirebaseManager.GetUserReference().Child("age").GetValueAsync();
@@ -212,6 +224,7 @@ public class MainScene : MonoBehaviour
         if (!hasAge || !hasGender)
         {
             InfoPanel.SetActive(false);
+            if (AnotherInfoObject != null) AnotherInfoObject.SetActive(false); // 【修改】如果第一次登入，隱藏
             UserGenderPanel.SetActive(true);
         }
         else
@@ -223,6 +236,7 @@ public class MainScene : MonoBehaviour
             textGender.text = gender;
 
             InfoPanel.SetActive(true);
+            if (AnotherInfoObject != null) AnotherInfoObject.SetActive(true); // 【修改】如果不是第一次登入，顯示
             UserGenderPanel.SetActive(false);
         }
     }
