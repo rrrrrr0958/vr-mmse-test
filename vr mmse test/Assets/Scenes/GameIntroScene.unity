@@ -697,6 +697,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 761ae908cf66640a4aa15deeeb4f1a14, type: 3}
   - {fileID: 8300000, guid: cd8841d78d54d48979d38fbc1fbabc68, type: 3}
   - {fileID: 8300000, guid: 4ba67ab414d4e4e0a8db80e70fb1edc6, type: 3}
+  - {fileID: 8300000, guid: 10bf0b907f2ec45d48211cabc6a73c4b, type: 3}
   stageMessages:
   - "\u7B2C\u4E00\u95DC"
   - "\u7B2C\u4E8C\u95DC"
