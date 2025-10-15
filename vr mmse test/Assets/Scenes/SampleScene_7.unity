@@ -9682,12 +9682,13 @@ MonoBehaviour:
   fontSize: 32
   textColor: {r: 0, g: 0, b: 0, a: 1}
   customFont: {fileID: 12800000, guid: b62a7c54e56a63d40b91571480de1f12, type: 3}
-  lineHeightScale: 1.5
+  lineHeightScale: 1.2
   marginPct: 0
   bottomPaddingPx: 8
   backgroundPaddingPx: 16
   showBackground: 1
   backgroundAlpha: 0.92
+  backgroundColor: {r: 0.9265884, g: 0.9433962, b: 0.6719473, a: 1}
   audioSource: {fileID: 0}
   playVoiceAfterFadeIn: 1
   voiceDelaySeconds: 0
