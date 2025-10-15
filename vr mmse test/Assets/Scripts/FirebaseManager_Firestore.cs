@@ -236,7 +236,8 @@ public class FirebaseManager_Firestore : MonoBehaviour
         return DateTime.Now.ToString("yyyyMMdd_HHmmss");
     }
 
-    public void SaveTestResult(string testId, int totalScore, float totalTime, string timestamp, Action<bool, string> callback = null)
+    // public void SaveTestResult(string testId, int totalScore, float totalTime, string timestamp, Action<bool, string> callback = null)
+    public void SaveTestResult(string testId, int totalScore, float totalTime, Action<bool, string> callback = null)
     {
         if (user == null)
         {
@@ -251,7 +252,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
-            { "timestamp", timestamp },
+            { "timestamp", FieldValue.ServerTimestamp},
             { "totalScore", totalScore },
             { "totalTime", totalTime }
         };
