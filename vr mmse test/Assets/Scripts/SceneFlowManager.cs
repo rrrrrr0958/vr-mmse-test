@@ -176,6 +176,15 @@ public class SceneFlowManager : MonoBehaviour
             // 可選：PlayerPrefs.Save();
         }
 
+            // ★ 若要進 Opening，就重設計數（並清除 NextTargetScene）
+        if (nextScene == "Opening")
+        {
+            PlayerPrefs.SetInt("IntroStageCount", 0);
+            PlayerPrefs.DeleteKey("NextTargetScene"); // 可選
+            // PlayerPrefs.Save(); // 可選
+        }
+
+        
         StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
     }
 
