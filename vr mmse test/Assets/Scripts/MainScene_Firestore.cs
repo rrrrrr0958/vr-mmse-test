@@ -27,6 +27,8 @@ public class MainScene_Firestore : MonoBehaviour
     [SerializeField] Text textEmail;
     [SerializeField] Text textAge;
     [SerializeField] Text textGender;
+    [SerializeField] GameObject alreadyRegister;
+    [SerializeField] GameObject falseEmailOrPassword;
 
     [Header("Age Input")]
     [SerializeField] TMP_InputField InputAge;
@@ -59,6 +61,7 @@ public class MainScene_Firestore : MonoBehaviour
         }
         else
         {
+            // 已登入
             textEmail.text = FirebaseManager.user.Email;
             LoginPanel.SetActive(false);
 
@@ -68,10 +71,8 @@ public class MainScene_Firestore : MonoBehaviour
                 if (ok && dict != null && dict.ContainsKey("age") && dict.ContainsKey("gender"))
                 {
                     // 有資料
-                    string email = dict["email"].ToString();
                     string age = dict["age"].ToString();
                     string gender = dict["gender"].ToString();
-                    textEmail.text = email;
                     textAge.text = age;
                     textGender.text = gender;
 
@@ -94,99 +95,138 @@ public class MainScene_Firestore : MonoBehaviour
 
     public void Register()
     {
+        PlayButtonSound();
+        alreadyRegister.SetActive(false);
+        falseEmailOrPassword.SetActive(false);
         string email = InputEmail.text;
         string password = InputPassword.text;
 
-        FirebaseManager_Firestore.Instance.Register(email, password, (ok, msg) =>
+        FirebaseManager.Register(email, password, (ok, msg) =>
         {
             if (ok)
             {
-                Debug.Log("註冊完成，前往性別選擇畫面");
-                if (UserGenderPanel != null)
-                    UserGenderPanel.SetActive(true); // 顯示性別選擇
+                Debug.Log("註冊完成");
+                LoginPanel.SetActive(false);
+                UserGenderPanel.SetActive(true);
             }
             else
             {
                 Debug.LogError("註冊失敗: " + msg);
+                alreadyRegister.SetActive(true);
             }
         });
-        LoginPanel.SetActive(false);
-        // InfoPanel.SetActive(true);
     }
-
 
     public void Login()
     {
         PlayButtonSound();
-        FirebaseManager.auth.SignInWithEmailAndPasswordAsync(InputEmail.text, InputPassword.text).ContinueWith(task =>
+        alreadyRegister.SetActive(false);
+        falseEmailOrPassword.SetActive(false);
+        
+        string email = InputEmail.text;
+        string password = InputPassword.text;
+
+        // 使用 FirebaseManager 的 Login 函數
+        FirebaseManager.Login(email, password, (ok, msg) =>
         {
-            if (task.IsFaulted)
+            if (ok)
             {
-                Debug.LogWarning("登入失敗: " + task.Exception);
+                Debug.Log("登入成功");
+                LoginPanel.SetActive(false);
+                InfoPanel.SetActive(true);
             }
             else
             {
-                Debug.Log("登入成功");
+                Debug.LogError("登入失敗: " + msg);
+                falseEmailOrPassword.SetActive(true);
             }
         });
-        LoginPanel.SetActive(false);
-        InfoPanel.SetActive(true);
-
     }
 
     public void Logout()
     {
         PlayButtonSound();
-        FirebaseManager.auth.SignOut();
+        FirebaseManager.Logout();
+        InfoPanel.SetActive(false);
+        LoginPanel.SetActive(true);
+        
+        // 清空輸入欄位
         InputAge.text = "";
         InputEmail.text = "";
         InputPassword.text = "";
-
-        InfoPanel.SetActive(false);
-        if (AnotherInfoObject != null) AnotherInfoObject.SetActive(false);
-        LoginPanel.SetActive(true);
+        
+        // AuthStateChanged 會自動處理 UI 切換
     }
 
     public void SaveAge()
     {
         PlayButtonSound();
         string age = InputAge.text;
+        
+        if (string.IsNullOrEmpty(age))
+        {
+            Debug.LogWarning("年齡不能為空");
+            return;
+        }
+        
         // gender 應該已經存過
         FirebaseManager.SetUserProfile(age, null, (ok, err) =>
         {
-            if (!ok)
+            if (ok)
+            {
+                Debug.Log("年齡儲存成功");
+                // 更新顯示的年齡
+                textAge.text = age;
+                
+                UserAgePanel.SetActive(false);
+                InfoPanel.SetActive(true);
+                if (AnotherInfoObject != null) AnotherInfoObject.SetActive(true);
+            }
+            else
+            {
                 Debug.LogWarning("Set age 失敗: " + err);
+            }
         });
-
-        UserAgePanel.SetActive(false);
-        InfoPanel.SetActive(true);
-        if (AnotherInfoObject != null) AnotherInfoObject.SetActive(true);
     }
 
     public void SaveMaleGender()
     {
         PlayButtonSound();
-        FirebaseManager.SetUserProfile(null, "Male", (ok, err) =>
+        FirebaseManager.SetUserProfile(null, "男性", (ok, err) =>
         {
-            if (!ok)
+            if (ok)
+            {
+                Debug.Log("性別儲存成功");
+                textGender.text = "男性";
+                
+                UserGenderPanel.SetActive(false);
+                UserAgePanel.SetActive(true);
+            }
+            else
+            {
                 Debug.LogWarning("Set gender 失敗: " + err);
+            }
         });
-
-        UserGenderPanel.SetActive(false);
-        UserAgePanel.SetActive(true);
     }
 
     public void SaveFemaleGender()
     {
         PlayButtonSound();
-        FirebaseManager.SetUserProfile(null, "Female", (ok, err) =>
+        FirebaseManager.SetUserProfile(null, "女性", (ok, err) =>
         {
-            if (!ok)
+            if (ok)
+            {
+                Debug.Log("性別儲存成功");
+                textGender.text = "女性";
+                
+                UserGenderPanel.SetActive(false);
+                UserAgePanel.SetActive(true);
+            }
+            else
+            {
                 Debug.LogWarning("Set gender 失敗: " + err);
+            }
         });
-
-        UserGenderPanel.SetActive(false);
-        UserAgePanel.SetActive(true);
     }
 
     public void CheckInfo()
@@ -197,6 +237,8 @@ public class MainScene_Firestore : MonoBehaviour
         {
             if (ok && dict != null)
             {
+                if (dict.ContainsKey("email"))
+                    textEmail.text = dict["email"].ToString();
                 if (dict.ContainsKey("age"))
                     textAge.text = dict["age"].ToString();
                 if (dict.ContainsKey("gender"))
