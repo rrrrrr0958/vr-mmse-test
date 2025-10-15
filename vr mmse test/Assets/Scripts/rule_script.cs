@@ -66,7 +66,7 @@ public class Rule_script : MonoBehaviour
     private string[] ruleTexts_Final = new string[]
     {
         "歡迎來到VR樂園",
-        "我們總共有11道\n遊戲任務",
+        "我們總共有10道\n遊戲任務",
         "所有任務完成後\n可以開啟寶箱",
         "現在先來知道\n挑戰的規則",
         "第一：請勿移動\n和大幅度轉頭",
