@@ -5,104 +5,96 @@ using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 
+[RequireComponent(typeof(AudioSource))]
 public class IntroSceneDirector : MonoBehaviour
 {
     [Header("UI 與語音")]
-    public TextMeshProUGUI messageText;
-    public AudioSource audioSource;
+    public TextMeshProUGUI messageText;          // 若未指定會自動往子物件找
+    public AudioSource audioSource;              // 若未指定會自動抓同物件的 AudioSource
     [Tooltip("第一～第十關語音 (index = 關卡 - 1)")]
-    public AudioClip[] stageVoiceClips;
+    public AudioClip[] stageVoiceClips;          // 0=第一關, 1=第二關, ..., 9=第十關
 
     [Header("每關顯示文字")]
     public List<string> stageMessages = new List<string>
     {
-        "第一關",
-        "第二關",
-        "第三關",
-        "第四關",
-        "第五關",
-        "第六關",
-        "第七關",
-        "第八關",
-        "第九關",
-        "第十關"
+        "第一關","第二關","第三關","第四關","第五關",
+        "第六關","第七關","第八關","第九關","第十關"
     };
 
     [Header("顯示設定")]
     public float fadeInSeconds = 0.5f;
     public float fadeOutSeconds = 0.8f;
 
-    private CanvasGroup cg;
-    private int stageNumber;
-    private string targetScene;
+    CanvasGroup _cg;
+    int _stageNumber;          // 這次要顯示的第幾關（每進來一次就+1）
+    string _targetScene;       // 要進入的實際關卡（從 PlayerPrefs 讀）
+
+    void Awake()
+    {
+        if (!audioSource) audioSource = GetComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f;
+
+        if (!messageText) messageText = GetComponentInChildren<TextMeshProUGUI>(true);
+
+        _cg = messageText ? messageText.GetComponentInParent<CanvasGroup>() : null;
+        if (!_cg) _cg = gameObject.AddComponent<CanvasGroup>();
+        _cg.alpha = 0f;
+    }
 
     void Start()
     {
-        cg = messageText.GetComponentInParent<CanvasGroup>();
-        if (!cg) cg = messageText.gameObject.AddComponent<CanvasGroup>();
-        cg.alpha = 0;
+        // 1) 每進入一次 IntroScene，計數 +1 → 代表現在第幾關
+        _stageNumber = PlayerPrefs.GetInt("IntroStageCount", 0) + 1;
+        PlayerPrefs.SetInt("IntroStageCount", _stageNumber);
+        // 可選：PlayerPrefs.Save();
 
-        // 取得下一個目標場景
-        targetScene = PlayerPrefs.GetString("NextTargetScene", "");
-        stageNumber = GetStageNumber(targetScene);
+        // 2) 顯示對應文字
+        int msgIdx = Mathf.Clamp(_stageNumber - 1, 0, stageMessages.Count - 1);
+        if (messageText) messageText.text = stageMessages[msgIdx];
 
-        // 顯示第 X 關
-        messageText.text = stageMessages[Mathf.Clamp(stageNumber - 1, 0, stageMessages.Count - 1)];
-
-        // 播語音
-        if (stageNumber - 1 < stageVoiceClips.Length && stageVoiceClips[stageNumber - 1])
+        // 3) 讀取下一個目標關卡名稱（請在切到 GameIntroScene 之前寫入）
+        _targetScene = PlayerPrefs.GetString("NextTargetScene", "");
+        if (string.IsNullOrEmpty(_targetScene))
         {
-            audioSource.clip = stageVoiceClips[stageNumber - 1];
+            Debug.LogWarning("[Intro] PlayerPrefs.NextTargetScene 為空；無法在播完後切換場景。");
+        }
+
+        // 4) 播對應語音（若沒 clip 就等 2 秒）
+        float wait = 2f;
+        int clipIdx = Mathf.Clamp(_stageNumber - 1, 0, stageVoiceClips != null ? stageVoiceClips.Length - 1 : 0);
+        if (stageVoiceClips != null && clipIdx < stageVoiceClips.Length && stageVoiceClips[clipIdx])
+        {
+            audioSource.clip = stageVoiceClips[clipIdx];
             audioSource.Play();
-            StartCoroutine(PlayThenLoad(targetScene, audioSource.clip.length));
+            wait = audioSource.clip.length;
         }
-        else
-        {
-            StartCoroutine(PlayThenLoad(targetScene, 2f)); // 沒語音時等兩秒
-        }
+
+        StartCoroutine(PlayThenLoad(_targetScene, wait));
     }
 
     IEnumerator PlayThenLoad(string nextScene, float waitTime)
     {
         // 淡入
-        for (float t = 0; t < fadeInSeconds; t += Time.deltaTime)
+        for (float t = 0f; t < fadeInSeconds; t += Time.deltaTime)
         {
-            cg.alpha = t / fadeInSeconds;
+            _cg.alpha = t / fadeInSeconds;
             yield return null;
         }
-        cg.alpha = 1;
+        _cg.alpha = 1f;
 
+        // 停留（語音長度或 2 秒）
         yield return new WaitForSeconds(waitTime);
 
         // 淡出
-        for (float t = 0; t < fadeOutSeconds; t += Time.deltaTime)
+        for (float t = 0f; t < fadeOutSeconds; t += Time.deltaTime)
         {
-            cg.alpha = 1 - t / fadeOutSeconds;
+            _cg.alpha = 1f - (t / fadeOutSeconds);
             yield return null;
         }
+        _cg.alpha = 0f;
 
-        SceneManager.LoadScene(nextScene);
-    }
-
-    int GetStageNumber(string sceneName)
-    {
-        // 你原本的關卡順序：
-        var sceneMap = new Dictionary<string, int>()
-        {
-            {"SampleScene_7", 1},
-            {"SampleScene_14", 2},
-            {"SentenceGame_13", 3},
-            {"SampleScene_3", 4},
-            {"SampleScene_2", 5},
-            {"SampleScene_5", 6},
-            {"SampleScene_11_1", 7}, {"SampleScene_11", 7},
-            {"f1_8", 8},
-            {"SampleScene_11", 9},
-            {"SampleScene_6", 10}
-        };
-
-        if (sceneMap.ContainsKey(sceneName))
-            return sceneMap[sceneName];
-        return 1;
+        if (!string.IsNullOrEmpty(nextScene))
+            SceneManager.LoadScene(nextScene);
     }
 }

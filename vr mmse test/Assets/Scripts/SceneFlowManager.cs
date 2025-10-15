@@ -21,25 +21,35 @@ public class SceneFlowManager : MonoBehaviour
         "Opening",
         "Login Scene",
         "SampleScene_rule",
+        "GameIntroScene",
         "SampleScene_7",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_14",
         "Reward_Scene",
+        "GameIntroScene", 
         "SentenceGame_13",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_3",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_2",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_5",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_11_1",
         "SampleScene_11",
         "Reward_Scene",
+        "GameIntroScene",
         "f1_8",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_11",
         "Reward_Scene",
+        "GameIntroScene",
         "SampleScene_6",
         "Reward_Scene",
         "Final_Scroe"         
@@ -154,6 +164,18 @@ public class SceneFlowManager : MonoBehaviour
     {
         currentIndex++;
         if (currentIndex >= sceneOrder.Count) currentIndex = 0;
+
+        // 這邊有改
+        string nextScene = sceneOrder[currentIndex];
+
+        // ★ 關鍵：如果要進 Intro，就先把「下一個實際關卡」寫進 PlayerPrefs
+        if (nextScene == "GameIntroScene")
+        {
+            int lookahead = Mathf.Min(currentIndex + 1, sceneOrder.Count - 1);
+            PlayerPrefs.SetString("NextTargetScene", sceneOrder[lookahead]);
+            // 可選：PlayerPrefs.Save();
+        }
+
         StartCoroutine(LoadSceneRoutine(sceneOrder[currentIndex]));
     }
 
