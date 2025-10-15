@@ -26,11 +26,32 @@ public class IntroSceneDirector : MonoBehaviour
     public float fadeOutSeconds = 0.8f;
 
     CanvasGroup _cg;
-    int _stageNumber;          // 這次要顯示的第幾關（每進來一次就+1）
     string _targetScene;       // 要進入的實際關卡（從 PlayerPrefs 讀）
+    private int _stageNumber = 0;
+
+    // ---- 進 Play 回合只重置一次的旗標（同一回合不影響關卡累計）----
+    private static bool s_ResetDoneThisPlay = false;
+
+    // ---- 在每次按下 Play 之前（載入任何場景前）執行，先把計數歸零 ----
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void ResetStageIndexOnPlay()
+    {
+        PlayerPrefs.SetInt("IntroStageIndex", 0);
+        PlayerPrefs.Save();
+        s_ResetDoneThisPlay = true; // 標記此回合已經重置過
+    }
 
     void Awake()
     {
+        // 若因為某些設定（例如關掉 Domain Reload）導致上面的方法沒跑，
+        // 這裡再做一次保險：本回合第一次看到這個腳本就清零一次。
+        if (!s_ResetDoneThisPlay)
+        {
+            PlayerPrefs.SetInt("IntroStageIndex", 0);
+            PlayerPrefs.Save();
+            s_ResetDoneThisPlay = true;
+        }
+
         if (!audioSource) audioSource = GetComponent<AudioSource>();
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f;
@@ -44,36 +65,30 @@ public class IntroSceneDirector : MonoBehaviour
 
     void Start()
     {
-        // 1) 每進入一次 IntroScene，計數 +1 → 代表現在第幾關
-        _stageNumber = PlayerPrefs.GetInt("IntroStageCount", 0) + 1;
-        PlayerPrefs.SetInt("IntroStageCount", _stageNumber);
-        // 可選：PlayerPrefs.Save();
+        // 0-based：每次「新按 Play」時已被歸零
+        int stageIndex = PlayerPrefs.GetInt("IntroStageIndex", 0);
+        _stageNumber = stageIndex;
 
-        // 2) 顯示對應文字
-        int msgIdx = Mathf.Clamp(_stageNumber - 1, 0, stageMessages.Count - 1);
+        // 顯示文字
+        int msgIdx = Mathf.Clamp(stageIndex, 0, stageMessages.Count - 1);
         if (messageText) messageText.text = stageMessages[msgIdx];
 
-        // 3) 讀取下一個目標關卡名稱（請在切到 GameIntroScene 之前寫入）
+        // 讀下一關場景
         _targetScene = PlayerPrefs.GetString("NextTargetScene", "");
-        if (string.IsNullOrEmpty(_targetScene))
-        {
-            Debug.LogWarning("[Intro] PlayerPrefs.NextTargetScene 為空；無法在播完後切換場景。");
-        }
 
-        // 4) 播對應語音（若沒 clip 就等 2 秒）
+        // 播對應語音或等 2 秒
         float wait = 2f;
-        int clipIdx = Mathf.Clamp(_stageNumber - 1, 0, stageVoiceClips != null ? stageVoiceClips.Length - 1 : 0);
-        if (stageVoiceClips != null && clipIdx < stageVoiceClips.Length && stageVoiceClips[clipIdx])
+        if (stageVoiceClips != null && stageIndex < stageVoiceClips.Length && stageVoiceClips[stageIndex])
         {
-            audioSource.clip = stageVoiceClips[clipIdx];
+            audioSource.clip = stageVoiceClips[stageIndex];
             audioSource.Play();
             wait = audioSource.clip.length;
         }
 
-        StartCoroutine(PlayThenLoad(_targetScene, wait));
+        StartCoroutine(PlayThenLoad(_targetScene, wait, stageIndex));
     }
 
-    IEnumerator PlayThenLoad(string nextScene, float waitTime)
+    IEnumerator PlayThenLoad(string nextScene, float waitTime, int stageIndex)
     {
         // 淡入
         for (float t = 0f; t < fadeInSeconds; t += Time.deltaTime)
@@ -83,7 +98,6 @@ public class IntroSceneDirector : MonoBehaviour
         }
         _cg.alpha = 1f;
 
-        // 停留（語音長度或 2 秒）
         yield return new WaitForSeconds(waitTime);
 
         // 淡出
@@ -94,7 +108,40 @@ public class IntroSceneDirector : MonoBehaviour
         }
         _cg.alpha = 0f;
 
-        if (!string.IsNullOrEmpty(nextScene))
+        // 播完再遞增並保存（同一回合內有效）
+        PlayerPrefs.SetInt("IntroStageIndex", stageIndex + 1);
+        PlayerPrefs.Save();
+
+        if (SceneFlowManager.instance != null)
+            SceneFlowManager.instance.LoadNextScene();
+        else if (!string.IsNullOrEmpty(nextScene))
             SceneManager.LoadScene(nextScene);
     }
 }
+
+/*
+【若你在 Editor 開了「Enter Play Mode Options」且關閉了 Domain Reload】
+建議再加一個 Editor 專用腳本（放在 Assets/Editor/ 任一 .cs 檔）：
+
+using UnityEditor;
+using UnityEditor.Callbacks;
+using UnityEngine;
+
+[InitializeOnLoad]
+public static class IntroStageEditorReset
+{
+    static IntroStageEditorReset()
+    {
+        EditorApplication.playModeStateChanged += s =>
+        {
+            if (s == PlayModeStateChange.EnteredPlayMode)
+            {
+                PlayerPrefs.SetInt("IntroStageIndex", 0);
+                PlayerPrefs.Save();
+            }
+        };
+    }
+}
+
+這樣就算沒有 Domain Reload，每次進入 Play 也會把 IntroStageIndex 清成 0。
+*/
