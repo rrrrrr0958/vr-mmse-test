@@ -12098,6 +12098,71 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 729867273198166643, guid: 19029c1e7c9031d4bb5273374fc0dc4e, type: 3}
   m_PrefabInstance: {fileID: 1101768486}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1110702322
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1110702324}
+  - component: {fileID: 1110702323}
+  m_Layer: 0
+  m_Name: OnGUIIntroDirector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1110702323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110702322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19072429960ca41d384c0ee57a8aed73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 6cb4842d5af724bca92f565f518b5d48, type: 2}
+  fontSize: 32
+  textColor: {r: 0, g: 0, b: 0, a: 1}
+  customFont: {fileID: 12800000, guid: b62a7c54e56a63d40b91571480de1f12, type: 3}
+  lineHeightScale: 1.2
+  marginPct: 0
+  bottomPaddingPx: 8
+  backgroundPaddingPx: 16
+  showBackground: 1
+  backgroundAlpha: 0.92
+  backgroundColor: {r: 0.9265884, g: 0.9433962, b: 0.6719473, a: 1}
+  audioSource: {fileID: 0}
+  playVoiceAfterFadeIn: 1
+  voiceDelaySeconds: 0
+  pauseOtherAudios: 1
+  OnIntroStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnIntroEnd:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &1110702324
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110702322}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.0872151, y: 4.0313525, z: 4.7321544}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1115933441
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18791,7 +18856,6 @@ MonoBehaviour:
   delayAfterPrompt: 0.15
   useDspScheduling: 1
   dspLeadIn: 0.03
-  verboseLog: 1
   waitMaxGuardSeconds: 10
 --- !u!114 &1724580968
 MonoBehaviour:
@@ -24699,3 +24763,4 @@ SceneRoots:
   - {fileID: 2012432999}
   - {fileID: 1724580970}
   - {fileID: 1170142841}
+  - {fileID: 1110702324}

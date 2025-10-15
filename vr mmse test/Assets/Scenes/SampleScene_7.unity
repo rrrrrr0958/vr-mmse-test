@@ -9649,64 +9649,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7238891033119205893, guid: ea1d9040b339d034abaa12dd47062386, type: 3}
   m_PrefabInstance: {fileID: 745631873}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &746965363
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 746965365}
-  - component: {fileID: 746965364}
-  m_Layer: 0
-  m_Name: OnGUIIntroDirector
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &746965364
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 746965363}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 19072429960ca41d384c0ee57a8aed73, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  definition: {fileID: 11400000, guid: 6cb4842d5af724bca92f565f518b5d48, type: 2}
-  fontSize: 32
-  textColor: {r: 0, g: 0, b: 0, a: 1}
-  customFont: {fileID: 12800000, guid: b62a7c54e56a63d40b91571480de1f12, type: 3}
-  lineHeightScale: 1.2
-  marginPct: 0
-  bottomPaddingPx: 8
-  backgroundPaddingPx: 16
-  showBackground: 1
-  backgroundAlpha: 0.92
-  backgroundColor: {r: 0.9265884, g: 0.9433962, b: 0.6719473, a: 1}
-  audioSource: {fileID: 0}
-  playVoiceAfterFadeIn: 1
-  voiceDelaySeconds: 0
---- !u!4 &746965365
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 746965363}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.0872151, y: 4.0313525, z: 4.7321544}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &752618564
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -27068,4 +27010,3 @@ SceneRoots:
   - {fileID: 357507404}
   - {fileID: 1219268909}
   - {fileID: 702846285}
-  - {fileID: 746965365}
