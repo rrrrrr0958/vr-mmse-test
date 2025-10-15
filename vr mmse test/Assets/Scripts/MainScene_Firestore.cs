@@ -68,8 +68,10 @@ public class MainScene_Firestore : MonoBehaviour
                 if (ok && dict != null && dict.ContainsKey("age") && dict.ContainsKey("gender"))
                 {
                     // 有資料
+                    string email = dict["email"].ToString();
                     string age = dict["age"].ToString();
                     string gender = dict["gender"].ToString();
+                    textEmail.text = email;
                     textAge.text = age;
                     textGender.text = gender;
 
@@ -92,19 +94,26 @@ public class MainScene_Firestore : MonoBehaviour
 
     public void Register()
     {
-        PlayButtonSound();
-        FirebaseManager.auth.CreateUserWithEmailAndPasswordAsync(InputEmail.text, InputPassword.text).ContinueWith(task =>
+        string email = InputEmail.text;
+        string password = InputPassword.text;
+
+        FirebaseManager_Firestore.Instance.Register(email, password, (ok, msg) =>
         {
-            if (task.IsFaulted)
+            if (ok)
             {
-                Debug.LogWarning("註冊失敗: " + task.Exception);
+                Debug.Log("註冊完成，前往性別選擇畫面");
+                if (UserGenderPanel != null)
+                    UserGenderPanel.SetActive(true); // 顯示性別選擇
             }
             else
             {
-                Debug.Log("註冊成功");
+                Debug.LogError("註冊失敗: " + msg);
             }
         });
+        LoginPanel.SetActive(false);
+        // InfoPanel.SetActive(true);
     }
+
 
     public void Login()
     {
@@ -120,6 +129,9 @@ public class MainScene_Firestore : MonoBehaviour
                 Debug.Log("登入成功");
             }
         });
+        LoginPanel.SetActive(false);
+        InfoPanel.SetActive(true);
+
     }
 
     public void Logout()
@@ -132,6 +144,7 @@ public class MainScene_Firestore : MonoBehaviour
 
         InfoPanel.SetActive(false);
         if (AnotherInfoObject != null) AnotherInfoObject.SetActive(false);
+        LoginPanel.SetActive(true);
     }
 
     public void SaveAge()
@@ -153,7 +166,7 @@ public class MainScene_Firestore : MonoBehaviour
     public void SaveMaleGender()
     {
         PlayButtonSound();
-        FirebaseManager.SetUserProfile(null, "男性", (ok, err) =>
+        FirebaseManager.SetUserProfile(null, "Male", (ok, err) =>
         {
             if (!ok)
                 Debug.LogWarning("Set gender 失敗: " + err);
@@ -166,7 +179,7 @@ public class MainScene_Firestore : MonoBehaviour
     public void SaveFemaleGender()
     {
         PlayButtonSound();
-        FirebaseManager.SetUserProfile(null, "女性", (ok, err) =>
+        FirebaseManager.SetUserProfile(null, "Female", (ok, err) =>
         {
             if (!ok)
                 Debug.LogWarning("Set gender 失敗: " + err);

@@ -5,11 +5,12 @@ using Firebase.Firestore;
 using Firebase.Storage;
 using UnityEngine;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 public class FirebaseManager_Firestore : MonoBehaviour
 {
+    public static FirebaseManager_Firestore Instance;
+
     public FirebaseAuth auth;
     public FirebaseUser user;
     public FirebaseFirestore firestore;
@@ -17,53 +18,168 @@ public class FirebaseManager_Firestore : MonoBehaviour
 
     void Awake()
     {
-        auth = FirebaseAuth.DefaultInstance;
-        auth.StateChanged += AuthStateChanged;
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-        firestore = FirebaseFirestore.DefaultInstance;
-        storage = FirebaseStorage.DefaultInstance;
+        InitializeFirebase();
+    }
 
-        DontDestroyOnLoad(this.gameObject); // 保持此物件在跨場景存在
+    async void InitializeFirebase()
+    {
+        var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
+        if (dependencyStatus == DependencyStatus.Available)
+        {
+            auth = FirebaseAuth.DefaultInstance;
+            firestore = FirebaseFirestore.DefaultInstance;
+            storage = FirebaseStorage.DefaultInstance;
+            auth.StateChanged += AuthStateChanged;
+            Debug.Log("✅ Firebase 初始化完成");
+        }
+        else
+        {
+            Debug.LogError("❌ Firebase 初始化失敗: " + dependencyStatus);
+        }
     }
 
     void OnDestroy()
     {
-        auth.StateChanged -= AuthStateChanged;
+        if (auth != null)
+            auth.StateChanged -= AuthStateChanged;
     }
 
     void AuthStateChanged(object sender, EventArgs eventArgs)
     {
         if (auth.CurrentUser != user)
         {
-            user = auth.CurrentUser;
-            if (user != null)
-            {
-                Debug.Log($"登入：{user.Email}");
-            }
-            else
+            bool signedIn = user != auth.CurrentUser && auth.CurrentUser != null;
+            if (!signedIn && user != null)
             {
                 Debug.Log("登出或無使用者");
+            }
+            user = auth.CurrentUser;
+            if (signedIn)
+            {
+                Debug.Log($"登入：{user.Email}");
             }
         }
     }
 
-    // ------------------ 使用者基本資料儲存（age / gender） ------------------
+    // -------------------------------------------------------------------
+    // 🔹 註冊新使用者
+    // -------------------------------------------------------------------
+    public void Register(string email, string password, Action<bool, string> callback = null)
+    {
+        auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCanceled || task.IsFaulted)
+            {
+                Debug.LogError("註冊失敗: " + task.Exception);
+                callback?.Invoke(false, task.Exception.Message);
+                return;
+            }
 
+            user = task.Result.User;
+            Debug.Log("✅ 註冊成功：" + user.Email);
+
+            // 註冊後建立 Firestore 文件
+            DocumentReference docRef = firestore.Collection("Users").Document(user.UserId);
+            Dictionary<string, object> data = new Dictionary<string, object>
+            {
+                { "email", user.Email },
+                { "gender", "" },
+                { "age", "" },
+                { "createdAt", Timestamp.GetCurrentTimestamp() }
+            };
+            docRef.SetAsync(data).ContinueWithOnMainThread(createTask =>
+            {
+                if (createTask.IsFaulted)
+                {
+                    Debug.LogWarning("建立使用者文件失敗: " + createTask.Exception);
+                    callback?.Invoke(false, createTask.Exception.Message);
+                }
+                else
+                {
+                    Debug.Log("✅ Firestore 使用者文件建立成功");
+                    callback?.Invoke(true, null);
+                }
+            });
+        });
+    }
+
+    // -------------------------------------------------------------------
+    // 🔹 登入
+    // -------------------------------------------------------------------
+    public void Login(string email, string password, Action<bool, string> callback = null)
+    {
+        auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCanceled || task.IsFaulted)
+            {
+                Debug.LogError("登入失敗: " + task.Exception);
+                callback?.Invoke(false, task.Exception.Message);
+                return;
+            }
+
+            user = task.Result.User;
+            Debug.Log("✅ 登入成功：" + user.Email);
+            callback?.Invoke(true, null);
+        });
+    }
+
+    // -------------------------------------------------------------------
+    // 🔹 登出
+    // -------------------------------------------------------------------
+    public void Logout()
+    {
+        if (auth != null)
+        {
+            auth.SignOut();
+            user = null;
+            Debug.Log("✅ 登出成功");
+        }
+    }
+
+    // -------------------------------------------------------------------
+    // 🔹 使用者資料：年齡與性別
+    // -------------------------------------------------------------------
     public void SetUserProfile(string age, string gender, Action<bool, string> callback = null)
     {
+        Debug.Log($"[SetUserProfile] Received -> age: {age ?? "NULL"}, gender: {gender ?? "NULL"}");
+
         if (user == null)
         {
+            Debug.LogWarning("⚠️ SetUserProfile: user == null");
             callback?.Invoke(false, "No user logged in");
             return;
         }
+
         DocumentReference docRef = firestore.Collection("Users").Document(user.UserId);
-        Dictionary<string, object> data = new Dictionary<string, object>
+        Dictionary<string, object> data = new Dictionary<string, object>();
+
+        if (!string.IsNullOrEmpty(age))
+            data["age"] = age;
+
+        if (!string.IsNullOrEmpty(gender))
+            data["gender"] = gender;
+
+        if (data.Count == 0)
         {
-            { "age", age },
-            { "gender", gender },
-            { "updatedAt", FieldValue.ServerTimestamp }
-        };
-        docRef.SetAsync(data, SetOptions.MergeAll).ContinueWith(task =>
+            Debug.Log("⚠️ SetUserProfile: 沒有欄位可更新");
+            callback?.Invoke(true, null);
+            return;
+        }
+
+        // data["updatedAt"] = FieldValue.ServerTimestamp;
+
+        docRef.SetAsync(data, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {
@@ -72,7 +188,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
             }
             else
             {
-                Debug.Log("SetUserProfile 成功");
+                Debug.Log($"✅ SetUserProfile 成功，寫入欄位: {string.Join(", ", data.Keys)}");
                 callback?.Invoke(true, null);
             }
         });
@@ -85,8 +201,9 @@ public class FirebaseManager_Firestore : MonoBehaviour
             callback?.Invoke(false, null);
             return;
         }
+
         DocumentReference docRef = firestore.Collection("Users").Document(user.UserId);
-        docRef.GetSnapshotAsync().ContinueWith(task =>
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {
@@ -103,21 +220,22 @@ public class FirebaseManager_Firestore : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log("GetUserProfile：Document 不存在");
+                    Debug.Log("⚠️ GetUserProfile：Document 不存在");
                     callback?.Invoke(false, null);
                 }
             }
         });
     }
 
-    // ------------------ 測驗紀錄 + 關卡資料 + 檔案上傳 ------------------
+    // -------------------------------------------------------------------
+    // 🔹 測驗紀錄與上傳功能
+    // -------------------------------------------------------------------
 
     public string GenerateTestId()
     {
         return DateTime.Now.ToString("yyyyMMdd_HHmmss");
     }
 
-    // 存一筆完整測驗（總成績 + 時間）， levels 子集合可後續更新
     public void SaveTestResult(string testId, int totalScore, float totalTime, string timestamp, Action<bool, string> callback = null)
     {
         if (user == null)
@@ -125,17 +243,20 @@ public class FirebaseManager_Firestore : MonoBehaviour
             callback?.Invoke(false, "No user");
             return;
         }
+
         DocumentReference testDoc = firestore.Collection("Users")
                                              .Document(user.UserId)
                                              .Collection("testResults")
                                              .Document(testId);
+
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             { "timestamp", timestamp },
             { "totalScore", totalScore },
             { "totalTime", totalTime }
         };
-        testDoc.SetAsync(data).ContinueWith(task =>
+
+        testDoc.SetAsync(data).ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {
@@ -144,13 +265,12 @@ public class FirebaseManager_Firestore : MonoBehaviour
             }
             else
             {
-                Debug.Log("SaveTestResult 成功");
+                Debug.Log("✅ SaveTestResult 成功");
                 callback?.Invoke(true, null);
             }
         });
     }
 
-    // 儲存單一關卡資料（不含檔案 URL）
     public void SaveLevelData(string testId, int levelIndex, int score, float time, Action<bool, string> callback = null)
     {
         if (user == null)
@@ -158,18 +278,21 @@ public class FirebaseManager_Firestore : MonoBehaviour
             callback?.Invoke(false, "No user");
             return;
         }
+
         DocumentReference levelDoc = firestore.Collection("Users")
                                                .Document(user.UserId)
                                                .Collection("testResults")
                                                .Document(testId)
                                                .Collection("levels")
                                                .Document("level_" + levelIndex);
+
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             { "score", score },
             { "time", time }
         };
-        levelDoc.SetAsync(data, SetOptions.MergeAll).ContinueWith(task =>
+
+        levelDoc.SetAsync(data, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {
@@ -178,17 +301,16 @@ public class FirebaseManager_Firestore : MonoBehaviour
             }
             else
             {
-                Debug.Log($"SaveLevelData 成功: level_{levelIndex}");
+                Debug.Log($"✅ SaveLevelData 成功: level_{levelIndex}");
                 callback?.Invoke(true, null);
             }
         });
     }
 
-    // 上傳檔案並取得下載 URL
     public void UploadFile(byte[] fileBytes, string storagePath, Action<bool, string> callback)
     {
         StorageReference storageRef = storage.GetReference(storagePath);
-        storageRef.PutBytesAsync(fileBytes).ContinueWith(uploadTask =>
+        storageRef.PutBytesAsync(fileBytes).ContinueWithOnMainThread(uploadTask =>
         {
             if (uploadTask.IsFaulted || uploadTask.IsCanceled)
             {
@@ -197,7 +319,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
             }
             else
             {
-                storageRef.GetDownloadUrlAsync().ContinueWith(urlTask =>
+                storageRef.GetDownloadUrlAsync().ContinueWithOnMainThread(urlTask =>
                 {
                     if (urlTask.IsFaulted || urlTask.IsCanceled)
                     {
@@ -207,7 +329,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
                     else
                     {
                         string downloadUrl = urlTask.Result.ToString();
-                        Debug.Log("檔案 URL: " + downloadUrl);
+                        Debug.Log("📤 檔案 URL: " + downloadUrl);
                         callback?.Invoke(true, downloadUrl);
                     }
                 });
@@ -215,7 +337,6 @@ public class FirebaseManager_Firestore : MonoBehaviour
         });
     }
 
-    // 上傳多個檔案並把 URL 寫入對應 level doc 中的 fields
     public void UploadFilesAndSaveUrls(string testId, int levelIndex, Dictionary<string, byte[]> files, Action<bool, string> callback = null)
     {
         if (user == null)
@@ -234,7 +355,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
 
         foreach (var kv in files)
         {
-            string key = kv.Key;           // e.g. "image", "audio", "video"
+            string key = kv.Key;
             byte[] data = kv.Value;
             string fname = $"{key}_{Guid.NewGuid().ToString().Substring(0, 8)}";
             string path = basePath + fname;
@@ -260,7 +381,6 @@ public class FirebaseManager_Firestore : MonoBehaviour
                     }
                     else
                     {
-                        // 把 URL fields 寫入該 level document under field "files"
                         DocumentReference levelDoc = firestore.Collection("Users")
                                                                .Document(user.UserId)
                                                                .Collection("testResults")
@@ -271,7 +391,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
                         {
                             { "files", urlFields }
                         };
-                        levelDoc.SetAsync(merge, SetOptions.MergeAll).ContinueWith(task =>
+                        levelDoc.SetAsync(merge, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
                         {
                             if (task.IsFaulted)
                                 callback?.Invoke(false, task.Exception.Message);
@@ -284,8 +404,6 @@ public class FirebaseManager_Firestore : MonoBehaviour
         }
     }
 
-    // 讀取使用者最近的 testResults（限筆數）
-    // 修改後：回傳 List<DocumentSnapshot]，避免使用 QueryDocumentSnapshot 導致的找不到類別錯誤
     public void LoadRecentTests(int limit, Action<bool, List<DocumentSnapshot>> callback)
     {
         if (user == null)
@@ -298,7 +416,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
                                         .Document(user.UserId)
                                         .Collection("testResults");
 
-        col.OrderByDescending("timestamp").Limit(limit).GetSnapshotAsync().ContinueWith(task =>
+        col.OrderByDescending("timestamp").Limit(limit).GetSnapshotAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {
@@ -308,10 +426,8 @@ public class FirebaseManager_Firestore : MonoBehaviour
             else
             {
                 QuerySnapshot snap = task.Result;
-                // Documents 屬性為 IReadOnlyList<DocumentSnapshot>
                 callback?.Invoke(true, new List<DocumentSnapshot>(snap.Documents));
             }
         });
     }
-
 }
