@@ -8327,6 +8327,50 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2191666470857331508, guid: 8b63f536dcb9512418bb18c53c2565c6, type: 3}
   m_PrefabInstance: {fileID: 614303487}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &614452349
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 614452351}
+  - component: {fileID: 614452350}
+  m_Layer: 0
+  m_Name: FirebaseManager_Firestore
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &614452350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 614452349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1e9ef2758e0e4206adaa589dd937c14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &614452351
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 614452349}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &617937264
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16696,7 +16740,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1304106698
 Transform:
   m_ObjectHideFlags: 0
@@ -21645,7 +21689,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1673287214
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23736,6 +23780,65 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4917993146247128472, guid: e3817462290a1744191b575ab6095c01, type: 3}
   m_PrefabInstance: {fileID: 1808931067}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1810202022
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1810202024}
+  - component: {fileID: 1810202023}
+  m_Layer: 0
+  m_Name: MainScene_Firestore
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1810202023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1810202022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51c61478ef2c543f9a8c6bfe32276b55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  FirebaseManager: {fileID: 614452350}
+  InputEmail: {fileID: 468840104}
+  InputPassword: {fileID: 232165969}
+  LoginPanel: {fileID: 304127479}
+  InfoPanel: {fileID: 1814800076}
+  UserGenderPanel: {fileID: 1024281973}
+  UserAgePanel: {fileID: 503771651}
+  UserPanelDisplay: {fileID: 1679038492}
+  AnotherInfoObject: {fileID: 0}
+  textEmail: {fileID: 557832282}
+  textAge: {fileID: 197239881}
+  textGender: {fileID: 1546140738}
+  InputAge: {fileID: 225873324}
+  audioSource: {fileID: 0}
+  buttonClickSound: {fileID: 8300000, guid: 49b6f943eb0d8ab4f9a4baa8f1398c3e, type: 3}
+--- !u!4 &1810202024
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1810202022}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1814800076
 GameObject:
   m_ObjectHideFlags: 0
@@ -23753,7 +23856,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1814800077
 RectTransform:
   m_ObjectHideFlags: 0
@@ -28445,11 +28548,13 @@ SceneRoots:
   m_Roots:
   - {fileID: 104309139}
   - {fileID: 997479499}
-  - {fileID: 1304106698}
   - {fileID: 431054530}
   - {fileID: 2039178965}
   - {fileID: 1989796434}
-  - {fileID: 1673287215}
   - {fileID: 1079099750}
   - {fileID: 1950483297}
   - {fileID: 1106768397}
+  - {fileID: 614452351}
+  - {fileID: 1810202024}
+  - {fileID: 1304106698}
+  - {fileID: 1673287215}
