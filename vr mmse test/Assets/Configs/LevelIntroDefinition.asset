@@ -55,3 +55,31 @@ MonoBehaviour:
     fadeInSeconds: 0.5
     fadeOutSeconds: 0.5
     enabled: 1
+  - sceneName: SampleScene_11_1
+    message: "\u7B2C\u4E03\u95DC"
+    voiceClip: {fileID: 8300000, guid: 4b859aa1cfc134a2da437088a81cae5c, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
+  - sceneName: f1_8
+    message: "\u7B2C\u516B\u95DC"
+    voiceClip: {fileID: 8300000, guid: f2506b5412f08465c985d95b08748e41, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
+  - sceneName: SampleScene_1
+    message: "\u7B2C\u4E5D\u95DC"
+    voiceClip: {fileID: 8300000, guid: b4cf18ebc34f6494f95985d5bd53c873, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
+  - sceneName: SampleScene_6
+    message: "\u7B2C\u5341\u95DC"
+    voiceClip: {fileID: 8300000, guid: 07d7c5cc1f4be4524938d348ad6f5d8c, type: 3}
+    totalDisplaySeconds: 3
+    fadeInSeconds: 0.5
+    fadeOutSeconds: 0.5
+    enabled: 1
