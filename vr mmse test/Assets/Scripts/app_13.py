@@ -48,12 +48,26 @@ def is_understandable(text: str) -> bool:
     valid = sum(1 for w in seg if len(w.strip()) >= 1)
     return valid / max(1, len(seg)) >= 0.5
 
+# **【新增】統一處理錯誤回傳的函式**
+def create_error_response(error_message: str, status_code: int = 400):
+    """建立一個符合 C# 客戶端期待的錯誤 JSON 回應，填補所有欄位。"""
+    return jsonify({
+        "error": error_message,
+        "transcript": f"<ERROR> {error_message}", # 傳回錯誤訊息，方便日誌記錄
+        "score": -1,       # 預設分數 -1
+        "reasons": {       # 補上 reasons 物件，避免 C# JsonUtility 解析失敗
+            "has_subject_verb": False,
+            "understandable": False
+        }
+    }), status_code
+
 # ===== API =====
 
 @app.route("/score", methods=["POST"])
 def score():
     if "file" not in request.files:
-        return jsonify({"error": "No audio file"}), 400
+        # 使用新的錯誤回傳函式
+        return create_error_response("No audio file", 400)
 
     file = request.files["file"]
     temp_path = "temp_audio.wav"
@@ -65,20 +79,24 @@ def score():
             audio_data = r.record(source)
             text = r.recognize_google(audio_data, language="zh-TW")
     except sr.UnknownValueError:
-        return jsonify({"error": "Could not understand audio"}), 400
+        # 使用新的錯誤回傳函式
+        return create_error_response("Could not understand audio", 400)
     except sr.RequestError as e:
-        return jsonify({"error": f"Speech API error: {e}"}), 500
+        # 使用新的錯誤回傳函式
+        return create_error_response(f"Speech API error: {e}", 500)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # 使用新的錯誤回傳函式
+        return create_error_response(str(e), 500)
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
     text = normalize_text(text)
     if not text:
-        return jsonify({"error": "Empty transcription"}), 400
+        # 使用新的錯誤回傳函式
+        return create_error_response("Empty transcription", 400)
 
-    # NLP 檢查
+    # NLP 檢查 (成功路徑)
     A = contains_subject_and_verb(text)
     B = is_understandable(text)
     passed = 1 if (A and B) else 0
@@ -87,7 +105,8 @@ def score():
     return jsonify({
         "transcript": text,
         "score": passed,
-        "reasons": reasons
+        "reasons": reasons,
+        "error": None # 成功時 error 欄位為 None/空字串
     }), 200
 
 

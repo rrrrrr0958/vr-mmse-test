@@ -2,8 +2,8 @@
 using System.Collections;
 using TMPro;
 using Unity.XR.CoreUtils;
-using UnityEngine.XR.Interaction.Toolkit; // ✅ 用 XRI 的 Interactor 狀態
-using UnityEngine.XR.Interaction.Toolkit.Interactors;      // ✅ 新增這行
+using UnityEngine.XR.Interaction.Toolkit; //  用 XRI 的 Interactor 狀態
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using System.Text;
@@ -26,9 +26,10 @@ public class Rule_script : MonoBehaviour
     public GameObject treasurebg_rule;
     public GameObject confirmationButton;
     public GameObject vr_hand;
+    public GameObject vr_hand_start;
 
     [Header("開始畫面設定")]
-    public GameObject startButton;  // ← 在 Inspector 拖入「開始」UI 按鈕
+    public GameObject startButton;
 
     // 新增開始提示的語音和文字
     [Header("開始提示語音與文字")]
@@ -65,7 +66,7 @@ public class Rule_script : MonoBehaviour
     private string[] ruleTexts_Final = new string[]
     {
         "歡迎來到VR樂園",
-        "我們準備了一系列的挑戰任務",
+        "我們總共有11道\n遊戲任務",
         "所有任務完成後\n可以開啟寶箱",
         "現在先來知道\n挑戰的規則",
         "第一：請勿移動\n和大幅度轉頭",
@@ -107,6 +108,7 @@ public class Rule_script : MonoBehaviour
         startButton?.SetActive(true);
         // 【新增】確保這個 UI 也是關閉的
         vr_hand?.SetActive(false);
+        vr_hand_start?.SetActive(false);
 
         // 🌟 綁定開始按鈕
         if (startButton != null)
@@ -234,6 +236,7 @@ public class Rule_script : MonoBehaviour
         RuleText_rule.gameObject.SetActive(true);
         RuleText_rule.text = startText;
         startButton?.SetActive(true);
+        vr_hand_start?.SetActive(true);
 
         // 2. 🌟 播放開始語音
         if (voiceAudioSource != null && startClip != null)
@@ -260,6 +263,7 @@ public class Rule_script : MonoBehaviour
         voiceAudioSource.Stop();
         startButton?.SetActive(false);
         RuleText_rule.gameObject.SetActive(false);
+        vr_hand_start?.SetActive(false);
 
         // 5. 啟動主流程
         StartCoroutine(StartGameFlow());

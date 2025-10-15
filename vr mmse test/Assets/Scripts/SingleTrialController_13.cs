@@ -35,6 +35,7 @@ public class SingleTrialController : MonoBehaviour
 
     private float tRemain;
     private bool recording;
+    private bool isProcessingComplete = false; // <-- 新增此旗標
 
     void Start()
     {
@@ -193,31 +194,40 @@ public class SingleTrialController : MonoBehaviour
         string savedWavPath = AsrResultLogger.SaveWav(wav);
 
         StartCoroutine(client.UploadWav(
-            wav,
-            onDone: (resp) =>
-            {
-                string text = resp?.transcript ?? resp?.transcription;
-                int score = resp?.score ?? 0;
+      wav,
+      onDone: (resp) =>
+      {
+          if (isProcessingComplete) return; // <-- 保護：如果已完成，直接退出
+          isProcessingComplete = true; // <-- 成功後標記為已完成
 
-                // ❗ 變更：改為儲存 JSON
-                AsrResultLogger.AppendJson(resp, savedWavPath);
-                Debug.Log($"[SingleTrial] ASR success. Transcript: '{text ?? ""}', Score: {score}."); // 日誌
+          string text = resp?.transcript ?? resp?.transcription;
+          int score = resp?.score ?? 0;
 
-                if (titleText) titleText.text = "錄音完成";
-                if (subtitleText) subtitleText.text = "完成";
-                
-                SceneFlowManager.instance.LoadNextScene(); // 成功後才切換場景
-            },
-            onError: (err) =>
-            {
-                // ❗ 變更：失敗也儲存 JSON 紀錄
-                AsrClient.GoogleASRResponse errorResp = new AsrClient.GoogleASRResponse {
-                    error = err,
+          // 變更：改為儲存 JSON(Overwrite)
+          AsrResultLogger.OverwriteJson(resp, savedWavPath);
+          Debug.Log($"[SingleTrial] ASR success. Transcript: '{text ?? ""}', Score: {score}."); // 日誌
+
+          if (titleText) titleText.text = "錄音完成";
+          if (subtitleText) subtitleText.text = "完成";
+
+          SceneFlowManager.instance.LoadNextScene(); // 成功後才切換場景
+      },
+      onError: (err) =>
+      {
+          if (isProcessingComplete) return; // <-- 保護：如果已完成，直接退出
+          isProcessingComplete = true; // <-- 失敗後標記為已完成
+
+          // ❗ 變更：失敗也儲存 JSON 紀錄
+          AsrClient.GoogleASRResponse errorResp = new AsrClient.GoogleASRResponse
+          {
+
+              error = err,
                     score = -1,
                     transcript = $"<ERROR> {err}"
                 };
-                AsrResultLogger.AppendJson(errorResp, savedWavPath);
-                
+                //AsrResultLogger.AppendJson(errorResp, savedWavPath);
+                AsrResultLogger.OverwriteJson(errorResp, savedWavPath);
+
                 if (titleText) titleText.text = "連線失敗";
                 if (subtitleText) subtitleText.text = "請確認伺服器與IP";
                 Debug.LogError($"[ASR] Upload/Score failed: {err}"); // 日誌
