@@ -1,10 +1,10 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-14 18:08:12.521",
+            "timestamp": "2025-10-15 13:11:47.582",
             "score": 1,
-            "wav_path": "C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251014_180810088.wav",
-            "transcript": "拜託趕快可以",
+            "wav_path": "C:/Users/Ariel/VR_project/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251015_131144377.wav",
+            "transcript": "這次成功了吧",
             "error": "",
             "reasons": {
                 "has_subject_verb": true,

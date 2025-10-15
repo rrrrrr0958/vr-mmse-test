@@ -1,3 +1,4 @@
+// AsrResultLogger_13.cs
 using System;
 using System.IO;
 using System.Text;
@@ -17,8 +18,8 @@ public static class AsrResultLogger
         public string error;
         public AsrClient.Reasons reasons;
     }
-    
-    // JSON 陣列的容器
+
+    // JSON 陣列的容器 (用於確保輸出的 JSON 是一個陣列)
     [Serializable]
     private class LogContainer { public List<LogEntry> entries = new List<LogEntry>(); }
 
@@ -62,26 +63,17 @@ public static class AsrResultLogger
     }
 
     /// <summary>
-    /// 【新功能】追加一筆結果到 JSON 檔案
+    /// 【已修改為覆寫】將單筆結果寫入 JSON 檔案，**不保留舊紀錄**。
     /// </summary>
-    public static void AppendJson(AsrClient.GoogleASRResponse response, string wavPath = null)
+    public static void OverwriteJson(AsrClient.GoogleASRResponse response, string wavPath = null)
     {
         try
         {
             Directory.CreateDirectory(BaseDir);
-            
-            // 1. 讀取現有 JSON 內容
+
+            // 1. 建立一個新的容器，不讀取舊檔案
             LogContainer container = new LogContainer();
-            if (File.Exists(JsonPath))
-            {
-                string jsonText = File.ReadAllText(JsonPath);
-                if (!string.IsNullOrEmpty(jsonText))
-                {
-                    // 為了避免讀取整個陣列的麻煩，我們用包裝器來讀取
-                    container = JsonUtility.FromJson<LogContainer>(jsonText) ?? new LogContainer();
-                }
-            }
-            
+
             // 2. 建立新的紀錄項目
             LogEntry newEntry = new LogEntry
             {
@@ -92,23 +84,24 @@ public static class AsrResultLogger
                 error = response.error,
                 reasons = response.reasons
             };
-            
-            // 3. 加入新項目
+
+            // 3. 加入新項目 (容器中只會有這一筆)
             container.entries.Add(newEntry);
 
-            // 4. 寫回 JSON 檔案
+            // 4. 寫回 JSON 檔案 (會覆蓋舊檔案)
             string finalJson = JsonUtility.ToJson(container, true); // true 表示美化輸出
             File.WriteAllText(JsonPath, finalJson);
 
-            Debug.Log($"[AsrResultLogger] JSON appended: {JsonPath}, score: {response.score}");
+            Debug.Log($"[AsrResultLogger] JSON overwritten: {JsonPath}, score: {response.score}");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[AsrResultLogger] AppendJson failed: {ex.Message}");
+            Debug.LogError($"[AsrResultLogger] OverwriteJson failed: {ex.Message}");
         }
+
     }
 
-    // ===== 內部工具函式 (僅保留 SanitizeFileName) =====
+    // ===== 內部工具函式 =====
 
     private static string SanitizeFileName(string name)
     {

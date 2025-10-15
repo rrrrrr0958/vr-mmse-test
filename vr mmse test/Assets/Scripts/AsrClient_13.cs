@@ -1,3 +1,4 @@
+// AsrClient_13
 using System;
 using System.Collections;
 using UnityEngine;
@@ -16,7 +17,7 @@ public class AsrClient : MonoBehaviour
     {
         public string transcript; 		// for /score
         public string transcription; 	// for /recognize_speech
-        public int score; 			    // for /score
+        public int score; 			    // for /score
         public Reasons reasons; 		// for /score
         public string error; 			// 錯誤訊息（若有）
 
@@ -50,7 +51,7 @@ public class AsrClient : MonoBehaviour
             while (!op.isDone)
             {
                 float p = req.uploadProgress > 0f ? req.uploadProgress :
-                            req.downloadProgress > 0f ? req.downloadProgress : 0.05f;
+                                req.downloadProgress > 0f ? req.downloadProgress : 0.05f;
                 onProgress?.Invoke("傳輸中", Mathf.Clamp01(p));
                 yield return null;
             }
@@ -68,8 +69,17 @@ public class AsrClient : MonoBehaviour
             {
                 var json = req.downloadHandler.text;
                 Debug.Log($"[AsrClient] Received JSON: {json}"); // 日誌
+
+                // *** 修正：檢查 JSON 字串是否為空/空白 ***
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    // 如果 JSON 是空的，拋出例外，讓 catch 區塊處理
+                    throw new Exception("Received empty or whitespace JSON response from server.");
+                }
+                // ****************************************
+
                 var resp = JsonUtility.FromJson<GoogleASRResponse>(json);
-                
+
                 if (resp == null) { onError?.Invoke("Empty/Invalid JSON"); Debug.LogError("[AsrClient] Empty/Invalid JSON."); yield break; }
                 if (!string.IsNullOrEmpty(resp.error)) { onError?.Invoke(resp.error); Debug.LogError($"[AsrClient] API Error: {resp.error}"); yield break; }
 
