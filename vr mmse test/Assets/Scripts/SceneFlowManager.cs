@@ -19,7 +19,7 @@ public class SceneFlowManager : MonoBehaviour
     private readonly List<string> sceneOrder = new List<string>
     {
         "Opening",
-        "Login Scene",
+        // "Login Scene",
         "SampleScene_rule",
         "GameIntroScene",
         "SampleScene_7",
@@ -51,7 +51,7 @@ public class SceneFlowManager : MonoBehaviour
         "Reward_Scene",
         "GameIntroScene",
         "SampleScene_6",
-        "Reward_Scene",
+        // "Reward_Scene",
         "Final_Scroe"         
     };
 

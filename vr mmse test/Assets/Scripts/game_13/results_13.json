@@ -1,10 +1,10 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-15 20:59:53.412",
+            "timestamp": "2025-10-16 17:50:01.125",
             "score": 1,
-            "wav_path": "C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251015_205950953.wav",
-            "transcript": "怎麼還沒刪掉",
+            "wav_path": "C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251016_174958682.wav",
+            "transcript": "我是一隻狗",
             "error": "",
             "reasons": {
                 "has_subject_verb": true,
