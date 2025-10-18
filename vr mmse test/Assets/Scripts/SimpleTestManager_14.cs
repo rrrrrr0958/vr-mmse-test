@@ -15,6 +15,7 @@ using UnityEditor;
 
 public class SimpleTestManager : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
     [Header("UI References")]
     public Text titleText;
     public Text feedbackText;
@@ -423,6 +424,10 @@ public class SimpleTestManager : MonoBehaviour
         {
             SaveResultToJson();
             ShowResultPanel();
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            int levelIndex = 2;
+            FirebaseManager.SaveLevelData(testId, levelIndex, score);
 
             if (SceneFlowManager.instance != null)
             {

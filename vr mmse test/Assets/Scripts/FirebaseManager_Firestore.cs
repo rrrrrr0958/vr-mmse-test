@@ -436,9 +436,9 @@ public class FirebaseManager_Firestore : MonoBehaviour
                     {
                         DocumentReference levelDoc = firestore.Collection("Users")
                                                                .Document(user.UserId)
-                                                               .Collection("testResults")
+                                                               .Collection("tests")
                                                                .Document(testId)
-                                                               .Collection("levels")
+                                                               .Collection("levelResults")
                                                                .Document("level_" + levelIndex);
                         Dictionary<string, object> merge = new Dictionary<string, object>
                         {

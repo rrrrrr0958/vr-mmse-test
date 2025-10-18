@@ -27,7 +27,8 @@ public class game_start_34 : MonoBehaviour
     // =========================================================================
     // 公開變數 (在 Unity Inspector 中設定)
     // =========================================================================
-
+    
+    private FirebaseManager_Firestore FirebaseManager;
     [Header("遊戲開始設定")]
     public float initialTextDelay = 0.5f;
     public float questionBroadcastDelay = 1f;
@@ -610,17 +611,20 @@ public class game_start_34 : MonoBehaviour
             scoreData["timestamp"] = ServerValue.Timestamp;
             scoreData["userName"] = "PlayerName";
 
-            dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
-            {
-                if (task.IsCompleted)
-                {
-                    Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3");
-                }
-                else if (task.IsFaulted)
-                {
-                    Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
-                }
-            });
+            // dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
+            // {
+            //     if (task.IsCompleted)
+            //     {
+            //         Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3");
+            //     }
+            //     else if (task.IsFaulted)
+            //     {
+            //         Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
+            //     }
+            // });
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            int levelIndex = 4;
+            FirebaseManager.SaveLevelData(testId, levelIndex, correctAnswersCount);
         }
         else
         {
@@ -715,7 +719,11 @@ public class game_start_34 : MonoBehaviour
 
         currentVoiceQuestionIndex = 0;
 
-        UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        int levelIndex = 4;
+        FirebaseManager.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
+
+        // UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
     }
 
@@ -967,6 +975,14 @@ public class game_start_34 : MonoBehaviour
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            int levelIndex = 4;
+            var files = new Dictionary<string, byte[]>();
+            string key = $"voice_{currentVoiceQuestionIndex}";
+            files[key] = wavData;
+            FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+
             SaveWavFile(wavData, currentVoiceQuestionIndex);
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
         }
