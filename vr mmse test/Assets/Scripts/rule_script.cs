@@ -7,9 +7,11 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;      // ✅ 新增這行
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using System.Text;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class Rule_script : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
     [Header("VR 攝影機與 XR Origin")]
     public XROrigin xrOrigin;
     public Transform vrCameraTransform;
@@ -93,6 +95,7 @@ public class Rule_script : MonoBehaviour
 
     void Start()
     {
+        FirebaseManager = FirebaseManager_Firestore.Instance;
         // 檢查左右手 Interactor 是否已指定
         if (leftHandInteractor == null || rightHandInteractor == null)
         {
@@ -140,6 +143,16 @@ public class Rule_script : MonoBehaviour
     {
         buttonWasPressed = true;
         Debug.Log("🟢 按鈕被點擊。");
+    }
+
+    string testId;
+    int levelIndex = 0;
+    int levelScore = 0;
+    
+    public void gameStart()
+    {
+        testId = FirebaseManager.GenerateTestId();
+        Debug.Log("測驗開始，Test ID: " + testId);
     }
 
     IEnumerator StartGameFlow()
@@ -216,6 +229,7 @@ public class Rule_script : MonoBehaviour
         RuleText_rule.gameObject.SetActive(false);
         Debug.Log("🎯 規則播放完畢，流程結束。");
         // 🚨 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
+        FirebaseManager.SaveLevelData(testId, levelIndex, levelScore);
         SceneFlowManager.instance.LoadNextScene();
         Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }

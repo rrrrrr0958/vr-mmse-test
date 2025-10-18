@@ -5178,7 +5178,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &409178006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17714,6 +17714,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf567183448453a44b702fe6bbf719ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  FirebaseManager: {fileID: 2093351855}
   xrOrigin: {fileID: 1481550018}
   vrCameraTransform: {fileID: 237878324}
   leftHandInteractor: {fileID: 1885335851}
@@ -17749,6 +17750,7 @@ MonoBehaviour:
   initialDelaySeconds: 1
   treasureDisplaySeconds: 3
   textSegmentDelay: 0.5
+  testId: 
 --- !u!4 &1543986641
 Transform:
   m_ObjectHideFlags: 0
@@ -21092,6 +21094,18 @@ MonoBehaviour:
       - m_Target: {fileID: 1543986640}
         m_TargetAssemblyTypeName: Rule_script, Assembly-CSharp
         m_MethodName: ConfirmButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1543986640}
+        m_TargetAssemblyTypeName: Rule_script, Assembly-CSharp
+        m_MethodName: gameStart
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -24546,6 +24560,50 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7576170614525935266, guid: 7ae44cce9c551704984deac91f767c88, type: 3}
   m_PrefabInstance: {fileID: 2067665585}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2093351854
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2093351856}
+  - component: {fileID: 2093351855}
+  m_Layer: 0
+  m_Name: FirebaseManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2093351855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2093351854}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1e9ef2758e0e4206adaa589dd937c14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &2093351856
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2093351854}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.796682, y: 2.285644, z: 7.6562014}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2104863468
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -26275,3 +26333,4 @@ SceneRoots:
   - {fileID: 724762375}
   - {fileID: 863118298}
   - {fileID: 409178008}
+  - {fileID: 2093351856}

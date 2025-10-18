@@ -22,9 +22,11 @@ public class FirebaseManager_Firestore : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(this.gameObject);
+            Debug.Log("✅ FirebaseManager 初始化完成並保留跨場景存在。");
         }
         else
         {
+            Debug.Log("⚠️ 重複的 FirebaseManager 被銷毀。");
             Destroy(gameObject);
             return;
         }
@@ -35,18 +37,30 @@ public class FirebaseManager_Firestore : MonoBehaviour
     async void InitializeFirebase()
     {
         var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
-        if (dependencyStatus == DependencyStatus.Available)
+        if (dependencyStatus != DependencyStatus.Available)
         {
-            auth = FirebaseAuth.DefaultInstance;
-            firestore = FirebaseFirestore.DefaultInstance;
-            storage = FirebaseStorage.DefaultInstance;
-            auth.StateChanged += AuthStateChanged;
-            Debug.Log("✅ Firebase 初始化完成");
+            Debug.LogError("❌ Firebase 初始化失敗: " + dependencyStatus);
+            return;
+        }
+        
+
+        auth = FirebaseAuth.DefaultInstance;
+        firestore = FirebaseFirestore.DefaultInstance;
+        storage = FirebaseStorage.DefaultInstance;
+        auth.StateChanged -= AuthStateChanged;
+        auth.StateChanged += AuthStateChanged;
+
+        if(auth.CurrentUser != null)
+        {
+            user = auth.CurrentUser;
+            Debug.Log($"🔁 自動恢復登入：{user.Email}");
         }
         else
         {
-            Debug.LogError("❌ Firebase 初始化失敗: " + dependencyStatus);
+            Debug.Log("⚠️ 尚未登入，等待使用者登入...");
         }
+
+        Debug.Log("✅ Firebase 初始化完成");
     }
 
     void OnDestroy()
@@ -67,9 +81,14 @@ public class FirebaseManager_Firestore : MonoBehaviour
             user = auth.CurrentUser;
             if (signedIn)
             {
-                Debug.Log($"登入：{user.Email}");
+                Debug.Log($"登入：{user.Email}, UID: {user.UserId}");
             }
         }
+    }
+
+    public bool IsUserLoggedIn()
+    {
+        return user != null && auth != null && auth.CurrentUser != null;
     }
 
     // -------------------------------------------------------------------
@@ -230,10 +249,40 @@ public class FirebaseManager_Firestore : MonoBehaviour
     // -------------------------------------------------------------------
     // 🔹 測驗紀錄與上傳功能
     // -------------------------------------------------------------------
-
+    public string testId { get; private set; }
     public string GenerateTestId()
     {
-        return DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        if (user == null)
+        {
+            Debug.LogWarning("⚠️ 尚未登入，無法產生 Test ID。");
+            return null;
+        }
+        testId = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        Debug.Log("🧩 產生新的 Test ID: " + testId);
+
+        DocumentReference testRef = firestore.Collection("Users")
+                                            .Document(user.UserId)
+                                            .Collection("tests")
+                                            .Document(testId);
+
+        Dictionary<string, object> testData = new Dictionary<string, object>
+        {
+            { "startTimestamp", Timestamp.GetCurrentTimestamp() }
+        };
+
+        testRef.SetAsync(testData).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted)
+            {
+                Debug.LogError("❌ 建立測驗文件失敗：" + task.Exception);
+            }
+            else
+            {
+                Debug.Log($"✅ 已建立測驗文件：{testId}（含 startTimestamp）");
+            }
+        });
+
+        return testId;
     }
 
     // public void SaveTestResult(string testId, int totalScore, float totalTime, string timestamp, Action<bool, string> callback = null)
@@ -247,12 +296,12 @@ public class FirebaseManager_Firestore : MonoBehaviour
 
         DocumentReference testDoc = firestore.Collection("Users")
                                              .Document(user.UserId)
-                                             .Collection("testResults")
+                                             .Collection("tests")
                                              .Document(testId);
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
-            { "timestamp", FieldValue.ServerTimestamp},
+            { "endTimestamp", FieldValue.ServerTimestamp},
             { "totalScore", totalScore },
             { "totalTime", totalTime }
         };
@@ -272,7 +321,9 @@ public class FirebaseManager_Firestore : MonoBehaviour
         });
     }
 
-    public void SaveLevelData(string testId, int levelIndex, int score, float time, Action<bool, string> callback = null)
+    // public void SaveLevelData(string testId, int levelIndex, int score, float time, Action<bool, string> callback = null)
+    public void SaveLevelData(string testId, int levelIndex, int score, Action<bool, string> callback = null)
+
     {
         if (user == null)
         {
@@ -282,15 +333,16 @@ public class FirebaseManager_Firestore : MonoBehaviour
 
         DocumentReference levelDoc = firestore.Collection("Users")
                                                .Document(user.UserId)
-                                               .Collection("testResults")
+                                               .Collection("tests")
                                                .Document(testId)
-                                               .Collection("levels")
+                                               .Collection("levelResults")
                                                .Document("level_" + levelIndex);
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             { "score", score },
-            { "time", time }
+            { "levelfinishtimestamp", FieldValue.ServerTimestamp}
+            // { "time", time }
         };
 
         levelDoc.SetAsync(data, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
