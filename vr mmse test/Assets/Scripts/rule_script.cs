@@ -146,7 +146,7 @@ public class Rule_script : MonoBehaviour
     }
 
     string testId;
-    int levelIndex = 0;
+    string levelIndex = "0";
     int levelScore = 0;
     
     public void gameStart()

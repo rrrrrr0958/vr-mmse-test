@@ -4,6 +4,8 @@ using System.Linq;
 
 public class AnswerLogicManager : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("UI 顯示")]
     public TextMeshProUGUI statusText;
 
@@ -57,7 +59,12 @@ public class AnswerLogicManager : MonoBehaviour
                 //         statusText.text = $"❌ 答錯了。\n正確答案:「{correctAnswer}」\n相似度: {similarityPercent}";
                 // }
 
-                string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
+                // string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
+                int consoleResult = isCorrect ? 1 : 0;
+                string testId = FirebaseManager_Firestore.Instance.testId;
+                string levelIndex = "5";
+                FirebaseManager.SaveLevelData(testId, levelIndex, consoleResult);
+
                 Debug.Log($"\n--- 答題結果 ---");
                 Debug.Log($"題目索引: {questionIndex}");
                 Debug.Log($"正確答案: {correctAnswer}");

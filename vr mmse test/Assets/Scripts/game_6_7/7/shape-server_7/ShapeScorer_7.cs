@@ -155,7 +155,7 @@ public class ShapeScorer_7 : MonoBehaviour
 
                     byte[] csvData = File.ReadAllBytes(csvPath);
                     string testId = FirebaseManager_Firestore.Instance.testId;
-                    int levelIndex = 1;
+                    string levelIndex = "1";
 
                     var files = new Dictionary<string, byte[]>();
                     files["trajectoryCsv"] = csvData;
@@ -259,7 +259,7 @@ public class ShapeScorer_7 : MonoBehaviour
             FindObjectOfType<ScoreUI_7>()?.UpdateScore(score);
 
             string testId = FirebaseManager_Firestore.Instance.testId;
-            int levelIndex = 1;
+            string levelIndex = "1";
             FirebaseManager.SaveLevelData(testId, levelIndex, pass01);
             // 準備檔案字典（key 為你想在 firestore/storage 中標記的欄位名）
             var files = new Dictionary<string, byte[]>();

@@ -322,7 +322,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
     }
 
     // public void SaveLevelData(string testId, int levelIndex, int score, float time, Action<bool, string> callback = null)
-    public void SaveLevelData(string testId, int levelIndex, int score, Action<bool, string> callback = null)
+    public void SaveLevelData(string testId, string levelIndex, int score, Action<bool, string> callback = null)
 
     {
         if (user == null)
@@ -390,7 +390,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
         });
     }
 
-    public void UploadFilesAndSaveUrls(string testId, int levelIndex, Dictionary<string, byte[]> files, Action<bool, string> callback = null)
+    public void UploadFilesAndSaveUrls(string testId, string levelIndex, Dictionary<string, byte[]> files, Action<bool, string> callback = null)
     {
         if (user == null)
         {

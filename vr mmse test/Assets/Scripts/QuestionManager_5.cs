@@ -13,6 +13,8 @@ using System;    // 引入 System.DateTime 以處理時間戳記
 
 public class QuestionManager : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     public TextMeshPro questionText;
     public GameObject panelBackground;
     public float delayBetweenQuestions = 3.5f;
@@ -384,6 +386,13 @@ public class QuestionManager : MonoBehaviour
             // 3. 語音處理 (儲存檔案和送去辨識)
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
 
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "6";
+            
+            string fileName = $"減法運算_Q{questionIndex + 1}_wavData.wav";
+            var files = new Dictionary<string, byte[]> { { fileName, wavData } };
+            FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+
             // ⭐ 呼叫新的存檔函式，使用相對路徑
             SaveWavFile(wavData, questionIndex + 1); // 題號從 1 開始
 
@@ -522,24 +531,29 @@ public class QuestionManager : MonoBehaviour
     private IEnumerator SaveCorrectAnswersToFirebaseCoroutine()
     {
         Debug.Log("開始儲存答對題數到 Firebase...");
-        DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
-        string json = JsonUtility.ToJson(new CorrectAnswerData(correctAnswerCount));
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "6";
+        FirebaseManager.SaveLevelData(testId, levelIndex, correctAnswerCount);
+        Debug.Log("✅ 答對題數已送出至 Firebase。");
+        yield break;
+        // DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+        // string json = JsonUtility.ToJson(new CorrectAnswerData(correctAnswerCount));
 
-        var task = reference.Child("caculate_5").SetRawJsonValueAsync(json);
+        // var task = reference.Child("caculate_5").SetRawJsonValueAsync(json);
 
-        while (!task.IsCompleted)
-        {
-            yield return null;
-        }
+        // while (!task.IsCompleted)
+        // {
+        //     yield return null;
+        // }
 
-        if (task.IsCompleted)
-        {
-            Debug.Log("答對題數已成功儲存到 Firebase。");
-        }
-        else if (task.IsFaulted)
-        {
-            Debug.LogError("儲存資料到 Firebase 時發生錯誤: " + task.Exception);
-        }
+        // if (task.IsCompleted)
+        // {
+        //     Debug.Log("答對題數已成功儲存到 Firebase。");
+        // }
+        // else if (task.IsFaulted)
+        // {
+        //     Debug.LogError("儲存資料到 Firebase 時發生錯誤: " + task.Exception);
+        // }
     }
 
     [System.Serializable]

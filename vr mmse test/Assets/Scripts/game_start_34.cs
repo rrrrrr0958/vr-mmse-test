@@ -623,7 +623,7 @@ public class game_start_34 : MonoBehaviour
             //     }
             // });
             string testId = FirebaseManager_Firestore.Instance.testId;
-            int levelIndex = 4;
+            string levelIndex = "4";
             FirebaseManager.SaveLevelData(testId, levelIndex, correctAnswersCount);
         }
         else
@@ -720,7 +720,7 @@ public class game_start_34 : MonoBehaviour
         currentVoiceQuestionIndex = 0;
 
         string testId = FirebaseManager_Firestore.Instance.testId;
-        int levelIndex = 4;
+        string levelIndex = "4";
         FirebaseManager.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
 
         // UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
@@ -977,7 +977,7 @@ public class game_start_34 : MonoBehaviour
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
 
             string testId = FirebaseManager_Firestore.Instance.testId;
-            int levelIndex = 4;
+            string levelIndex = "4";
             var files = new Dictionary<string, byte[]>();
             string key = $"voice_{currentVoiceQuestionIndex}";
             files[key] = wavData;

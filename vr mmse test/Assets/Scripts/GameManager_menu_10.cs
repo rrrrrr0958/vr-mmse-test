@@ -10,6 +10,8 @@ using System.Collections;
 [DefaultExecutionOrder(-50)]
 public class GameManagerMenu_10 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     public static GameManagerMenu_10 instance;
     public List<string> clickedAnimalSequence = new List<string>();
 
@@ -232,6 +234,14 @@ public class GameManagerMenu_10 : MonoBehaviour
             string json = JsonUtility.ToJson(data, true);
             File.WriteAllText(saveFilePath, json);
             Debug.Log($"[Menu] 寫入 {saveFilePath}\n{json}");
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "7";
+            // 將 JSON 字串轉成 byte[]
+            FirebaseManager.SaveLevelData(testId, levelIndex, 0);
+            byte[] jsonBytes = System.Text.Encoding.UTF8.GetBytes(json);
+            var files = new Dictionary<string, byte[]> { { "記憶選擇_jsonData.json", jsonBytes } };
+            FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
         }
         catch (Exception e)
         {

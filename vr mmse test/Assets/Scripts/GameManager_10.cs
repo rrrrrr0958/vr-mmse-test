@@ -11,6 +11,9 @@ using System.Linq;
 [DefaultExecutionOrder(-50)]
 public class GameManager_10 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+    private string levelID;
+
     public static GameManager_10 instance;
     public List<string> clickedAnimalSequence = new List<string>();
 
@@ -68,6 +71,10 @@ public class GameManager_10 : MonoBehaviour
 
     void Start()
     {
+        int round = GameSessionManager.Instance.GetNextRoundNumber("SampleScene_11");
+        levelID = $"{"8"}_Round{round}";
+        Debug.Log($"📊 Level Session ID: {levelID}");
+        
         startTime = Time.time;
         StartCoroutine(WaitAndBindUI());
         LoadCorrectAnswersFromFile();
@@ -309,6 +316,14 @@ public class GameManager_10 : MonoBehaviour
 
             string updatedJson = JsonUtility.ToJson(data, true);
             File.WriteAllText(saveFilePath, updatedJson);
+
+            // Firebase 儲存關卡數據
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            // levelID = 8_1 or 8_2
+            FirebaseManager.SaveLevelData(testId, levelID, correctCount);
+            byte[] updatedJsonBytes = System.Text.Encoding.UTF8.GetBytes(updatedJson);
+            var files = new Dictionary<string, byte[]> { { "記憶選擇_jsonData.json", updatedJsonBytes } };
+            FirebaseManager.UploadFilesAndSaveUrls(testId, levelID, files);
 
             Debug.Log($"[GM] ✅ 已保存第 {round} 次作答");
             Debug.Log($"正確答案：{string.Join("、", cleanCorrect)}");

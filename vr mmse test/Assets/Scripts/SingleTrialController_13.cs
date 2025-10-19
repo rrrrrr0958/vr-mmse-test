@@ -215,10 +215,10 @@ public class SingleTrialController : MonoBehaviour
           if (titleText) titleText.text = "錄音完成";
           if (subtitleText) subtitleText.text = "完成";
           string testId = FirebaseManager_Firestore.Instance.testId;
-          int levelIndex = 3;
+          string levelIndex = "3";
           FirebaseManager.SaveLevelData(testId, levelIndex, score);
           var files = new Dictionary<string, byte[]>();
-          files["sentence_wav"] = wav; // userPng 是你之前 CaptureUserPNG() 的 byte[]
+          files["sentence_wav"] = wav;
           FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
           SceneFlowManager.instance.LoadNextScene(); // 成功後才切換場景
       },
@@ -242,11 +242,8 @@ public class SingleTrialController : MonoBehaviour
           if (subtitleText) subtitleText.text = "請確認伺服器與IP";
           Debug.LogError($"[ASR] Upload/Score failed: {err}"); // 日誌
           string testId = FirebaseManager_Firestore.Instance.testId;
-          int levelIndex = 3;
+          string levelIndex = "3";
           FirebaseManager.SaveLevelData(testId, levelIndex, 0);//score設定為0
-        //   var files = new Dictionary<string, byte[]>();
-        //   files["sentence_wav"] = wav; // userPng 是你之前 CaptureUserPNG() 的 byte[]
-        //   FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
           SceneFlowManager.instance.LoadNextScene(); // 失敗後也切換場景
       },
             onProgress: (phase, p) =>

@@ -6,6 +6,8 @@ using UnityEngine.Events;
 
 public class QuizManager_6 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("診斷輸出")]
     public bool logEvaluationToConsole = true;
 
@@ -127,6 +129,9 @@ public class QuizManager_6 : MonoBehaviour
         // 啟動「選後停留 → 進關」序列
         if (holdCo != null) StopCoroutine(holdCo);
         holdCo = StartCoroutine(HoldThenAdvanceCoroutine(ok));
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "10";
+        FirebaseManager.SaveLevelData(testId, levelIndex, score);
         SceneFlowManager.instance.LoadNextScene();
     }
 
