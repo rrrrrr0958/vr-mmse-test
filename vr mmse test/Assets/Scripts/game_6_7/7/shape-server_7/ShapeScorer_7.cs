@@ -150,7 +150,17 @@ public class ShapeScorer_7 : MonoBehaviour
                 VRTracker1 tracker = FindFirstObjectByType<VRTracker1>();
                 if (tracker != null)
                 {
-                    tracker.SaveTrajectoryToCsv();
+                    string csvPath = tracker.SaveTrajectoryToCsv();
+                    Debug.Log($"🎯 已取得軌跡 CSV 路徑：{csvPath}");
+
+                    byte[] csvData = File.ReadAllBytes(csvPath);
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    int levelIndex = 1;
+
+                    var files = new Dictionary<string, byte[]>();
+                    files["trajectoryCsv"] = csvData;
+
+                    FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
                 }
                 else
                 {
