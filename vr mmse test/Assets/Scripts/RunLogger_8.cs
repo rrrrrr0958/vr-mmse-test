@@ -9,6 +9,8 @@ using System.Diagnostics;
 
 public class RunLogger : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Serializable]
     public class QARecord
     {
@@ -214,6 +216,16 @@ public class RunLogger : MonoBehaviour
                         r.correct ? "1" : "0",
                         r.rtMs.ToString(CultureInfo.InvariantCulture)
                     ));
+
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    string levelIndex = "9"; // 用場景名稱當關卡索引
+                    string correctOption = r.vpKey;
+                    string chosenOption = r.userChoiceKey;
+                    
+                    var correctDict = new Dictionary<string, string> { { "option", correctOption } };
+                    var chosenDict = new Dictionary<string, string> { { "option", chosenOption } };
+
+                    FirebaseManager.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
                 }
             }
 

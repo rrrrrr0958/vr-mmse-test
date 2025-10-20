@@ -395,6 +395,10 @@ public class game_start_34 : MonoBehaviour
         }
     }
 
+    int currentQuestionIndex = 0;
+    Dictionary<string, string> correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> playerOptions = new Dictionary<string, string>();
+
     void HandleClickRaycast(Vector3 origin, Vector3 direction)
     {
         RaycastHit hit;
@@ -467,6 +471,15 @@ public class game_start_34 : MonoBehaviour
                     {
                         Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
                     }
+
+                    // 儲存這一題的紀錄
+                    correctOptions[$"Q{currentQuestionIndex + 1}"] = currentTargetStallName;
+                    playerOptions[$"Q{currentQuestionIndex + 1}"] = clickedStallName;
+
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    string levelIndex = "4";
+                    FirebaseManager.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
+                    currentQuestionIndex++;
 
                     currentTargetStallName = "";
                 }
@@ -720,7 +733,7 @@ public class game_start_34 : MonoBehaviour
         currentVoiceQuestionIndex = 0;
 
         string testId = FirebaseManager_Firestore.Instance.testId;
-        string levelIndex = "4";
+        string levelIndex = "5";
         FirebaseManager.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
 
         // UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
@@ -977,7 +990,7 @@ public class game_start_34 : MonoBehaviour
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
 
             string testId = FirebaseManager_Firestore.Instance.testId;
-            string levelIndex = "4";
+            string levelIndex = "5";
             var files = new Dictionary<string, byte[]>();
             string key = $"voice_{currentVoiceQuestionIndex}";
             files[key] = wavData;
@@ -1025,6 +1038,10 @@ public class game_start_34 : MonoBehaviour
         }
     }
 
+    int level5QuestionIndex = 0;
+    Dictionary<string, string> level5correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> level5playerOptions = new Dictionary<string, string>();
+
     void CheckAnswer(string userResponse, List<string> correctAnswers)
     {
         if (string.IsNullOrEmpty(userResponse))
@@ -1055,6 +1072,16 @@ public class game_start_34 : MonoBehaviour
         {
             Debug.Log($"答案錯誤。你說了: \"{userResponse}\"，正確答案是: \"{string.Join("/", correctAnswers)}\"");
         }
+
+        string qKey = $"Q{level5QuestionIndex + 1}";
+        level5correctOptions[qKey] = string.Join("/", correctAnswers);
+        level5playerOptions[qKey] = userResponse;
+
+        currentQuestionIndex++;
+
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "5"; // 這一關的代號，請依場景改
+        FirebaseManager.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
 
         StartCoroutine(ShowResultAndContinue(isCorrect));
     }

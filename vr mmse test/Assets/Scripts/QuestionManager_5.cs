@@ -387,7 +387,7 @@ public class QuestionManager : MonoBehaviour
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
 
             string testId = FirebaseManager_Firestore.Instance.testId;
-            string levelIndex = "6";
+            string levelIndex = "7";
             
             string fileName = $"減法運算_Q{questionIndex + 1}_wavData.wav";
             var files = new Dictionary<string, byte[]> { { fileName, wavData } };
@@ -493,6 +493,10 @@ public class QuestionManager : MonoBehaviour
         UpdateMoneyAndCheckAnswer(userResponse, questionSequenceIndex);
     }
 
+    int currentQuestionIndex = 0;
+    Dictionary<string, string> correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> playerOptions = new Dictionary<string, string>();
+
     void UpdateMoneyAndCheckAnswer(string userResponse, int questionSequenceIndex)
     {
         string question = currentQuestionSequence[questionSequenceIndex].questionText;
@@ -526,13 +530,22 @@ public class QuestionManager : MonoBehaviour
         {
             Debug.Log("答案錯誤！");
         }
+        string qKey = $"Q{currentQuestionIndex + 1}";
+        correctOptions[qKey] = string.Join("/", remainingMoneyStr);
+        playerOptions[qKey] = normalizedResponse;
+
+        currentQuestionIndex++;
+
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "7"; // 這一關的代號，請依場景改
+        FirebaseManager.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
     }
 
     private IEnumerator SaveCorrectAnswersToFirebaseCoroutine()
     {
         Debug.Log("開始儲存答對題數到 Firebase...");
         string testId = FirebaseManager_Firestore.Instance.testId;
-        string levelIndex = "6";
+        string levelIndex = "7";
         FirebaseManager.SaveLevelData(testId, levelIndex, correctAnswerCount);
         Debug.Log("✅ 答對題數已送出至 Firebase。");
         yield break;

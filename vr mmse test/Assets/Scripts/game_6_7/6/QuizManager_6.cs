@@ -132,6 +132,10 @@ public class QuizManager_6 : MonoBehaviour
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "10";
         FirebaseManager.SaveLevelData(testId, levelIndex, score);
+
+        var correctDict = new Dictionary<string, string> { { "option", currentAnswer } };
+        var chosenDict = new Dictionary<string, string> { { "option", targetId } };
+        FirebaseManager.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
         SceneFlowManager.instance.LoadNextScene();
     }
 

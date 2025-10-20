@@ -236,7 +236,7 @@ public class GameManagerMenu_10 : MonoBehaviour
             Debug.Log($"[Menu] 寫入 {saveFilePath}\n{json}");
 
             string testId = FirebaseManager_Firestore.Instance.testId;
-            string levelIndex = "7";
+            string levelIndex = "8_Round0";
             // 將 JSON 字串轉成 byte[]
             FirebaseManager.SaveLevelData(testId, levelIndex, 0);
             byte[] jsonBytes = System.Text.Encoding.UTF8.GetBytes(json);

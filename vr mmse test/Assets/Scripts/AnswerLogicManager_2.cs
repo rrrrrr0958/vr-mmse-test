@@ -62,7 +62,7 @@ public class AnswerLogicManager : MonoBehaviour
                 // string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
                 int consoleResult = isCorrect ? 1 : 0;
                 string testId = FirebaseManager_Firestore.Instance.testId;
-                string levelIndex = "5";
+                string levelIndex = "6";
                 FirebaseManager.SaveLevelData(testId, levelIndex, consoleResult);
 
                 Debug.Log($"\n--- 答題結果 ---");

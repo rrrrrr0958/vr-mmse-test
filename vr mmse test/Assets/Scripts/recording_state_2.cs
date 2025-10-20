@@ -135,7 +135,7 @@ public class RecordingState2 : MonoBehaviour
 
         // 上傳 Firebase
         string testId = FirebaseManager_Firestore.Instance.testId;
-        string levelIndex = "5";
+        string levelIndex = "6";
         var files = new Dictionary<string, byte[]>();
         files["海鮮折扣快來買_wavData"] = wavData;
         FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);

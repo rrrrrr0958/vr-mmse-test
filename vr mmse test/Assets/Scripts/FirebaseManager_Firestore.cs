@@ -360,6 +360,44 @@ public class FirebaseManager_Firestore : MonoBehaviour
         });
     }
 
+    public void SaveLevelOptions(string testId, string levelIndex, Dictionary<string, string> correctOptions, Dictionary<string, string> chosenOptions, Action<bool, string> callback = null)
+    {
+        if (user == null)
+        {
+            callback?.Invoke(false, "No user");
+            return;
+        }
+
+        DocumentReference levelDoc = firestore.Collection("Users")
+                                               .Document(user.UserId)
+                                               .Collection("tests")
+                                               .Document(testId)
+                                               .Collection("levelResults")
+                                               .Document("level_" + levelIndex);
+
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            { "correctOption", correctOptions },
+            { "chosenOption", chosenOptions },
+            { "timestamp", FieldValue.ServerTimestamp }
+        };
+
+        levelDoc.SetAsync(data, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted)
+            {
+                Debug.LogWarning("SaveLevelOptions 失敗: " + task.Exception);
+                callback?.Invoke(false, task.Exception.Message);
+            }
+            else
+            {
+                Debug.Log($"✅ SaveLevelOptions 成功: level_{levelIndex}");
+                callback?.Invoke(true, null);
+            }
+        });
+    }
+
+
     public void UploadFile(byte[] fileBytes, string storagePath, Action<bool, string> callback)
     {
         StorageReference storageRef = storage.GetReference(storagePath);
