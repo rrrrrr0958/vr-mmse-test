@@ -137,8 +137,8 @@ public class RecordingState2 : MonoBehaviour
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "6";
         var files = new Dictionary<string, byte[]>();
-        files["海鮮折扣快來買_wavData"] = wavData;
-        FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+        files["重複語句_wavData"] = wavData;
+        FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
 
         // ✅ 本地存檔：Assets/Scripts/Game_2/
         try

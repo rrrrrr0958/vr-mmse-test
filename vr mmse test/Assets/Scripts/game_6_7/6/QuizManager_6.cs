@@ -131,11 +131,13 @@ public class QuizManager_6 : MonoBehaviour
         holdCo = StartCoroutine(HoldThenAdvanceCoroutine(ok));
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "10";
-        FirebaseManager.SaveLevelData(testId, levelIndex, score);
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
 
         var correctDict = new Dictionary<string, string> { { "option", currentAnswer } };
         var chosenDict = new Dictionary<string, string> { { "option", targetId } };
-        FirebaseManager.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
+        FirebaseManager_Firestore.Instance.SaveTestResult(testId);
         SceneFlowManager.instance.LoadNextScene();
     }
 

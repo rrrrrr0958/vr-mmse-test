@@ -225,7 +225,7 @@ public class RunLogger : MonoBehaviour
                     var correctDict = new Dictionary<string, string> { { "option", correctOption } };
                     var chosenDict = new Dictionary<string, string> { { "option", chosenOption } };
 
-                    FirebaseManager.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
+                    FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
                 }
             }
 

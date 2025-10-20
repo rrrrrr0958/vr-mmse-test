@@ -37,6 +37,9 @@ public class AnswerLogicManager : MonoBehaviour
                 // 不再 return，改為視為答錯，但允許流程繼續
                 // if (statusText != null)
                 //     statusText.text = "⚠️ 辨識結果為空，已自動視為未回答。";
+                string testId = FirebaseManager_Firestore.Instance.testId;
+                string levelIndex = "6";
+                FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 0);
                 Debug.Log($"[Answer] 您的回答: {userDisplay}. 判定：結果為空，視為未回答。");
             }
             else
@@ -63,7 +66,8 @@ public class AnswerLogicManager : MonoBehaviour
                 int consoleResult = isCorrect ? 1 : 0;
                 string testId = FirebaseManager_Firestore.Instance.testId;
                 string levelIndex = "6";
-                FirebaseManager.SaveLevelData(testId, levelIndex, consoleResult);
+                FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + consoleResult;
+                FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, consoleResult);
 
                 Debug.Log($"\n--- 答題結果 ---");
                 Debug.Log($"題目索引: {questionIndex}");

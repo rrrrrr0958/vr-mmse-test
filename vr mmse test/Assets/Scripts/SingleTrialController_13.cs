@@ -216,10 +216,11 @@ public class SingleTrialController : MonoBehaviour
           if (subtitleText) subtitleText.text = "完成";
           string testId = FirebaseManager_Firestore.Instance.testId;
           string levelIndex = "3";
-          FirebaseManager.SaveLevelData(testId, levelIndex, score);
+          FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
+          FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
           var files = new Dictionary<string, byte[]>();
           files["sentence_wav"] = wav;
-          FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+          FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
           SceneFlowManager.instance.LoadNextScene(); // 成功後才切換場景
       },
       onError: (err) =>
@@ -243,7 +244,7 @@ public class SingleTrialController : MonoBehaviour
           Debug.LogError($"[ASR] Upload/Score failed: {err}"); // 日誌
           string testId = FirebaseManager_Firestore.Instance.testId;
           string levelIndex = "3";
-          FirebaseManager.SaveLevelData(testId, levelIndex, 0);//score設定為0
+          FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 0);//score設定為0
           SceneFlowManager.instance.LoadNextScene(); // 失敗後也切換場景
       },
             onProgress: (phase, p) =>

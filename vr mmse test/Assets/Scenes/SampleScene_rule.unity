@@ -5178,7 +5178,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &409178006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17714,7 +17714,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf567183448453a44b702fe6bbf719ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  FirebaseManager: {fileID: 2093351855}
   xrOrigin: {fileID: 1481550018}
   vrCameraTransform: {fileID: 237878324}
   leftHandInteractor: {fileID: 1885335851}
@@ -17750,7 +17749,6 @@ MonoBehaviour:
   initialDelaySeconds: 1
   treasureDisplaySeconds: 3
   textSegmentDelay: 0.5
-  testId: 
 --- !u!4 &1543986641
 Transform:
   m_ObjectHideFlags: 0

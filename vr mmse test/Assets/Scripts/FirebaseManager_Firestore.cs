@@ -10,6 +10,7 @@ using System.Collections.Generic;
 public class FirebaseManager_Firestore : MonoBehaviour
 {
     public static FirebaseManager_Firestore Instance;
+    public int totalScore = 0;
 
     public FirebaseAuth auth;
     public FirebaseUser user;
@@ -250,6 +251,9 @@ public class FirebaseManager_Firestore : MonoBehaviour
     // 🔹 測驗紀錄與上傳功能
     // -------------------------------------------------------------------
     public string testId { get; private set; }
+    public Timestamp startTimestamp;
+    public Timestamp endTimestamp;
+
     public string GenerateTestId()
     {
         if (user == null)
@@ -265,9 +269,11 @@ public class FirebaseManager_Firestore : MonoBehaviour
                                             .Collection("tests")
                                             .Document(testId);
 
+        startTimestamp = Timestamp.GetCurrentTimestamp();
+
         Dictionary<string, object> testData = new Dictionary<string, object>
         {
-            { "startTimestamp", Timestamp.GetCurrentTimestamp() }
+            { "startTimestamp", startTimestamp }
         };
 
         testRef.SetAsync(testData).ContinueWithOnMainThread(task =>
@@ -286,7 +292,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
     }
 
     // public void SaveTestResult(string testId, int totalScore, float totalTime, string timestamp, Action<bool, string> callback = null)
-    public void SaveTestResult(string testId, int totalScore, float totalTime, Action<bool, string> callback = null)
+    public void SaveTestResult(string testId, Action<bool, string> callback = null)
     {
         if (user == null)
         {
@@ -299,11 +305,16 @@ public class FirebaseManager_Firestore : MonoBehaviour
                                              .Collection("tests")
                                              .Document(testId);
 
+        endTimestamp = Timestamp.GetCurrentTimestamp();
+        DateTime start = startTimestamp.ToDateTime();
+        DateTime end = endTimestamp.ToDateTime();
+        TimeSpan totalTime = end - start;
+
         Dictionary<string, object> data = new Dictionary<string, object>
         {
-            { "endTimestamp", FieldValue.ServerTimestamp},
-            { "totalScore", totalScore },
-            { "totalTime", totalTime }
+            { "endTimestamp", endTimestamp },
+            { "totalTime", totalTime },
+            { "totalScore", totalScore }
         };
 
         testDoc.SetAsync(data).ContinueWithOnMainThread(task =>
@@ -398,10 +409,14 @@ public class FirebaseManager_Firestore : MonoBehaviour
     }
 
 
-    public void UploadFile(byte[] fileBytes, string storagePath, Action<bool, string> callback)
+    public void UploadFile(byte[] fileBytes, string storagePath, string contentType, Action<bool, string> callback)
     {
         StorageReference storageRef = storage.GetReference(storagePath);
-        storageRef.PutBytesAsync(fileBytes).ContinueWithOnMainThread(uploadTask =>
+
+        // 建立 Metadata
+        var metadata = new MetadataChange { ContentType = contentType };
+
+        storageRef.PutBytesAsync(fileBytes, metadata).ContinueWithOnMainThread(uploadTask =>
         {
             if (uploadTask.IsFaulted || uploadTask.IsCanceled)
             {
@@ -428,6 +443,45 @@ public class FirebaseManager_Firestore : MonoBehaviour
         });
     }
 
+    private (string ext, string contentType) DetectFileType(byte[] data, string key = "")
+    {
+        if (data == null || data.Length < 4)
+            return (".bin", "application/octet-stream");
+
+        // 常見格式的檔頭 (Magic Number)
+        // PNG: 89 50 4E 47
+        if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+            return (".png", "image/png");
+
+        // WAV: 52 49 46 46 ("RIFF") ... WAVE
+        if (data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46)
+        {
+            // 有 "WAVE" 字樣的就是 WAV
+            string header = System.Text.Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 12));
+            if (header.Contains("WAVE"))
+                return (".wav", "audio/wav");
+        }
+
+        // JSON: 通常以 { 或 [ 開頭
+        if (data[0] == '{' || data[0] == '[')
+            return (".json", "application/json");
+
+        // CSV: 通常是純文字（英數字 + 逗號）
+        string textHead = System.Text.Encoding.UTF8.GetString(data, 0, Math.Min(data.Length, 100));
+        if (textHead.Contains(",") && textHead.IndexOfAny(new[] { '\n', '\r' }) > 0)
+            return (".csv", "text/csv");
+
+        // 若 key 有附帶提示也可輔助判斷
+        key = key.ToLower();
+        if (key.Contains("png")) return (".png", "image/png");
+        if (key.Contains("wav")) return (".wav", "audio/wav");
+        if (key.Contains("csv")) return (".csv", "text/csv");
+        if (key.Contains("json")) return (".json", "application/json");
+
+        // 預設值
+        return (".bin", "application/octet-stream");
+    }
+
     public void UploadFilesAndSaveUrls(string testId, string levelIndex, Dictionary<string, byte[]> files, Action<bool, string> callback = null)
     {
         if (user == null)
@@ -448,10 +502,14 @@ public class FirebaseManager_Firestore : MonoBehaviour
         {
             string key = kv.Key;
             byte[] data = kv.Value;
+
+            // 自動偵測檔案類型
+            var (ext, ctype) = DetectFileType(data, key);
+
             string fname = $"{key}_{Guid.NewGuid().ToString().Substring(0, 8)}";
             string path = basePath + fname;
 
-            UploadFile(data, path, (ok, result) =>
+            UploadFile(data, path, ctype, (ok, result) =>
             {
                 if (!ok)
                 {
@@ -478,6 +536,7 @@ public class FirebaseManager_Firestore : MonoBehaviour
                                                                .Document(testId)
                                                                .Collection("levelResults")
                                                                .Document("level_" + levelIndex);
+
                         Dictionary<string, object> merge = new Dictionary<string, object>
                         {
                             { "files", urlFields }

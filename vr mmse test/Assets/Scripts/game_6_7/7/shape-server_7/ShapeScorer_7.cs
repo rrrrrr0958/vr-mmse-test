@@ -160,7 +160,7 @@ public class ShapeScorer_7 : MonoBehaviour
                     var files = new Dictionary<string, byte[]>();
                     files["trajectoryCsv"] = csvData;
 
-                    FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+                    FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
                 }
                 else
                 {
@@ -260,11 +260,12 @@ public class ShapeScorer_7 : MonoBehaviour
 
             string testId = FirebaseManager_Firestore.Instance.testId;
             string levelIndex = "1";
-            FirebaseManager.SaveLevelData(testId, levelIndex, pass01);
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + pass01;
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, pass01);
             // 準備檔案字典（key 為你想在 firestore/storage 中標記的欄位名）
             var files = new Dictionary<string, byte[]>();
             files["userPng"] = userPng; // userPng 是你之前 CaptureUserPNG() 的 byte[]
-            FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
             // 若 SceneFlowManager 沒掛，避免 NRE
             if (SceneFlowManager.instance != null)
                 SceneFlowManager.instance.LoadNextScene();

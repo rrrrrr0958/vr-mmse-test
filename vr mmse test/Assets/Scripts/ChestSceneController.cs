@@ -9,6 +9,8 @@ public class ChestSceneController : MonoBehaviour
     [Header("UI Elements")]
     public TMP_Text rewardText;              // 顯示獎勵的文字
     public Button continueButton;            // 繼續按鈕
+    [SerializeField] TMP_Text score; 
+    [SerializeField] TMP_Text hint; 
 
     [Header("Audio Settings")]
     public AudioSource audioSource;          // 播放音效的 AudioSource
@@ -50,6 +52,29 @@ public class ChestSceneController : MonoBehaviour
         if (chestOpenSound != null && audioSource != null)
             audioSource.PlayOneShot(chestOpenSound, chestOpenVolume);
 
+        score.text = FirebaseManager_Firestore.Instance.totalScore.ToString();
+
+        if (score.text != null)
+        {
+            score.text = score.text + " / 30";
+            if (FirebaseManager_Firestore.Instance.totalScore > 24)
+            {
+                hint.text = "太厲害了！";
+            }
+            else if (FirebaseManager_Firestore.Instance.totalScore > 16)
+            {
+                hint.text = "還不錯喔～";
+            }
+            else
+            {
+                hint.text = "再試一次吧！";
+            }
+        }
+        else
+        {
+            hint.text = "遊戲失敗，沒有分數";
+        }
+        
         // ✅ 開始文字與按鈕的協程
         StartCoroutine(PlayChestSequence());
     }

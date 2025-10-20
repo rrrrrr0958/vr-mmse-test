@@ -427,8 +427,9 @@ public class SimpleTestManager : MonoBehaviour
 
             string testId = FirebaseManager_Firestore.Instance.testId;
             string levelIndex = "2";
-            FirebaseManager.SaveLevelData(testId, levelIndex, score);
-            FirebaseManager.SaveLevelOptions(testId, levelIndex, correctAnswers, playerAnswers);
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
+            FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctAnswers, playerAnswers);
 
             if (SceneFlowManager.instance != null)
             {

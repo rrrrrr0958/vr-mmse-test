@@ -478,7 +478,7 @@ public class game_start_34 : MonoBehaviour
 
                     string testId = FirebaseManager_Firestore.Instance.testId;
                     string levelIndex = "4";
-                    FirebaseManager.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
+                    FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
                     currentQuestionIndex++;
 
                     currentTargetStallName = "";
@@ -611,18 +611,19 @@ public class game_start_34 : MonoBehaviour
         isWaitingForClickInput = false;
 
         Debug.Log($"點擊題目正確數: {correctAnswersCount}/3"); //game_3的答對題數
-
-        if (dbReference != null)
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        // if (dbReference != null)
+        if (testId != null)
         {
-            string userId = SystemInfo.deviceUniqueIdentifier;
-            string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss");
-            string recordKey = $"{userId}_{timestamp}";
+            // string userId = SystemInfo.deviceUniqueIdentifier;
+            // string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss");
+            // string recordKey = $"{userId}_{timestamp}";
 
             Dictionary<string, object> scoreData = new Dictionary<string, object>();
             scoreData["Command_score"] = correctAnswersCount;
-            scoreData["totalQuestions"] = 3;
-            scoreData["timestamp"] = ServerValue.Timestamp;
-            scoreData["userName"] = "PlayerName";
+            // scoreData["totalQuestions"] = 3;
+            // scoreData["timestamp"] = ServerValue.Timestamp;
+            // scoreData["userName"] = "PlayerName";
 
             // dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
             // {
@@ -635,9 +636,10 @@ public class game_start_34 : MonoBehaviour
             //         Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
             //     }
             // });
-            string testId = FirebaseManager_Firestore.Instance.testId;
             string levelIndex = "4";
-            FirebaseManager.SaveLevelData(testId, levelIndex, correctAnswersCount);
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + correctAnswersCount;
+
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, correctAnswersCount);
         }
         else
         {
@@ -734,7 +736,8 @@ public class game_start_34 : MonoBehaviour
 
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "5";
-        FirebaseManager.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + voiceCorrectAnswersCount;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
 
         // UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
@@ -994,7 +997,7 @@ public class game_start_34 : MonoBehaviour
             var files = new Dictionary<string, byte[]>();
             string key = $"voice_{currentVoiceQuestionIndex}";
             files[key] = wavData;
-            FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
 
             SaveWavFile(wavData, currentVoiceQuestionIndex);
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
@@ -1081,7 +1084,7 @@ public class game_start_34 : MonoBehaviour
 
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "5"; // 這一關的代號，請依場景改
-        FirebaseManager.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
 
         StartCoroutine(ShowResultAndContinue(isCorrect));
     }

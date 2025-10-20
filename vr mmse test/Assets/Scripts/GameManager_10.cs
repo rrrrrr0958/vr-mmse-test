@@ -320,10 +320,12 @@ public class GameManager_10 : MonoBehaviour
             // Firebase 儲存關卡數據
             string testId = FirebaseManager_Firestore.Instance.testId;
             // levelID = 8_1 or 8_2
-            FirebaseManager.SaveLevelData(testId, levelID, correctCount);
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + correctCount;
+
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelID, correctCount);
             byte[] updatedJsonBytes = System.Text.Encoding.UTF8.GetBytes(updatedJson);
             var files = new Dictionary<string, byte[]> { { "記憶選擇_jsonData.json", updatedJsonBytes } };
-            FirebaseManager.UploadFilesAndSaveUrls(testId, levelID, files);
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelID, files);
 
             Debug.Log($"[GM] ✅ 已保存第 {round} 次作答");
             Debug.Log($"正確答案：{string.Join("、", cleanCorrect)}");

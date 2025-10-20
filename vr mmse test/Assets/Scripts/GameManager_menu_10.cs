@@ -238,10 +238,10 @@ public class GameManagerMenu_10 : MonoBehaviour
             string testId = FirebaseManager_Firestore.Instance.testId;
             string levelIndex = "8_Round0";
             // 將 JSON 字串轉成 byte[]
-            FirebaseManager.SaveLevelData(testId, levelIndex, 0);
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 0);
             byte[] jsonBytes = System.Text.Encoding.UTF8.GetBytes(json);
             var files = new Dictionary<string, byte[]> { { "記憶選擇_jsonData.json", jsonBytes } };
-            FirebaseManager.UploadFilesAndSaveUrls(testId, levelIndex, files);
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
         }
         catch (Exception e)
         {

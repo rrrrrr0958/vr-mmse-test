@@ -233,7 +233,8 @@ public class SessionController : MonoBehaviour
         _quizActive = false;
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "9";
-        FirebaseManager.SaveLevelData(testId, levelIndex, 5);//這裡的分數在哪?
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + 5;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 5);//這裡的分數在哪?
         SceneFlowManager.instance.LoadNextScene();
     }
 
