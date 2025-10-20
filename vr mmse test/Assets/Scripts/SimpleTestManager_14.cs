@@ -424,6 +424,16 @@ public class SimpleTestManager : MonoBehaviour
             SaveResultToJson();
             ShowResultPanel();
 
+            VRTracker tracker = FindFirstObjectByType<VRTracker>();
+            if (tracker != null)
+            {
+                tracker.SaveTrajectoryToCsv();
+            }
+            else
+            {
+                Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
+            }
+
             if (SceneFlowManager.instance != null)
             {
                 SceneFlowManager.instance.LoadNextScene();

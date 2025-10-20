@@ -2,28 +2,68 @@
     "correctAnswers": [
         "鳳梨",
         "葡萄",
-        "西瓜"
+        "蘋果"
     ],
     "attempts": [
         {
             "round": 1,
             "selected": [
-                "鳳梨",
-                "西瓜",
-                "香蕉"
+                "香蕉",
+                "葡萄",
+                "鳳梨"
             ],
             "correctCount": 2,
-            "timeUsed": 9.950531005859375
+            "timeUsed": 4.237701416015625
         },
         {
             "round": 2,
+            "selected": [
+                "香蕉",
+                "葡萄",
+                "橘子"
+            ],
+            "correctCount": 1,
+            "timeUsed": 8.6295166015625
+        },
+        {
+            "round": 3,
+            "selected": [
+                "葡萄",
+                "香蕉",
+                "鳳梨"
+            ],
+            "correctCount": 2,
+            "timeUsed": 28.805967330932618
+        },
+        {
+            "round": 4,
+            "selected": [
+                "葡萄",
+                "西瓜",
+                "蘋果"
+            ],
+            "correctCount": 2,
+            "timeUsed": 20.130619049072267
+        },
+        {
+            "round": 5,
             "selected": [
                 "鳳梨",
                 "西瓜",
                 "香蕉"
             ],
+            "correctCount": 1,
+            "timeUsed": 7.804912567138672
+        },
+        {
+            "round": 6,
+            "selected": [
+                "葡萄",
+                "香蕉",
+                "鳳梨"
+            ],
             "correctCount": 2,
-            "timeUsed": 11.3408203125
+            "timeUsed": 12.138792037963868
         }
     ]
 }
