@@ -20,6 +20,7 @@ public class SceneFlowManager : MonoBehaviour
     {
         "Opening",
         "Login Scene",
+        // "Opening",
         "SampleScene_rule",
         "SampleScene_7",
         "Reward_Scene",

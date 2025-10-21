@@ -1,10 +1,10 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-20 23:50:05.833",
+            "timestamp": "2025-10-21 15:11:45.359",
             "score": 1,
-            "wav_path": "D:/project/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251020_235003777.wav",
-            "transcript": "請直接說出答案",
+            "wav_path": "C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251021_151142410.wav",
+            "transcript": "我好累",
             "error": "",
             "reasons": {
                 "has_subject_verb": true,
