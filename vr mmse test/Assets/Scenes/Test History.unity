@@ -2822,7 +2822,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 215726880}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 408584523}
+        m_TargetAssemblyTypeName: TestHistoryUI, Assembly-CSharp
+        m_MethodName: OnContinueButtonClicked
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &215726880
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5071,6 +5083,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   listParent: {fileID: 1401365259}
   itemPrefab: {fileID: 921589399344452575, guid: 2dae7e435d05db44cb75f1f8aa2aeb02, type: 3}
+  endGameButton: {fileID: 0}
+  audioSource: {fileID: 0}
+  confirmSound: {fileID: 8300000, guid: 49b6f943eb0d8ab4f9a4baa8f1398c3e, type: 3}
+  confirmVolume: 1
 --- !u!4 &408584524
 Transform:
   m_ObjectHideFlags: 0
@@ -17009,8 +17025,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u904A\u6232\u7D50\u675F"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
-  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fe55bb1906cfa42b8b2cb4ed87fdf054, type: 2}
+  m_sharedMaterial: {fileID: 8177093841930004914, guid: fe55bb1906cfa42b8b2cb4ed87fdf054, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -17034,13 +17050,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 26.85
+  m_fontSize: 20.7
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
