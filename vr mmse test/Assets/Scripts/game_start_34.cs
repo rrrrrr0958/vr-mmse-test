@@ -1080,7 +1080,7 @@ public class game_start_34 : MonoBehaviour
         level5correctOptions[qKey] = string.Join("/", correctAnswers);
         level5playerOptions[qKey] = userResponse;
 
-        currentQuestionIndex++;
+        level5QuestionIndex++;
 
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "5"; // 這一關的代號，請依場景改

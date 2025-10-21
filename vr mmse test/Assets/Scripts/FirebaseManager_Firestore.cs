@@ -306,18 +306,18 @@ public class FirebaseManager_Firestore : MonoBehaviour
                                              .Document(testId);
 
         endTimestamp = Timestamp.GetCurrentTimestamp();
-        DateTime start = startTimestamp.ToDateTime();
-        DateTime end = endTimestamp.ToDateTime();
-        TimeSpan totalTime = end - start;
+        TimeSpan duration = endTimestamp.ToDateTime() - startTimestamp.ToDateTime();
+        // double totalSeconds = duration.TotalSeconds;
 
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             { "endTimestamp", endTimestamp },
-            { "totalTime", totalTime },
+            // { "totalTime", totalSeconds },
+            { "totalTime", duration.ToString(@"hh\:mm\:ss") },
             { "totalScore", totalScore }
         };
 
-        testDoc.SetAsync(data).ContinueWithOnMainThread(task =>
+        testDoc.SetAsync(data, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {
@@ -564,9 +564,9 @@ public class FirebaseManager_Firestore : MonoBehaviour
 
         CollectionReference col = firestore.Collection("Users")
                                         .Document(user.UserId)
-                                        .Collection("testResults");
+                                        .Collection("tests");
 
-        col.OrderByDescending("timestamp").Limit(limit).GetSnapshotAsync().ContinueWithOnMainThread(task =>
+        col.OrderByDescending("startTimestamp").Limit(limit).GetSnapshotAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
             {

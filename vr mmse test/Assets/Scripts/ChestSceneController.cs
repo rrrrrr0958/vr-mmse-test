@@ -1,11 +1,15 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
+using Firebase.Firestore;
 
 public class ChestSceneController : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+    
     [Header("UI Elements")]
     public TMP_Text rewardText;              // 顯示獎勵的文字
     public Button continueButton;            // 繼續按鈕
@@ -57,11 +61,11 @@ public class ChestSceneController : MonoBehaviour
         if (score.text != null)
         {
             score.text = score.text + " / 30";
-            if (FirebaseManager_Firestore.Instance.totalScore > 24)
+            if (FirebaseManager_Firestore.Instance.totalScore >= 24)
             {
                 hint.text = "太厲害了！";
             }
-            else if (FirebaseManager_Firestore.Instance.totalScore > 16)
+            else if (FirebaseManager_Firestore.Instance.totalScore >= 16)
             {
                 hint.text = "還不錯喔～";
             }
@@ -84,7 +88,9 @@ public class ChestSceneController : MonoBehaviour
         if (rewardText != null)
         {
             rewardText.alpha = 0f;
+            hint.alpha = 0f;
             rewardText.gameObject.SetActive(false);
+            hint.gameObject.SetActive(false);
         }
 
         if (continueButton != null)
@@ -111,7 +117,9 @@ public class ChestSceneController : MonoBehaviour
         if (rewardText != null)
         {
             rewardText.gameObject.SetActive(true);
+            hint.gameObject.SetActive(true);
             yield return StartCoroutine(FadeTextIn(rewardText, fadeDuration));
+            yield return StartCoroutine(FadeTextIn(hint, fadeDuration));
         }
 
         // 延遲顯示按鈕
@@ -150,9 +158,26 @@ public class ChestSceneController : MonoBehaviour
         cg.alpha = 1f;
     }
 
+    private void OnRecentTestsChecked(bool success, List<DocumentSnapshot> docs)
+    {
+        if (!success || docs == null || docs.Count < 1)
+        {
+            Debug.Log("❌ 沒有歷史紀錄，直接關閉遊戲");
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false; // 編輯器中結束播放
+#else
+        Application.Quit(); // build 後關閉遊戲
+#endif
+            return;
+        }
+        Debug.Log("✅ 有歷史紀錄，切換場景");
+    }
+
     void OnContinueButtonClicked()
     {
+        FirebaseManager_Firestore.Instance.LoadRecentTests(1, OnRecentTestsChecked);
         StartCoroutine(HandleContinueButton());
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator HandleContinueButton()

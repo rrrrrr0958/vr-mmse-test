@@ -43,7 +43,8 @@ public class SceneFlowManager : MonoBehaviour
         "Reward_Scene",
         "SampleScene_6",
         "Reward_Scene",
-        "Final_Scroe"         
+        "Final_Scroe",
+        "Test History"
     };
 
     private int currentIndex = 0;
