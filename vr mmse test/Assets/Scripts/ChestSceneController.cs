@@ -85,7 +85,7 @@ public class ChestSceneController : MonoBehaviour
         yield return new WaitForSeconds(textDelay);
         if (rewardText != null)
         {
-            rewardText.gameObject.SetActive(true);
+            // rewardText.gameObject.SetActive(true);
             yield return StartCoroutine(FadeTextIn(rewardText, fadeDuration));
         }
 
