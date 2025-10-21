@@ -146,7 +146,7 @@ public class SimpleTestManager : MonoBehaviour
         if (startPanel != null) startPanel.SetActive(true);
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
         if (feedbackText != null) feedbackText.text = "";
-        if (titleText != null) titleText.text = "今天市場有開嗎?";
+        if (titleText != null) titleText.text = "";
 
         Debug.Log("Simple Test Manager initialized");
     }

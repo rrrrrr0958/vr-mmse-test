@@ -36,7 +36,7 @@ public class game_start_34 : MonoBehaviour
     public float voiceQuestionBufferTime = 0.0f;
 
     [Header("點擊題設定")]
-    public float clickResponseDuration = 2.5f;
+    public float clickResponseDuration = 5.0f;
 
     // 【新增】點擊音效設定
     [Header("點擊音效")]
