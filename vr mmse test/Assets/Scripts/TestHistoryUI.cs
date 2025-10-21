@@ -48,7 +48,7 @@ public class TestHistoryUI : MonoBehaviour
             string totalTime = data.ContainsKey("totalTime") ? data["totalTime"].ToString() : "N/A";
 
 
-            GameObject item = Instantiate(itemPrefab, listParent);
+            GameObject item = Instantiate(itemPrefab, listParent, false);
             TMP_Text textComponent = item.GetComponentInChildren<TMP_Text>();
             if (textComponent != null)
                 textComponent.text = $"#{index} | {startTimestamp} | 分數: {totalScore} | 時間: {totalTime}";
