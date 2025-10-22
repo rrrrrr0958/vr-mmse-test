@@ -16076,8 +16076,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u904A\u6232\u7D50\u675F"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
-  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 348cd0371e7dd45758fe4c58804b7342, type: 2}
+  m_sharedMaterial: {fileID: -7358940907007269749, guid: 348cd0371e7dd45758fe4c58804b7342, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

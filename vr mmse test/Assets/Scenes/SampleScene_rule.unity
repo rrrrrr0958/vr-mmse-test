@@ -14470,10 +14470,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u8ACB\u4F7F\u7528\u98DF\u6307\u6309\u4E0B\\n\u6273\u6A5F\u9375\u9EDE\u9078\u6309\u9215"
+  m_text: "\u6211\u5011\u7E3D\u5171\u670910\u9053\\n\u904A\u6232\u4EFB\u52D9"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d2b6e85a8fe00e54a81ecfb25cf99c77, type: 2}
-  m_sharedMaterial: {fileID: -4069784185997713420, guid: d2b6e85a8fe00e54a81ecfb25cf99c77, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d79b3a566d5d6044fbf85cfc706d31e8, type: 2}
+  m_sharedMaterial: {fileID: 3090121949629254392, guid: d79b3a566d5d6044fbf85cfc706d31e8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -14567,7 +14567,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -4069784185997713420, guid: d2b6e85a8fe00e54a81ecfb25cf99c77, type: 2}
+  - {fileID: 3090121949629254392, guid: d79b3a566d5d6044fbf85cfc706d31e8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -24682,6 +24682,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1e9ef2758e0e4206adaa589dd937c14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  totalScore: 0
 --- !u!4 &2093351856
 Transform:
   m_ObjectHideFlags: 0

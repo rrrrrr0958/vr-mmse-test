@@ -160,7 +160,7 @@ public class ChestSceneController : MonoBehaviour
 
     private void OnRecentTestsChecked(bool success, List<DocumentSnapshot> docs)
     {
-        if (!success || docs == null || docs.Count < 1)
+        if (!success || docs == null || docs.Count < 100)
         {
             Debug.Log("❌ 沒有歷史紀錄，直接關閉遊戲");
 #if UNITY_EDITOR

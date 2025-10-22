@@ -17294,8 +17294,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u7B49\u5F85\u4E2D"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
-  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_fontSharedMaterials:
   - {fileID: 9097021707352035785, guid: 8c38b9620217f604d828844065296f90, type: 2}
   m_fontMaterial: {fileID: 0}

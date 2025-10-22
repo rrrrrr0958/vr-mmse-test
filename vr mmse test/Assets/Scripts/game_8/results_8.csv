@@ -1,4 +1,4 @@
-timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
+﻿timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
 2025-10-14T13:25:07.1179364+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,2359
 2025-10-14T16:24:15.1475644+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Bread_8,1,3670
 2025-10-14T17:36:57.1561278+08:00,f3_8,VP_Meat_8,三樓 肉攤,VP_Meat_8,1,5688
@@ -15,3 +15,12 @@ timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
 2025-10-21T23:40:08.6104144+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Bread_8,1,2375
 2025-10-22T00:02:05.1958570+08:00,f1_8,VP_Fish_8,一樓 魚攤,VP_Fish_8,1,1874
 2025-10-22T00:19:27.9819930+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Bread_8,1,1804
+2025-10-22T13:28:41.1662996+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,11982
+2025-10-22T14:47:39.3472897+08:00,f1_8,VP_Fish_8,一樓 魚攤,VP_Fish_8,1,3962
+2025-10-22T15:14:43.9826675+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Fish_8,0,13808
+2025-10-22T15:31:44.0313235+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,46078
+2025-10-22T15:46:01.2127515+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Bread_8,0,15757
+2025-10-22T15:59:35.0547937+08:00,f3_8,VP_Meat_8,三樓 肉攤,VP_Meat_8,1,13848
+2025-10-22T16:11:38.2677814+08:00,f1_8,VP_Fish_8,一樓 魚攤,VP_Fish_8,1,2874
+2025-10-22T16:24:38.1554142+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Meat_8,0,12177
+2025-10-22T16:41:47.4910058+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,11439
