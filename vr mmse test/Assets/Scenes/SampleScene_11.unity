@@ -8134,8 +8134,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 86e16cc154fa3414b855f29144ed8680, type: 3}
-  m_Resource: {fileID: 8300000, guid: 86e16cc154fa3414b855f29144ed8680, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 5de6559be2726c6449414f7504abc5c2, type: 3}
+  m_Resource: {fileID: 8300000, guid: 5de6559be2726c6449414f7504abc5c2, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
@@ -14634,29 +14634,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1288692707}
-  - component: {fileID: 1288692706}
+  - component: {fileID: 1288692708}
   m_Layer: 0
-  m_Name: VR_tracker
+  m_Name: VR_tracker_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1288692706
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1288692705}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f2d9b68f5e017574399b6ff69deec469, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rightHand: {fileID: 1464966861}
-  leftHand: {fileID: 1431857431}
-  serverUrl: http://127.0.0.1:5001/upload_csv
+  m_IsActive: 1
 --- !u!4 &1288692707
 Transform:
   m_ObjectHideFlags: 0
@@ -14672,6 +14657,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1288692708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288692705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2d9b68f5e017574399b6ff69deec469, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rightHand: {fileID: 1464966861}
+  leftHand: {fileID: 1431857431}
+  saveFolder: csv_survey
 --- !u!4 &1290007262 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1367966905094457711, guid: b69c35c4f3d673e4f85004d0581f9105, type: 3}

@@ -94,7 +94,7 @@ public class ResultController : MonoBehaviour
         if (messageText != null)
         {
             messageText.gameObject.SetActive(true);
-            messageText.text = "太棒了!";
+            messageText.text = "繼續挑戰下一關";
         }
 
         // 4. 文字出現後等待

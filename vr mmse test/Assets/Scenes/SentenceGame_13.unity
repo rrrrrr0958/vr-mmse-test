@@ -18791,7 +18791,6 @@ MonoBehaviour:
   delayAfterPrompt: 0.15
   useDspScheduling: 1
   dspLeadIn: 0.03
-  verboseLog: 1
   waitMaxGuardSeconds: 10
 --- !u!114 &1724580968
 MonoBehaviour:

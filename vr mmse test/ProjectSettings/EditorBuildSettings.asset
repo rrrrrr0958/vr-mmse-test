@@ -75,6 +75,9 @@ EditorBuildSettings:
     path: Assets/Scenes/SentenceGame_13.unity
     guid: 05d4bf2fc08f1a44eb7f99c201768df8
   - enabled: 1
+    path: Assets/Scenes/GameIntroScene.unity
+    guid: fba7d7eadf128497195da44948c8ca6c
+  - enabled: 1
     path: Assets/Scenes/Test History.unity
     guid: e06ec090ac1400241840727225294c94
   m_configObjects:

@@ -517,9 +517,12 @@ public class QuestionManager : MonoBehaviour
         }
 
         string remainingMoneyStr = remainingMoney.ToString();
-        string normalizedResponse = userResponse.Replace("。", "").Replace("元", "").Trim();
 
-        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\""); //這邊錯誤&正確都要存到database
+        // ✅ 只保留數字（移除所有非數字字元）
+        // 例如：「還剩下 80 元。」-> "80"
+        string normalizedResponse = Regex.Replace(userResponse, @"\D", "");
+
+        Debug.Log($"你說了(數字抽取後): \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\""); //這邊錯誤&正確都要存到database
 
         if (normalizedResponse == remainingMoneyStr)
         {
@@ -540,6 +543,7 @@ public class QuestionManager : MonoBehaviour
         string levelIndex = "7"; // 這一關的代號，請依場景改
         FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
     }
+
 
     private IEnumerator SaveCorrectAnswersToFirebaseCoroutine()
     {

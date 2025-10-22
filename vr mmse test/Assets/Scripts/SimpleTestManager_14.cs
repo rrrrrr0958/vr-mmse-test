@@ -147,7 +147,7 @@ public class SimpleTestManager : MonoBehaviour
         if (startPanel != null) startPanel.SetActive(true);
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
         if (feedbackText != null) feedbackText.text = "";
-        if (titleText != null) titleText.text = "今天市場有開嗎?";
+        if (titleText != null) titleText.text = "";
 
         Debug.Log("Simple Test Manager initialized");
     }
@@ -430,6 +430,16 @@ public class SimpleTestManager : MonoBehaviour
             FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
             FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
             FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctAnswers, playerAnswers);
+
+            VRTracker tracker = FindFirstObjectByType<VRTracker>();
+            if (tracker != null)
+            {
+                tracker.SaveTrajectoryToCsv();
+            }
+            else
+            {
+                Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
+            }
 
             if (SceneFlowManager.instance != null)
             {
