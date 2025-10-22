@@ -12,21 +12,38 @@ public class RunLogger : MonoBehaviour
     [Serializable]
     public class QARecord
     {
+        // 基礎資訊
         public string timeISO;
         public string sceneName;
-        public string vpKey;          // 正解 vpName
-        public string displayText;    // 題目顯示（正解描述）
-        public string userChoiceKey;  // 使用者選的 vpName（空字串=未選）
-        public bool correct;
-        public int rtMs;              // 反應時間（毫秒）
+        public int rtMs;            // 總反應時間 (ms)
+        public bool finalCorrect;   // 總體是否正確 (based on finalCorrectMode)
+
+        // --- Stage 1: 類別 ---
+        public string categoryCorrect;
+        public string categoryChosen;
+        public bool categoryIsCorrect;
+
+        // --- Stage 2: 樓層 ---
+        public string floorCorrect;
+        public string floorChosen;
+        public bool floorIsCorrect;
+
+        // --- Stage 3: 攤位 ---
+        public string stallCorrectKey;      // 正解 vpName
+        public string stallCorrectDisplay;  // 正解 顯示文字
+        public string stallChosenKey;       // 使用者選的 vpName
+        public string stallChosenDisplay;   // 使用者選的 顯示文字
+        public bool stallIsCorrect;
     }
 
     string _runId;
     readonly List<QARecord> _records = new();
+    
+    // BeginQuestion 會快取這兩項，供 EndThreeStageQuestion 寫入
     public string CurrentTargetKey { get; private set; }
     string _displayTextCache;
 
-    // 自動 RT 計時
+    // 自動 RT 計時（用於計算三階段總時長）
     Stopwatch _questionTimer;
 
     /// <summary>（可選）設定當前題目的顯示文字快取。</summary>
@@ -38,7 +55,7 @@ public class RunLogger : MonoBehaviour
         _runId = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
         _records.Clear();
         _questionTimer = null;
-        UnityEngine.Debug.Log($"[RunLogger] StartRun id={_runId}  path={Application.persistentDataPath}/runs");
+        UnityEngine.Debug.Log($"[RunLogger] StartRun id={_runId}  path={Application.persistentDataPath}/runs");
     }
 
     /// <summary>開始一題（會重置 RT 碼錶）。</summary>
@@ -53,8 +70,7 @@ public class RunLogger : MonoBehaviour
     }
 
     /// <summary>
-    /// 結束一題。若 rtMs <= 0，會以內部碼錶時間代入。
-    /// userChoiceKey 建議填選項對應的 vpName；若不知道可傳空字串。
+    /// [版本 1 使用] 結束一題。若 rtMs <= 0，會以內部碼錶時間代入。
     /// </summary>
     public void EndQuestion(string userChoiceKey, bool correct, int rtMs)
     {
@@ -71,15 +87,81 @@ public class RunLogger : MonoBehaviour
         {
             timeISO = DateTime.Now.ToString("o", CultureInfo.InvariantCulture),
             sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
-            vpKey = CurrentTargetKey,
-            displayText = _displayTextCache,
-            userChoiceKey = userChoiceKey ?? "",
-            correct = correct,
-            rtMs = rt
+            rtMs = rt,
+            finalCorrect = correct,
+
+            // Stage 1
+            categoryCorrect = "",
+            categoryChosen = "",
+            categoryIsCorrect = false,
+
+            // Stage 2
+            floorCorrect = "",
+            floorChosen = "",
+            floorIsCorrect = false,
+
+            // Stage 3
+            stallCorrectKey = CurrentTargetKey,
+            stallCorrectDisplay = _displayTextCache,
+            stallChosenKey = userChoiceKey ?? "",
+            stallChosenDisplay = "", // 舊版 API 無法取得
+            stallIsCorrect = correct
         };
 
         _records.Add(rec);
+        CleanupAfterQuestion();
+    }
 
+    /// <summary>
+    /// [版本 2 使用] 結束一題三階段問答。
+    /// </summary>
+    public void EndThreeStageQuestion(
+        string categoryCorrect, string categoryChosen, bool categoryIsCorrect,
+        string floorCorrect, string floorChosen, bool floorIsCorrect,
+        string stallChosenKey, string stallChosenDisplay, bool stallIsCorrect,
+        bool finalCorrect
+        )
+    {
+        int rt = 0;
+        if (_questionTimer != null)
+        {
+            _questionTimer.Stop();
+            try { rt = (int)_questionTimer.Elapsed.TotalMilliseconds; }
+            catch { rt = 0; }
+        }
+
+        var rec = new QARecord
+        {
+            timeISO = DateTime.Now.ToString("o", CultureInfo.InvariantCulture),
+            sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+            rtMs = rt,
+            finalCorrect = finalCorrect,
+
+            // Stage 1
+            categoryCorrect = categoryCorrect,
+            categoryChosen = categoryChosen,
+            categoryIsCorrect = categoryIsCorrect,
+
+            // Stage 2
+            floorCorrect = floorCorrect,
+            floorChosen = floorChosen,
+            floorIsCorrect = floorIsCorrect,
+
+            // Stage 3
+            stallCorrectKey = CurrentTargetKey,       // From BeginQuestion
+            stallCorrectDisplay = _displayTextCache,  // From BeginQuestion
+            stallChosenKey = stallChosenKey,
+            stallChosenDisplay = stallChosenDisplay,
+            stallIsCorrect = stallIsCorrect
+        };
+
+        _records.Add(rec);
+        CleanupAfterQuestion();
+    }
+
+
+    void CleanupAfterQuestion()
+    {
         // 清理當前題目狀態
         _displayTextCache = null;
         CurrentTargetKey = null;
@@ -88,14 +170,15 @@ public class RunLogger : MonoBehaviour
         _questionTimer?.Reset();
     }
 
+
     /// <summary>結束此次紀錄並寫檔（CSV 與 JSON）。沒有紀錄則不輸出。</summary>
     public void EndRun()
     {
         if (string.IsNullOrEmpty(_runId) || _records.Count == 0) return;
 
-        // 準備統計
+        // 準備統計 (改用 finalCorrect)
         float accuracy = _records.Count > 0
-            ? _records.Count(r => r.correct) / (float)_records.Count
+            ? _records.Count(r => r.finalCorrect) / (float)_records.Count
             : 0f;
 
         var validRts = _records.Where(r => r.rtMs > 0).Select(r => r.rtMs).ToList();
@@ -121,7 +204,7 @@ public class RunLogger : MonoBehaviour
             };
             File.WriteAllText(baseName + ".json", JsonUtility.ToJson(wrap, true), Encoding.UTF8);
 
-            // ★ 新增/修改：累積寫入 results_8.csv（Editor: Assets/Scripts/game_8；Build: persistentDataPath/game_8）
+            // ★ 新增/修改：累積寫入 results_8.csv
             AppendToResults13Csv(_records);
 
             UnityEngine.Debug.Log($"[RunLogger] Saved:\n  {baseName}.csv\n  {baseName}.json\n  (n={_records.Count}, acc={accuracy:P1}, avgRT={avgRt} ms)");
@@ -153,17 +236,29 @@ public class RunLogger : MonoBehaviour
     string ToCSV(List<QARecord> list)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+        // 更新 CSV 標頭
+        sb.AppendLine("timeISO,sceneName,rtMs,finalCorrect,categoryCorrect,categoryChosen,categoryIsCorrect,floorCorrect,floorChosen,floorIsCorrect,stallCorrectKey,stallCorrectDisplay,stallChosenKey,stallChosenDisplay,stallIsCorrect");
         foreach (var r in list)
         {
             sb.AppendLine(string.Join(",",
                 Escape(r.timeISO),
                 Escape(r.sceneName),
-                Escape(r.vpKey),
-                Escape(r.displayText),
-                Escape(r.userChoiceKey),
-                r.correct ? "1" : "0",
-                r.rtMs.ToString(CultureInfo.InvariantCulture)
+                r.rtMs.ToString(CultureInfo.InvariantCulture),
+                r.finalCorrect ? "1" : "0",
+
+                Escape(r.categoryCorrect),
+                Escape(r.categoryChosen),
+                r.categoryIsCorrect ? "1" : "0",
+
+                Escape(r.floorCorrect),
+                Escape(r.floorChosen),
+                r.floorIsCorrect ? "1" : "0",
+
+                Escape(r.stallCorrectKey),
+                Escape(r.stallCorrectDisplay),
+                Escape(r.stallChosenKey),
+                Escape(r.stallChosenDisplay),
+                r.stallIsCorrect ? "1" : "0"
             ));
         }
         return sb.ToString();
@@ -190,8 +285,7 @@ public class RunLogger : MonoBehaviour
     private static readonly Encoding Utf8Bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
 
     /// <summary>
-    /// 追加寫入 results_8.csv（Editor：Assets/Scripts/game_8；Build：persistentDataPath/game_8）
-    /// 不影響既有輸出。不存在時會自動建立與寫入表頭；舊檔若無 BOM 會自動轉換為 UTF-8 with BOM。
+    /// 追加寫入 results_8.csv
     /// </summary>
     void AppendToResults13Csv(List<QARecord> list)
     {
@@ -205,14 +299,26 @@ public class RunLogger : MonoBehaviour
             {
                 foreach (var r in list)
                 {
+                    // 更新 CSV 欄位
                     sw.WriteLine(string.Join(",",
                         Escape(r.timeISO),
                         Escape(r.sceneName),
-                        Escape(r.vpKey),
-                        Escape(r.displayText),
-                        Escape(r.userChoiceKey),
-                        r.correct ? "1" : "0",
-                        r.rtMs.ToString(CultureInfo.InvariantCulture)
+                        r.rtMs.ToString(CultureInfo.InvariantCulture),
+                        r.finalCorrect ? "1" : "0",
+
+                        Escape(r.categoryCorrect),
+                        Escape(r.categoryChosen),
+                        r.categoryIsCorrect ? "1" : "0",
+
+                        Escape(r.floorCorrect),
+                        Escape(r.floorChosen),
+                        r.floorIsCorrect ? "1" : "0",
+
+                        Escape(r.stallCorrectKey),
+                        Escape(r.stallCorrectDisplay),
+                        Escape(r.stallChosenKey),
+                        Escape(r.stallChosenDisplay),
+                        r.stallIsCorrect ? "1" : "0"
                     ));
                 }
             }
@@ -225,6 +331,8 @@ public class RunLogger : MonoBehaviour
         }
     }
 
+    const string CsvHeader = "timeISO,sceneName,rtMs,finalCorrect,categoryCorrect,categoryChosen,categoryIsCorrect,floorCorrect,floorChosen,floorIsCorrect,stallCorrectKey,stallCorrectDisplay,stallChosenKey,stallChosenDisplay,stallIsCorrect";
+
     void EnsureResultsCsvReady()
     {
         if (!File.Exists(ResultsCsvPath) || new FileInfo(ResultsCsvPath).Length == 0)
@@ -233,7 +341,6 @@ public class RunLogger : MonoBehaviour
             return;
         }
 
-        // 舊檔轉為 UTF-8 with BOM（一次性）
         if (!HasUtf8Bom(ResultsCsvPath))
         {
             try
@@ -262,7 +369,7 @@ public class RunLogger : MonoBehaviour
         using (var fs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
         using (var sw = new StreamWriter(fs, Utf8Bom))
         {
-            sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+            sw.WriteLine(CsvHeader);
         }
     }
 
@@ -274,14 +381,15 @@ public class RunLogger : MonoBehaviour
             using (var sr = new StreamReader(fs, detectEncodingFromByteOrderMarks: true))
             {
                 string firstLine = sr.ReadLine();
+                // 檢查新標頭中的關鍵欄位
                 if (string.IsNullOrEmpty(firstLine) ||
-                    !firstLine.Contains("timeISO") || !firstLine.Contains("rtMs"))
+                    !firstLine.Contains("timeISO") || !firstLine.Contains("stallIsCorrect"))
                 {
                     string rest = sr.ReadToEnd();
                     using (var wfs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
                     using (var sw = new StreamWriter(wfs, Utf8Bom))
                     {
-                        sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+                        sw.WriteLine(CsvHeader); // 寫入新標頭
                         if (!string.IsNullOrEmpty(firstLine)) sw.WriteLine(firstLine);
                         if (!string.IsNullOrEmpty(rest)) sw.Write(rest);
                     }

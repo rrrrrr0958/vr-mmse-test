@@ -1,4 +1,5 @@
-﻿timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
+﻿timeISO,sceneName,rtMs,finalCorrect,categoryCorrect,categoryChosen,categoryIsCorrect,floorCorrect,floorChosen,floorIsCorrect,stallCorrectKey,stallCorrectDisplay,stallChosenKey,stallChosenDisplay,stallIsCorrect
+timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
 2025-10-14T13:25:07.1179364+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,2359
 2025-10-14T16:24:15.1475644+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Bread_8,1,3670
 2025-10-14T17:36:57.1561278+08:00,f3_8,VP_Meat_8,三樓 肉攤,VP_Meat_8,1,5688
@@ -8,3 +9,8 @@
 2025-10-20T22:08:01.8856495+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Bread_8,1,4116
 2025-10-21T16:21:51.4668399+08:00,f3_8,VP_Meat_8,三樓 肉攤,VP_Meat_8,1,3491
 2025-10-21T18:07:50.1065566+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,2454
+2025-10-22T11:10:53.0578068+08:00,f2_8,10618,0,市集,博物館,0,二樓,二樓,1,VP_Weapons_8,二樓 武器店,VP_Fish_8,一樓 魚攤,0
+2025-10-22T11:19:54.1589047+08:00,f2_8,10995,0,市集,車站,0,二樓,三樓,0,VP_Weapons_8,二樓 武器店,VP_Weapons_8,二樓 武器店,1
+2025-10-22T11:26:08.8801644+08:00,f2_8,13796,0,市集,校園,0,二樓,二樓,1,VP_Weapons_8,二樓 武器店,VP_Weapons_8,二樓 武器店,1
+2025-10-22T11:38:06.8746738+08:00,f2_8,9512,1,市集,市集,1,二樓,二樓,1,VP_Weapons_8,武器店,VP_Weapons_8,武器店,1
+2025-10-22T11:40:43.6368369+08:00,f2_8,7477,1,市集,市集,1,二樓,二樓,1,VP_Weapons_8,武器店,VP_Weapons_8,武器店,1
