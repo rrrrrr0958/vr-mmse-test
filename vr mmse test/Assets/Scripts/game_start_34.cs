@@ -1047,9 +1047,19 @@ public class game_start_34 : MonoBehaviour
 
     void CheckAnswer(string userResponse, List<string> correctAnswers)
     {
+        string qKey = $"Q{level5QuestionIndex + 1}";
+
         if (string.IsNullOrEmpty(userResponse))
         {
             Debug.Log("沒有聽到回答。");
+            level5correctOptions[qKey] = string.Join("/", correctAnswers);
+            level5playerOptions[qKey] = null; // 或可改成 "" 或 "未作答"
+            level5QuestionIndex++;
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "5"; // 這一關的代號，請依場景改
+            FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
+
             StartCoroutine(ShowResultAndContinue(false));
             return;
         }
@@ -1076,15 +1086,14 @@ public class game_start_34 : MonoBehaviour
             Debug.Log($"答案錯誤。你說了: \"{userResponse}\"，正確答案是: \"{string.Join("/", correctAnswers)}\"");
         }
 
-        string qKey = $"Q{level5QuestionIndex + 1}";
+        
         level5correctOptions[qKey] = string.Join("/", correctAnswers);
         level5playerOptions[qKey] = userResponse;
-
         level5QuestionIndex++;
 
-        string testId = FirebaseManager_Firestore.Instance.testId;
-        string levelIndex = "5"; // 這一關的代號，請依場景改
-        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
+        string tId = FirebaseManager_Firestore.Instance.testId;
+        string lvlIndex = "5"; // 這一關的代號，請依場景改
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(tId, lvlIndex, level5correctOptions, level5playerOptions);
 
         StartCoroutine(ShowResultAndContinue(isCorrect));
     }
