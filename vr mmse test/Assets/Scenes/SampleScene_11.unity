@@ -3575,6 +3575,50 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3417620924868647016, guid: 10348d885afc4924e9daa5d07655d02e, type: 3}
   m_PrefabInstance: {fileID: 263755915}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &265327881
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 265327883}
+  - component: {fileID: 265327882}
+  m_Layer: 0
+  m_Name: GameSessionManager_11
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &265327882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 265327881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec57c0e91e8314a42a2b548eb10d258c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &265327883
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 265327881}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.446957, y: 5.0954103, z: 18.583231}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &267038151
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7657,7 +7701,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &662157606
@@ -8090,8 +8134,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 86e16cc154fa3414b855f29144ed8680, type: 3}
-  m_Resource: {fileID: 8300000, guid: 86e16cc154fa3414b855f29144ed8680, type: 3}
+  m_audioClip: {fileID: 8300000, guid: 5de6559be2726c6449414f7504abc5c2, type: 3}
+  m_Resource: {fileID: 8300000, guid: 5de6559be2726c6449414f7504abc5c2, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
@@ -11830,6 +11874,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0065b8c927775d47ba03a7f66586476, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  clickedAnimalSequence: []
   panel1: {fileID: 43885818}
   confirmPanel: {fileID: 246740291}
   resultText: {fileID: 1860949563}
@@ -11842,11 +11887,9 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  loadFromPreviousScene: 1
-  correctAnswerSequence:
-  - "\u9CF3\u68A8"
-  - "\u860B\u679C"
-  - "\u8461\u8404"
+  audioSource: {fileID: 687051156}
+  clickSound: {fileID: 8300000, guid: 3100af0d09c2c9c43a03272b686606ec, type: 3}
+  saveFolder: Game_10
 --- !u!4 &1025793243
 Transform:
   m_ObjectHideFlags: 0
@@ -14591,29 +14634,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1288692707}
-  - component: {fileID: 1288692706}
+  - component: {fileID: 1288692708}
   m_Layer: 0
-  m_Name: VR_tracker
+  m_Name: VR_tracker_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1288692706
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1288692705}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f2d9b68f5e017574399b6ff69deec469, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rightHand: {fileID: 1464966861}
-  leftHand: {fileID: 1431857431}
-  serverUrl: http://127.0.0.1:5001/upload_csv
 --- !u!4 &1288692707
 Transform:
   m_ObjectHideFlags: 0
@@ -14629,6 +14657,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1288692708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288692705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2d9b68f5e017574399b6ff69deec469, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rightHand: {fileID: 1464966861}
+  leftHand: {fileID: 1431857431}
+  saveFolder: csv_survey
 --- !u!4 &1290007262 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1367966905094457711, guid: b69c35c4f3d673e4f85004d0581f9105, type: 3}
@@ -26383,3 +26426,4 @@ SceneRoots:
   - {fileID: 1677067603}
   - {fileID: 1288692707}
   - {fileID: 1464966860}
+  - {fileID: 265327883}

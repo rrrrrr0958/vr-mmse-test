@@ -9,6 +9,8 @@ using System;
 [DefaultExecutionOrder(100)]
 public class SessionController : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("Data")]
     public LocationDB db;
 
@@ -229,6 +231,10 @@ public class SessionController : MonoBehaviour
         if (showNavPanelAfterAnswer) ShowNavPanel();
 
         _quizActive = false;
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "9";
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + 5;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 5);//這裡的分數在哪?
         SceneFlowManager.instance.LoadNextScene();
     }
 

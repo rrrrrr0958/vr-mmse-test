@@ -1,117 +1,140 @@
-from flask import Flask, request
-import os
+from flask import Flask, jsonify
+from flask_cors import CORS
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  # 無頭環境下也能畫圖
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from datetime import datetime
+import os, time
+import threading  # 引入 threading 模組
+
+# === 全域設定 ===
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SAVE_FOLDER = os.path.join(BASE_DIR, "csv_results")
+# 只需要創建一次資料夾
+os.makedirs(SAVE_FOLDER, exist_ok=True)
+print("🔍 Looking for CSVs in:", SAVE_FOLDER)
+
+TRIM_FIRST = 120  # 去掉前120筆
 
 app = Flask(__name__)
-SAVE_FOLDER = "results"
-os.makedirs(SAVE_FOLDER, exist_ok=True)
+CORS(app)
 
-@app.route("/upload_csv", methods=["POST"])
-def upload_csv():
-    # 建立唯一檔名
-    # 嘗試從 Unity header 讀取 File-Name，如果沒有則自動命名
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    client_file_name = request.headers.get("File-Name", None)
 
-    if client_file_name:
-        file_name = client_file_name
-    else:
-        file_name = f"session_{timestamp}.csv"
+# === 工具函式 (保持不變) ===
+def get_latest_csv(folder=SAVE_FOLDER):
+    files = [f for f in os.listdir(folder) if f.endswith(".csv")]
+    if not files:
+        return None
+    files.sort(key=lambda f: os.path.getmtime(os.path.join(folder, f)), reverse=True)
+    return files[0]
 
-    print("📦 Received header File-Name =", request.headers.get("File-Name"))#debug
 
-    file_path = os.path.join(SAVE_FOLDER, file_name)
+def wait_file_stable(file_path, checks=5, interval=0.3):
+    prev_size = -1
+    for _ in range(checks):
+        size = os.path.getsize(file_path)
+        if size == prev_size:
+            return True
+        prev_size = size
+        time.sleep(interval)
+    return True
 
-    # 儲存 CSV
-    csv_data = request.data.decode("utf-8")
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(csv_data)
 
-    # 讀取 CSV
+# === 動畫核心 (保持不變) ===
+def generate_animation(file_path, file_name):
+    print(f"🎬 Generating animation for {file_name}")
     df = pd.read_csv(file_path)
 
-    # 檢查是否有至少一隻手的資料
     if not any(df["Type"].isin(["RightHand", "LeftHand"])):
-        return {"message": "No valid hand data found"}, 400
+        print("⚠️ No valid hand data")
+        return {"status": "error", "message": "No valid hand data"}
 
-    # 去掉前 60 筆
-    if len(df) > 120:
-        df = df.iloc[120:].reset_index(drop=True)
+    if len(df) > TRIM_FIRST:
+        df = df.iloc[TRIM_FIRST:].reset_index(drop=True)
 
-    # 對每一隻手分別做位移轉換
     dfs = {}
     for hand in ["RightHand", "LeftHand"]:
-        hand_df = df[df["Type"] == hand].copy()
-        if len(hand_df) == 0:
+        h = df[df["Type"] == hand].copy()
+        if len(h) == 0:
             continue
-        origin = hand_df.iloc[0][["X", "Y", "Z"]].values
-        hand_df["Xp"] = hand_df["X"] - origin[0]
-        hand_df["Yp"] = hand_df["Y"] - origin[1]
-        dfs[hand] = hand_df
+        origin = h.iloc[0][["X", "Y", "Z"]].values
+        h["Xp"] = h["X"] - origin[0]
+        h["Yp"] = h["Y"] - origin[1]
+        dfs[hand] = h
 
-    # 準備畫圖
     fig, ax = plt.subplots()
     ax.set_xlabel("X (<- left . right ->)")
     ax.set_ylabel("Y (up, down)")
-    ax.set_title("Hand Trajectory (Trimmed)")
-    lower_name = file_name.lower()
-    if "pick" in lower_name:
-        ax.set_xlim(-0.5, 0.5)
-        ax.set_ylim(-0.2, 0.8)
-    elif "draw" in lower_name:
-        ax.set_xlim(-0.5, 0.5)
-        ax.set_ylim(-0.2, 0.8)
-        # ax.set_xlim(-0.4, 0.4)
-        # ax.set_ylim(-0.4, 0.4)
+    ax.set_title(f"Hand Trajectory - {file_name}")
 
+    lower = file_name.lower()
+    if "pick" in lower or "draw" in lower:
+        ax.set_xlim(-0.3, 0.3)
+        ax.set_ylim(-0.3, 0.3)
 
-    # 根據有的手建立線物件
     lines = {}
-    triggers = {}
     colors = {"RightHand": "red", "LeftHand": "blue"}
-
-    for hand, hand_df in dfs.items():
+    for hand, h in dfs.items():
         line, = ax.plot([], [], color=colors[hand], label=hand)
         trigger_dot, = ax.plot([], [], "yo", markersize=10)
         lines[hand] = (line, trigger_dot)
-
     ax.legend()
 
-    # 動畫更新
-    max_len = max(len(df_) for df_ in dfs.values())
+    max_len = max(len(h) for h in dfs.values())
 
     def update(frame):
-        for hand, hand_df in dfs.items():
-            if frame < len(hand_df):
-                data = hand_df[["Xp", "Yp"]].values
-                trigger = hand_df["TriggerPressed"].values
+        for hand, h in dfs.items():
+            if frame < len(h):
+                data = h[["Xp", "Yp"]].values
+                trig = h["TriggerPressed"].values
                 line, dot = lines[hand]
                 line.set_data(data[:frame, 0], data[:frame, 1])
-                if trigger[frame] == 1:
+                if trig[frame] == 1:
                     dot.set_data([data[frame, 0]], [data[frame, 1]])
                 else:
                     dot.set_data([], [])
         return [item for pair in lines.values() for item in pair]
 
     ani = FuncAnimation(fig, update, frames=max_len, interval=50, blit=True)
-    video_path = file_path.replace(".csv", "_trimmed.mp4")
-    ani.save(video_path, fps=20, extra_args=["-vcodec", "libx264"])
+    mp4_path = file_path.replace(".csv", "_trimmed.mp4")
+
+    ani.save(mp4_path, fps=20, extra_args=["-vcodec", "libx264"])
     plt.close(fig)
+    print(f"✅ Saved animation: {mp4_path}")
+    return {"status": "ok", "video": mp4_path}
 
-    return {"message": "CSV received and trimmed animation saved", "file": video_path}
+
+# === 移除原本的 /generate_latest 路由 (或保持不動，讓它仍可手動觸發) ===
+# 為了滿足你的需求，我們將核心邏輯移到啟動區塊
+
+# === 核心自動執行函式 ===
+def run_initial_generation():
+    print("⏳ Attempting to run initial animation generation...")
+    latest = get_latest_csv()
+    if not latest:
+        print("❌ No CSV found, skipping initial generation.")
+        return
+
+    latest_path = os.path.join(SAVE_FOLDER, latest)
+    print(f"📄 Found latest file: {latest}")
+    wait_file_stable(latest_path)
+
+    # 執行動畫生成
+    res = generate_animation(latest_path, latest)
+    if res.get("status") == "ok":
+        print(f"🎉 Initial animation successful! Video at: {res.get('video')}")
+    else:
+        print(f"😢 Initial animation failed: {res.get('message')}")
 
 
-@app.route("/shutdown", methods=["POST"])
-def shutdown():
-    func = request.environ.get("werkzeug.server.shutdown")
-    if func is None:
-        raise RuntimeError("Not running with the Werkzeug Server")
-    func()
-    return {"message": "Server shutting down..."}
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "alive", "folder": SAVE_FOLDER})
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=False, use_reloader=False, threaded=True)
+    run_initial_generation()
+    print("🌐 Flask animation server running at http://127.0.0.1:5051")
+    app.run(host="127.0.0.1", port=5051, debug=False)

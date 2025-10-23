@@ -1,0 +1,6 @@
+﻿timestamp,score,wav_path,transcript
+"2025-10-13 21:46:34.545",-1,"D:/Github/vr-mmse-test/vr mmse test/Assets\Scripts\game_13\record_20251013_214632477.wav","<ERROR> 0 Cannot connect to destination host "
+"2025-10-13 21:49:19.092",1,"D:/Github/vr-mmse-test/vr mmse test/Assets\Scripts\game_13\record_20251013_214916840.wav","我是一隻鳥"
+"2025-10-14 17:25:11.876",-1,"C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\Scripts\game_13\record_20251014_172510954.wav","<ERROR> 400 HTTP/1.1 400 Bad Request {""error"":""Could not understand audio""}
+"
+"2025-10-14 17:26:52.576",1,"C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\Scripts\game_13\record_20251014_172649444.wav","我要講什麼不知道要講什麼"

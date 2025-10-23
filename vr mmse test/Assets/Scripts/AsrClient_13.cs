@@ -1,3 +1,4 @@
+// AsrClient_13
 using System;
 using System.Collections;
 using UnityEngine;
@@ -6,7 +7,6 @@ using UnityEngine.Networking;
 public class AsrClient : MonoBehaviour
 {
     [Header("Flask endpoint")]
-    
     public string serverUrl = "http://127.0.0.1:5003/score";
 
     [Serializable] public class Reasons { public bool has_subject_verb; public bool understandable; }
@@ -15,11 +15,11 @@ public class AsrClient : MonoBehaviour
     [Serializable]
     public class GoogleASRResponse
     {
-        public string transcript;       // for /score
-        public string transcription;    // for /recognize_speech
-        public int score;               // for /score
-        public Reasons reasons;         // for /score
-        public string error;            // 錯誤訊息（若有）
+        public string transcript; 		// for /score
+        public string transcription; 	// for /recognize_speech
+        public int score; 			    // for /score
+        public Reasons reasons; 		// for /score
+        public string error; 			// 錯誤訊息（若有）
 
         // 統一取得文字
         public string Text => !string.IsNullOrEmpty(transcript) ? transcript : transcription;
@@ -31,9 +31,11 @@ public class AsrClient : MonoBehaviour
         Action<string> onError,
         Action<string, float> onProgress = null)
     {
+        Debug.Log($"[AsrClient] Starting upload to: {serverUrl}. Wav size: {wavBytes.Length} bytes."); // 日誌
         if (string.IsNullOrEmpty(serverUrl))
         {
             onError?.Invoke("Server URL is empty");
+            Debug.LogError("[AsrClient] Server URL is empty."); // 日誌
             yield break;
         }
 
@@ -49,7 +51,7 @@ public class AsrClient : MonoBehaviour
             while (!op.isDone)
             {
                 float p = req.uploadProgress > 0f ? req.uploadProgress :
-                          req.downloadProgress > 0f ? req.downloadProgress : 0.05f;
+                                req.downloadProgress > 0f ? req.downloadProgress : 0.05f;
                 onProgress?.Invoke("傳輸中", Mathf.Clamp01(p));
                 yield return null;
             }
@@ -57,16 +59,29 @@ public class AsrClient : MonoBehaviour
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                onError?.Invoke($"{req.responseCode} {req.error} {req.downloadHandler.text}");
+                string errorMsg = $"{req.responseCode} {req.error} {req.downloadHandler.text}";
+                onError?.Invoke(errorMsg);
+                Debug.LogError($"[AsrClient] Network Error: {errorMsg}"); // 日誌
                 yield break;
             }
 
             try
             {
                 var json = req.downloadHandler.text;
+                Debug.Log($"[AsrClient] Received JSON: {json}"); // 日誌
+
+                // *** 修正：檢查 JSON 字串是否為空/空白 ***
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    // 如果 JSON 是空的，拋出例外，讓 catch 區塊處理
+                    throw new Exception("Received empty or whitespace JSON response from server.");
+                }
+                // ****************************************
+
                 var resp = JsonUtility.FromJson<GoogleASRResponse>(json);
-                if (resp == null) { onError?.Invoke("Empty/Invalid JSON"); yield break; }
-                if (!string.IsNullOrEmpty(resp.error)) { onError?.Invoke(resp.error); yield break; }
+
+                if (resp == null) { onError?.Invoke("Empty/Invalid JSON"); Debug.LogError("[AsrClient] Empty/Invalid JSON."); yield break; }
+                if (!string.IsNullOrEmpty(resp.error)) { onError?.Invoke(resp.error); Debug.LogError($"[AsrClient] API Error: {resp.error}"); yield break; }
 
                 // 正規化：若只有 transcription，補到 transcript，score 預設 0
                 if (string.IsNullOrEmpty(resp.transcript) && !string.IsNullOrEmpty(resp.transcription))
@@ -77,10 +92,13 @@ public class AsrClient : MonoBehaviour
                 }
 
                 onDone?.Invoke(resp);
+                Debug.Log($"[AsrClient] ASR Success. Transcript: {resp.Text}, Score: {resp.score}"); // 日誌
             }
             catch (Exception ex)
             {
-                onError?.Invoke($"JSON parse failed: {ex.Message}");
+                string errorMsg = $"JSON parse failed: {ex.Message}";
+                onError?.Invoke(errorMsg);
+                Debug.LogError($"[AsrClient] {errorMsg}"); // 日誌
             }
         }
     }

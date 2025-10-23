@@ -1,14 +1,20 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
+using Firebase.Firestore;
 
 public class ChestSceneController : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+    
     [Header("UI Elements")]
     public TMP_Text rewardText;              // 顯示獎勵的文字
     public Button continueButton;            // 繼續按鈕
+    [SerializeField] TMP_Text score; 
+    [SerializeField] TMP_Text hint; 
 
     [Header("Audio Settings")]
     public AudioSource audioSource;          // 播放音效的 AudioSource
@@ -50,6 +56,29 @@ public class ChestSceneController : MonoBehaviour
         if (chestOpenSound != null && audioSource != null)
             audioSource.PlayOneShot(chestOpenSound, chestOpenVolume);
 
+        score.text = FirebaseManager_Firestore.Instance.totalScore.ToString();
+
+        if (score.text != null)
+        {
+            score.text = score.text + " / 30";
+            if (FirebaseManager_Firestore.Instance.totalScore >= 24)
+            {
+                hint.text = "太厲害了！";
+            }
+            else if (FirebaseManager_Firestore.Instance.totalScore >= 16)
+            {
+                hint.text = "還不錯喔～";
+            }
+            else
+            {
+                hint.text = "再試一次吧！";
+            }
+        }
+        else
+        {
+            hint.text = "遊戲失敗，沒有分數";
+        }
+        
         // ✅ 開始文字與按鈕的協程
         StartCoroutine(PlayChestSequence());
     }
@@ -59,7 +88,9 @@ public class ChestSceneController : MonoBehaviour
         if (rewardText != null)
         {
             rewardText.alpha = 0f;
+            hint.alpha = 0f;
             rewardText.gameObject.SetActive(false);
+            hint.gameObject.SetActive(false);
         }
 
         if (continueButton != null)
@@ -70,7 +101,7 @@ public class ChestSceneController : MonoBehaviour
 
             btnGroup.alpha = 0f;
             continueButton.gameObject.SetActive(false);
-            continueButton.onClick.RemoveAllListeners();
+            // continueButton.onClick.RemoveAllListeners();
             continueButton.onClick.AddListener(OnContinueButtonClicked);
         }
 
@@ -86,7 +117,9 @@ public class ChestSceneController : MonoBehaviour
         if (rewardText != null)
         {
             rewardText.gameObject.SetActive(true);
+            hint.gameObject.SetActive(true);
             yield return StartCoroutine(FadeTextIn(rewardText, fadeDuration));
+            yield return StartCoroutine(FadeTextIn(hint, fadeDuration));
         }
 
         // 延遲顯示按鈕
@@ -125,9 +158,26 @@ public class ChestSceneController : MonoBehaviour
         cg.alpha = 1f;
     }
 
+    private void OnRecentTestsChecked(bool success, List<DocumentSnapshot> docs)
+    {
+        if (!success || docs == null || docs.Count < 100)
+        {
+            Debug.Log("❌ 沒有歷史紀錄，直接關閉遊戲");
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false; // 編輯器中結束播放
+#else
+        Application.Quit(); // build 後關閉遊戲
+#endif
+            return;
+        }
+        Debug.Log("✅ 有歷史紀錄，切換場景");
+    }
+
     void OnContinueButtonClicked()
     {
+        FirebaseManager_Firestore.Instance.LoadRecentTests(1, OnRecentTestsChecked);
         StartCoroutine(HandleContinueButton());
+        SceneFlowManager.instance.LoadNextScene();
     }
 
     IEnumerator HandleContinueButton()

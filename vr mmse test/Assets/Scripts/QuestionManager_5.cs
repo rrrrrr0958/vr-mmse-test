@@ -13,6 +13,8 @@ using System;    // 引入 System.DateTime 以處理時間戳記
 
 public class QuestionManager : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     public TextMeshPro questionText;
     public GameObject panelBackground;
     public float delayBetweenQuestions = 3.5f;
@@ -243,7 +245,7 @@ public class QuestionManager : MonoBehaviour
 
         StartCoroutine(SaveCorrectAnswersToFirebaseCoroutine());
         // 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
-        // SceneFlowManager.instance.LoadNextScene(); 
+        SceneFlowManager.instance.LoadNextScene(); 
         Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }
 
@@ -384,6 +386,13 @@ public class QuestionManager : MonoBehaviour
             // 3. 語音處理 (儲存檔案和送去辨識)
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
 
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "7";
+            
+            string fileName = $"減法運算_Q{questionIndex + 1}_wavData.wav";
+            var files = new Dictionary<string, byte[]> { { fileName, wavData } };
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
+
             // ⭐ 呼叫新的存檔函式，使用相對路徑
             SaveWavFile(wavData, questionIndex + 1); // 題號從 1 開始
 
@@ -484,6 +493,10 @@ public class QuestionManager : MonoBehaviour
         UpdateMoneyAndCheckAnswer(userResponse, questionSequenceIndex);
     }
 
+    int currentQuestionIndex = 0;
+    Dictionary<string, string> correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> playerOptions = new Dictionary<string, string>();
+
     void UpdateMoneyAndCheckAnswer(string userResponse, int questionSequenceIndex)
     {
         string question = currentQuestionSequence[questionSequenceIndex].questionText;
@@ -504,9 +517,12 @@ public class QuestionManager : MonoBehaviour
         }
 
         string remainingMoneyStr = remainingMoney.ToString();
-        string normalizedResponse = userResponse.Replace("。", "").Replace("元", "").Trim();
 
-        Debug.Log($"你說了: \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\""); //這邊錯誤&正確都要存到database
+        // ✅ 只保留數字（移除所有非數字字元）
+        // 例如：「還剩下 80 元。」-> "80"
+        string normalizedResponse = Regex.Replace(userResponse, @"\D", "");
+
+        Debug.Log($"你說了(數字抽取後): \"{normalizedResponse}\"，正確答案應該是: \"{remainingMoneyStr}\""); //這邊錯誤&正確都要存到database
 
         if (normalizedResponse == remainingMoneyStr)
         {
@@ -517,29 +533,46 @@ public class QuestionManager : MonoBehaviour
         {
             Debug.Log("答案錯誤！");
         }
+        string qKey = $"Q{currentQuestionIndex + 1}";
+        correctOptions[qKey] = string.Join("/", remainingMoneyStr);
+        playerOptions[qKey] = normalizedResponse;
+
+        currentQuestionIndex++;
+
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "7"; // 這一關的代號，請依場景改
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
     }
+
 
     private IEnumerator SaveCorrectAnswersToFirebaseCoroutine()
     {
         Debug.Log("開始儲存答對題數到 Firebase...");
-        DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
-        string json = JsonUtility.ToJson(new CorrectAnswerData(correctAnswerCount));
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "7";
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + correctAnswerCount;
 
-        var task = reference.Child("caculate_5").SetRawJsonValueAsync(json);
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, correctAnswerCount);
+        Debug.Log("✅ 答對題數已送出至 Firebase。");
+        yield break;
+        // DatabaseReference reference = FirebaseDatabase.DefaultInstance.RootReference;
+        // string json = JsonUtility.ToJson(new CorrectAnswerData(correctAnswerCount));
 
-        while (!task.IsCompleted)
-        {
-            yield return null;
-        }
+        // var task = reference.Child("caculate_5").SetRawJsonValueAsync(json);
 
-        if (task.IsCompleted)
-        {
-            Debug.Log("答對題數已成功儲存到 Firebase。");
-        }
-        else if (task.IsFaulted)
-        {
-            Debug.LogError("儲存資料到 Firebase 時發生錯誤: " + task.Exception);
-        }
+        // while (!task.IsCompleted)
+        // {
+        //     yield return null;
+        // }
+
+        // if (task.IsCompleted)
+        // {
+        //     Debug.Log("答對題數已成功儲存到 Firebase。");
+        // }
+        // else if (task.IsFaulted)
+        // {
+        //     Debug.LogError("儲存資料到 Firebase 時發生錯誤: " + task.Exception);
+        // }
     }
 
     [System.Serializable]

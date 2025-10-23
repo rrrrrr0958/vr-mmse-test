@@ -1,3 +1,4 @@
+// MicRecorder_13
 using System;
 using System.IO;
 using UnityEngine;
@@ -5,7 +6,7 @@ using UnityEngine;
 public class MicRecorder : MonoBehaviour
 {
     [Header("Recording Settings")]
-    public int sampleRate = 44100;         // 安全值
+    public int sampleRate = 44100;
     public int maxRecordSeconds = 10;
     [NonSerialized] public string selectedDevice;
 
@@ -14,8 +15,8 @@ public class MicRecorder : MonoBehaviour
     private bool _recording;
     private int _pos;
 
-    public event Action<float> OnLevel;     // 0..1 音量
-    public event Action OnTick;             // 每幀回呼
+    public event Action<float> OnLevel; 	// 0..1 音量
+    public event Action OnTick; 			// 每幀回呼
     public event Action<byte[]> OnWavReady; // 錄完給 wav bytes
 
     void Awake()
@@ -23,12 +24,12 @@ public class MicRecorder : MonoBehaviour
         if (Microphone.devices.Length > 0)
         {
             selectedDevice = Microphone.devices[0];
-            Debug.Log($"[MicRecorder] Using device: {selectedDevice}");
+            Debug.Log($"[MicRecorder] Using device: {selectedDevice}"); // 日誌
         }
         else
         {
             selectedDevice = null;
-            Debug.LogWarning("[MicRecorder] No microphone detected. Will use dummy audio for demo.");
+            Debug.LogWarning("[MicRecorder] No microphone detected. Will use dummy audio for demo."); // 日誌
         }
     }
 
@@ -39,6 +40,7 @@ public class MicRecorder : MonoBehaviour
         _samples = new float[sampleRate * maxRecordSeconds];
         _pos = 0;
         _recording = true;
+        Debug.Log($"[MicRecorder] Start recording on device '{selectedDevice ?? "Dummy"}'. Max duration: {maxRecordSeconds}s."); // 日誌
 
         if (selectedDevice != null)
         {
@@ -48,7 +50,7 @@ public class MicRecorder : MonoBehaviour
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[MicRecorder] Microphone.Start failed, fallback to dummy. {e.Message}");
+                Debug.LogWarning($"[MicRecorder] Microphone.Start failed, fallback to dummy. {e.Message}"); // 日誌
                 _clip = CreateDummyClip();
             }
         }
@@ -69,7 +71,7 @@ public class MicRecorder : MonoBehaviour
         int length = Mathf.Clamp(_pos, 0, _samples?.Length ?? 0);
         if (length <= 0)
         {
-            Debug.LogWarning("[MicRecorder] No data captured, output 1s silence.");
+            Debug.LogWarning("[MicRecorder] No data captured, output 1s silence."); // 日誌
             _samples = new float[sampleRate];
             length = _samples.Length;
         }
@@ -79,7 +81,7 @@ public class MicRecorder : MonoBehaviour
 
         var wav = WavUtility.FromAudioFloat(data, sampleRate);
         OnWavReady?.Invoke(wav);
-        Debug.Log($"[MicRecorder] Done. {length} samples ({length/(float)sampleRate:0.00}s)");
+        Debug.Log($"[MicRecorder] Done. {length} samples ({length / (float)sampleRate:0.00}s). WAV ready."); // 日誌
     }
 
     void Update()
@@ -94,7 +96,6 @@ public class MicRecorder : MonoBehaviour
         }
         else
         {
-            // dummy 進度
             micPos = Mathf.Min(_pos + Mathf.RoundToInt(Time.deltaTime * sampleRate), _samples.Length);
         }
 
@@ -107,14 +108,12 @@ public class MicRecorder : MonoBehaviour
         }
         else
         {
-            // 產生小振幅正弦波，讓音量條有變化
             for (int i = _pos; i < micPos; i++)
                 _samples[i] = Mathf.Sin(2 * Mathf.PI * 440 * i / sampleRate) * 0.2f;
         }
 
         _pos = Mathf.Clamp(micPos, 0, _samples.Length);
 
-        // RMS 音量
         float rms = 0f;
         int count = Mathf.Min(1024, _pos);
         for (int i = 0; i < count; i++)
@@ -137,50 +136,7 @@ public class MicRecorder : MonoBehaviour
         var clip = AudioClip.Create("DummyClip", samples, 1, sampleRate, false);
         var data = new float[samples];
         clip.SetData(data, 0);
-
-        // 保險：標記不要被保存
         clip.hideFlags |= HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-
         return clip;
-    }
-
-}
-
-public static class WavUtility
-{
-    public static byte[] FromAudioFloat(float[] samples, int sampleRate)
-    {
-        short[] intData = new short[samples.Length];
-        byte[] bytesData = new byte[intData.Length * 2];
-
-        const float rescale = 32767f;
-        for (int i = 0; i < samples.Length; i++)
-            intData[i] = (short)Mathf.Clamp(samples[i] * rescale, short.MinValue, short.MaxValue);
-
-        Buffer.BlockCopy(intData, 0, bytesData, 0, bytesData.Length);
-
-        using var ms = new MemoryStream();
-        using var bw = new BinaryWriter(ms);
-        int byteRate = sampleRate * 2; // mono 16-bit
-
-        // RIFF header
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-        bw.Write(36 + bytesData.Length);
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-        // fmt
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
-        bw.Write(16);
-        bw.Write((short)1);             // PCM
-        bw.Write((short)1);             // channels
-        bw.Write(sampleRate);
-        bw.Write(byteRate);
-        bw.Write((short)2);             // block align
-        bw.Write((short)16);            // bits
-        // data
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-        bw.Write(bytesData.Length);
-        bw.Write(bytesData);
-        bw.Flush();
-        return ms.ToArray();
     }
 }

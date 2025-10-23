@@ -9,6 +9,8 @@ using System.Diagnostics;
 
 public class RunLogger : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Serializable]
     public class QARecord
     {
@@ -108,6 +110,7 @@ public class RunLogger : MonoBehaviour
         {
             Directory.CreateDirectory(folder);
 
+            // 原有輸出：每次 run 產出一組 csv/json 到 persistentDataPath/runs
             File.WriteAllText(baseName + ".csv", ToCSV(_records), Encoding.UTF8);
 
             var wrap = new Wrapper
@@ -119,6 +122,9 @@ public class RunLogger : MonoBehaviour
                 createdAt = DateTime.Now.ToString("o", CultureInfo.InvariantCulture),
             };
             File.WriteAllText(baseName + ".json", JsonUtility.ToJson(wrap, true), Encoding.UTF8);
+
+            // ★ 新增/修改：累積寫入 results_8.csv（Editor: Assets/Scripts/game_8；Build: persistentDataPath/game_8）
+            AppendToResults13Csv(_records);
 
             UnityEngine.Debug.Log($"[RunLogger] Saved:\n  {baseName}.csv\n  {baseName}.json\n  (n={_records.Count}, acc={accuracy:P1}, avgRT={avgRt} ms)");
         }
@@ -171,5 +177,146 @@ public class RunLogger : MonoBehaviour
         if (s.Contains(",") || s.Contains("\"") || s.Contains("\n"))
             return "\"" + s.Replace("\"", "\"\"") + "\"";
         return s;
+    }
+
+    // ========================= 累積結果：results_8.csv =========================
+
+    // 目錄：Editor -> Assets/Scripts/game_8；Build -> <persistentDataPath>/game_8
+#if UNITY_EDITOR
+    private static readonly string ResultsBaseDir = Path.Combine(Application.dataPath, "Scripts", "game_8");
+#else
+    private static readonly string ResultsBaseDir = Path.Combine(Application.persistentDataPath, "game_8");
+#endif
+    private const string ResultsFileName = "results_8.csv";
+    private static string ResultsCsvPath => Path.Combine(ResultsBaseDir, ResultsFileName);
+    private static readonly Encoding Utf8Bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+
+    /// <summary>
+    /// 追加寫入 results_8.csv（Editor：Assets/Scripts/game_8；Build：persistentDataPath/game_8）
+    /// 不影響既有輸出。不存在時會自動建立與寫入表頭；舊檔若無 BOM 會自動轉換為 UTF-8 with BOM。
+    /// </summary>
+    void AppendToResults13Csv(List<QARecord> list)
+    {
+        try
+        {
+            Directory.CreateDirectory(ResultsBaseDir);
+            EnsureResultsCsvReady();
+
+            using (var fs = new FileStream(ResultsCsvPath, FileMode.Append, FileAccess.Write, FileShare.Read))
+            using (var sw = new StreamWriter(fs, Utf8Bom))
+            {
+                foreach (var r in list)
+                {
+                    sw.WriteLine(string.Join(",",
+                        Escape(r.timeISO),
+                        Escape(r.sceneName),
+                        Escape(r.vpKey),
+                        Escape(r.displayText),
+                        Escape(r.userChoiceKey),
+                        r.correct ? "1" : "0",
+                        r.rtMs.ToString(CultureInfo.InvariantCulture)
+                    ));
+
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    string levelIndex = "9"; // 用場景名稱當關卡索引
+                    string correctOption = r.vpKey;
+                    string chosenOption = r.userChoiceKey;
+                    
+                    var correctDict = new Dictionary<string, string> { { "option", correctOption } };
+                    var chosenDict = new Dictionary<string, string> { { "option", chosenOption } };
+
+                    FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
+                }
+            }
+
+            UnityEngine.Debug.Log($"[RunLogger] results_8.csv updated at: {ResultsCsvPath}");
+        }
+        catch (Exception e)
+        {
+            UnityEngine.Debug.LogError($"[RunLogger] results_8.csv write FAILED: {e.Message}");
+        }
+    }
+
+    void EnsureResultsCsvReady()
+    {
+        if (!File.Exists(ResultsCsvPath) || new FileInfo(ResultsCsvPath).Length == 0)
+        {
+            WriteResultsHeader();
+            return;
+        }
+
+        // 舊檔轉為 UTF-8 with BOM（一次性）
+        if (!HasUtf8Bom(ResultsCsvPath))
+        {
+            try
+            {
+                byte[] bytes = File.ReadAllBytes(ResultsCsvPath);
+                string text = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false).GetString(bytes);
+
+                using (var fs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                using (var sw = new StreamWriter(fs, Utf8Bom))
+                {
+                    sw.Write(text);
+                }
+                UnityEngine.Debug.Log("[RunLogger] Migrated results_8.csv to UTF-8 with BOM.");
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogWarning($"[RunLogger] CSV BOM migration failed: {ex.Message}");
+            }
+        }
+
+        EnsureResultsHeaderExists();
+    }
+
+    void WriteResultsHeader()
+    {
+        using (var fs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+        using (var sw = new StreamWriter(fs, Utf8Bom))
+        {
+            sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+        }
+    }
+
+    void EnsureResultsHeaderExists()
+    {
+        try
+        {
+            using (var fs = new FileStream(ResultsCsvPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var sr = new StreamReader(fs, detectEncodingFromByteOrderMarks: true))
+            {
+                string firstLine = sr.ReadLine();
+                if (string.IsNullOrEmpty(firstLine) ||
+                    !firstLine.Contains("timeISO") || !firstLine.Contains("rtMs"))
+                {
+                    string rest = sr.ReadToEnd();
+                    using (var wfs = new FileStream(ResultsCsvPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    using (var sw = new StreamWriter(wfs, Utf8Bom))
+                    {
+                        sw.WriteLine("timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs");
+                        if (!string.IsNullOrEmpty(firstLine)) sw.WriteLine(firstLine);
+                        if (!string.IsNullOrEmpty(rest)) sw.Write(rest);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogWarning($"[RunLogger] EnsureResultsHeaderExists warn: {ex.Message}");
+        }
+    }
+
+    bool HasUtf8Bom(string path)
+    {
+        try
+        {
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                if (fs.Length < 3) return false;
+                int b1 = fs.ReadByte(), b2 = fs.ReadByte(), b3 = fs.ReadByte();
+                return (b1 == 0xEF && b2 == 0xBB && b3 == 0xBF);
+            }
+        }
+        catch { return false; }
     }
 }

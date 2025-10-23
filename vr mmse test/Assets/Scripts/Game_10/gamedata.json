@@ -1,0 +1,29 @@
+{
+    "correctAnswers": [
+        "香蕉",
+        "蘋果",
+        "橘子"
+    ],
+    "attempts": [
+        {
+            "round": 1,
+            "selected": [
+                "蘋果",
+                "橘子",
+                "香蕉"
+            ],
+            "correctCount": 3,
+            "timeUsed": 6.0924072265625
+        },
+        {
+            "round": 2,
+            "selected": [
+                "蘋果",
+                "香蕉",
+                "橘子"
+            ],
+            "correctCount": 3,
+            "timeUsed": 6.4742431640625
+        }
+    ]
+}

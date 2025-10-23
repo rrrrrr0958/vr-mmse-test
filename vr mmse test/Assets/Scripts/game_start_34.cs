@@ -27,7 +27,8 @@ public class game_start_34 : MonoBehaviour
     // =========================================================================
     // 公開變數 (在 Unity Inspector 中設定)
     // =========================================================================
-
+    
+    private FirebaseManager_Firestore FirebaseManager;
     [Header("遊戲開始設定")]
     public float initialTextDelay = 0.5f;
     public float questionBroadcastDelay = 1f;
@@ -36,7 +37,7 @@ public class game_start_34 : MonoBehaviour
     public float voiceQuestionBufferTime = 0.0f;
 
     [Header("點擊題設定")]
-    public float clickResponseDuration = 2.5f;
+    public float clickResponseDuration = 5.0f;
 
     // 【新增】點擊音效設定
     [Header("點擊音效")]
@@ -394,6 +395,10 @@ public class game_start_34 : MonoBehaviour
         }
     }
 
+    int currentQuestionIndex = 0;
+    Dictionary<string, string> correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> playerOptions = new Dictionary<string, string>();
+
     void HandleClickRaycast(Vector3 origin, Vector3 direction)
     {
         RaycastHit hit;
@@ -466,6 +471,15 @@ public class game_start_34 : MonoBehaviour
                     {
                         Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
                     }
+
+                    // 儲存這一題的紀錄
+                    correctOptions[$"Q{currentQuestionIndex + 1}"] = currentTargetStallName;
+                    playerOptions[$"Q{currentQuestionIndex + 1}"] = clickedStallName;
+
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    string levelIndex = "4";
+                    FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
+                    currentQuestionIndex++;
 
                     currentTargetStallName = "";
                 }
@@ -597,30 +611,35 @@ public class game_start_34 : MonoBehaviour
         isWaitingForClickInput = false;
 
         Debug.Log($"點擊題目正確數: {correctAnswersCount}/3"); //game_3的答對題數
-
-        if (dbReference != null)
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        // if (dbReference != null)
+        if (testId != null)
         {
-            string userId = SystemInfo.deviceUniqueIdentifier;
-            string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss");
-            string recordKey = $"{userId}_{timestamp}";
+            // string userId = SystemInfo.deviceUniqueIdentifier;
+            // string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss");
+            // string recordKey = $"{userId}_{timestamp}";
 
             Dictionary<string, object> scoreData = new Dictionary<string, object>();
             scoreData["Command_score"] = correctAnswersCount;
-            scoreData["totalQuestions"] = 3;
-            scoreData["timestamp"] = ServerValue.Timestamp;
-            scoreData["userName"] = "PlayerName";
+            // scoreData["totalQuestions"] = 3;
+            // scoreData["timestamp"] = ServerValue.Timestamp;
+            // scoreData["userName"] = "PlayerName";
 
-            dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
-            {
-                if (task.IsCompleted)
-                {
-                    Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3");
-                }
-                else if (task.IsFaulted)
-                {
-                    Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
-                }
-            });
+            // dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
+            // {
+            //     if (task.IsCompleted)
+            //     {
+            //         Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3");
+            //     }
+            //     else if (task.IsFaulted)
+            //     {
+            //         Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
+            //     }
+            // });
+            string levelIndex = "4";
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + correctAnswersCount;
+
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, correctAnswersCount);
         }
         else
         {
@@ -715,7 +734,12 @@ public class game_start_34 : MonoBehaviour
 
         currentVoiceQuestionIndex = 0;
 
-        UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "5";
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + voiceCorrectAnswersCount;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
+
+        // UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
     }
 
@@ -967,6 +991,14 @@ public class game_start_34 : MonoBehaviour
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "5";
+            var files = new Dictionary<string, byte[]>();
+            string key = $"voice_{currentVoiceQuestionIndex}";
+            files[key] = wavData;
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
+
             SaveWavFile(wavData, currentVoiceQuestionIndex);
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
         }
@@ -1009,6 +1041,10 @@ public class game_start_34 : MonoBehaviour
         }
     }
 
+    int level5QuestionIndex = 0;
+    Dictionary<string, string> level5correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> level5playerOptions = new Dictionary<string, string>();
+
     void CheckAnswer(string userResponse, List<string> correctAnswers)
     {
         if (string.IsNullOrEmpty(userResponse))
@@ -1039,6 +1075,16 @@ public class game_start_34 : MonoBehaviour
         {
             Debug.Log($"答案錯誤。你說了: \"{userResponse}\"，正確答案是: \"{string.Join("/", correctAnswers)}\"");
         }
+
+        string qKey = $"Q{level5QuestionIndex + 1}";
+        level5correctOptions[qKey] = string.Join("/", correctAnswers);
+        level5playerOptions[qKey] = userResponse;
+
+        level5QuestionIndex++;
+
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "5"; // 這一關的代號，請依場景改
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
 
         StartCoroutine(ShowResultAndContinue(isCorrect));
     }
