@@ -18345,6 +18345,30 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1142518704764219382, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_RestingVisualLineLength
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1142518704764219382, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_UIHitProperties.m_SmoothlyCurveLine
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1142518704764219382, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_HoverHitProperties.m_SmoothlyCurveLine
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1142518704764219382, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_SelectHitProperties.m_SmoothlyCurveLine
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1142518704764219382, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_NoValidHitProperties.m_SmoothlyCurveLine
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1142518704764219382, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_UIPressHitProperties.m_SmoothlyCurveLine
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1470279098769358944, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -18468,6 +18492,7 @@ MonoBehaviour:
   surfaceOffset: 0.001
   showWhileDrawing: 1
   followLerp: 0.5
+  keepFullLengthOnUI: 1
 --- !u!114 &1553188020
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18824,6 +18849,7 @@ MonoBehaviour:
   surfaceOffset: 0.001
   showWhileDrawing: 1
   followLerp: 0.5
+  keepFullLengthOnUI: 1
 --- !u!114 &1553188022
 MonoBehaviour:
   m_ObjectHideFlags: 0
