@@ -10063,14 +10063,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   titleText: {fileID: 1800259227}
   feedbackText: {fileID: 181310226}
-  startPanel: {fileID: 1386443609}
   yearPanel: {fileID: 1098850946}
   dayPanel: {fileID: 1360271848}
   hourPanel: {fileID: 1344566365}
   monthPanel: {fileID: 42686419}
   dayOfWeekPanel: {fileID: 1937512050}
   resultPanel: {fileID: 1228452823}
-  confirmButton: {fileID: 776273256}
   resultScoreText: {fileID: 1209069623}
   yearButtons:
   - {fileID: 2087244497}
@@ -10100,7 +10098,7 @@ MonoBehaviour:
   audioSource: {fileID: 750978935}
   correctSFX: {fileID: 0}
   incorrectSFX: {fileID: 0}
-  startTestAudio: {fileID: 8300000, guid: 0b6f8f4594b9f9a4bae4eb79a799e1a0, type: 3}
+  startTestAudio: {fileID: 0}
   yearQuestionAudio: {fileID: 8300000, guid: 8c4381516db224144ab73c41f872bb49, type: 3}
   monthQuestionAudio: {fileID: 8300000, guid: 37d57295bc8b7c941949aeaf6a30e66e, type: 3}
   dayQuestionAudio: {fileID: 8300000, guid: 14f1948105188af4db6181668da31973, type: 3}
@@ -18250,7 +18248,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1386443610
 MonoBehaviour:
   m_ObjectHideFlags: 0
