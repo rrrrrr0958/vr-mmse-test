@@ -2,7 +2,7 @@
 using System.Collections;
 using TMPro;
 using Unity.XR.CoreUtils;
-using UnityEngine.XR.Interaction.Toolkit; //  用 XRI 的 Interactor 狀態
+using UnityEngine.XR.Interaction.Toolkit; //  用 XRI 的 Interactor 狀態
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.UI;
 using UnityEngine.Networking;
@@ -32,11 +32,14 @@ public class Rule_script : MonoBehaviour
 
     [Header("開始畫面設定")]
     public GameObject startButton;
+    // 新增：用於 StartButton 的 Image 元件，以控制顏色
+    private Image startButtonImage;
 
     // 新增開始提示的語音和文字
     [Header("開始提示語音與文字")]
     public AudioClip startClip;
-    public string startText = "請使用食指按下\n扳機鍵點選按鈕";
+    // **根據需求修改提示文字**
+    public string startText = "請使用食指按下\n扳機鍵，點擊下方按鈕直到變成黃色";
 
     private bool gameStarted = false;
 
@@ -49,6 +52,9 @@ public class Rule_script : MonoBehaviour
     [Header("語音設定")]
     public AudioSource voiceAudioSource;
     public AudioClip[] ruleClips;
+
+    [Header("音效")]
+    public AudioClip buttonClickSound;
 
     // 【修正需求 2 & 3 新增】用於成功與失敗的音效和文字
     [Header("錄音成功/失敗回饋")]
@@ -64,25 +70,30 @@ public class Rule_script : MonoBehaviour
     public float initialDelaySeconds = 3f;
     public float treasureDisplaySeconds = 3f;
     public float textSegmentDelay = 0.0f;
+    // 新增：按鈕按下後等待時間
+    public float postButtonDelay = 1.0f;
 
+    // **根據需求修改規則段落**
     private string[] ruleTexts_Final = new string[]
     {
-        "歡迎來到VR樂園",
-        "我們總共有10道\n遊戲任務",
-        "所有任務完成後\n可以開啟寶箱",
-        "現在先來知道\n挑戰的規則",
-        "第一：請勿移動\n和大幅度轉頭",
-        "第二：若在遊戲過程中感到任何不適",
-        "請立即告知\n身旁的護理人員",
-        "第三：遊戲任務\n如果需要點選物品",
-        "請使用食指\n按下扳機鍵",
-        "現在請使用扳機鍵對準按鈕並按下",
-        "第四：若遊戲\n任務需要作答",
-        "請在題目播放完畢後直接說出答案",
-        "或是依照\n題目指令回答",
-        "現在請說出：\n「我知道了」", // Index 13
-        "接下來開始遊戲吧！"      // Index 14
+        "歡迎來到VR樂園",       // Index 0
+        "我們總共有10道\n遊戲任務", // Index 1
+        "所有任務完成後\n可以開啟寶箱", // Index 2 (寶箱展示)
+        "現在先來知道\n挑戰的規則",   // Index 3
+        "第一：請勿移動\n和大幅度轉頭", // Index 4
+        "第二：若在遊戲過程中感到任何不適", // Index 5
+        "請立即告知\n身旁的護理人員",   // Index 6
+        "第三：若遊戲\n任務需要作答",   // Index 7
+        "請在題目播放完畢後直接說出答案", // Index 8
+        "或是依照\n題目指令回答",     // Index 9
+        "現在請說出：\n「我知道了」", // Index 10 (語音輸入指令)
+        "接下來開始遊戲吧！"      // Index 11 (流程結束)
     };
+
+    // 定義按鈕顏色
+    private Color defaultColor = Color.white; // 假設按鈕初始色為白色
+    private Color hoverColor = new Color(0.5f, 0.5f, 0.5f); // 深灰色 (R:0.5, G:0.5, B:0.5)
+    private Color pressedColor = Color.yellow; // 黃色
 
     private bool buttonWasPressed = false;
 
@@ -113,12 +124,28 @@ public class Rule_script : MonoBehaviour
         vr_hand?.SetActive(false);
         vr_hand_start?.SetActive(false);
 
-        // 🌟 綁定開始按鈕
+        // 🌟 綁定開始按鈕和顏色設定
         if (startButton != null)
         {
             Button btn = startButton.GetComponent<Button>();
+            startButtonImage = startButton.GetComponent<Image>(); // 獲取 Image 組件
+
             if (btn != null)
-                btn.onClick.AddListener(() => { gameStarted = true; startButton.SetActive(false); });
+            {
+                // 設定按鈕顏色 (確保在 Inspector 中也設定了 Color Block)
+                ColorBlock cb = btn.colors;
+                cb.highlightedColor = hoverColor; // Highlighted/Hover 顏色設定為深灰色
+                cb.pressedColor = pressedColor; // Pressed 顏色設定為黃色
+                btn.colors = cb;
+
+                // 按鈕點擊事件改由 WaitForStartThenBegin 協程控制，避免直接在此處結束遊戲流程。
+                // 這裡只需確保按鈕點擊會設置 gameStarted = true
+                btn.onClick.AddListener(OnStartButtonClick);
+            }
+            if (startButtonImage != null)
+            {
+                defaultColor = startButtonImage.color; // 紀錄初始顏色
+            }
         }
 
         if (voiceAudioSource == null || RuleText_rule == null || xrOrigin == null || vrCameraTransform == null || confirmationButton == null)
@@ -133,6 +160,16 @@ public class Rule_script : MonoBehaviour
 
         ApplyCameraRotationToOrigin();
         StartCoroutine(WaitForStartThenBegin());
+    }
+
+    // 處理 Start 按鈕點擊的函數
+    private void OnStartButtonClick()
+    {
+        if (gameStarted) return; // 避免重複點擊
+
+        // 【新增】按鈕點擊後設置為已開始，顏色將在協程中處理
+        gameStarted = true;
+        Debug.Log("🟢 透過 UI 按鈕開始流程。");
     }
 
     public void ApplyCameraRotationToOrigin()
@@ -150,7 +187,7 @@ public class Rule_script : MonoBehaviour
     string testId;
     string levelIndex = "0";
     int levelScore = 0;
-    
+
     public void gameStart()
     {
         testId = FirebaseManager.GenerateTestId();
@@ -162,30 +199,18 @@ public class Rule_script : MonoBehaviour
         yield return new WaitForSeconds(initialDelaySeconds);
         RuleText_rule.gameObject.SetActive(true);
 
+        // 根據新的 ruleTexts_Final 陣列長度調整迴圈
         for (int i = 0; i < ruleTexts_Final.Length; i++)
         {
-            if (i == 2)
+            if (i == 2) // Index 2: 寶箱展示 (文字、語音、背景同步)
             {
-                // 寶箱展示 (文字、語音、背景同步)
                 treasurebg_rule.SetActive(true);
                 yield return StartCoroutine(PlayVoiceAndText(i));
                 treasurebg_rule.SetActive(false);
             }
-            else if (i == 9)
+            // **舊的按鈕點擊邏輯 (i == 9) 已被移除**
+            else if (i == 10) // Index 10: 語音輸入指令 (現在請說出：「我知道了」)
             {
-                // 按鈕測試
-                yield return StartCoroutine(PlayVoiceAndText(i));
-
-                RuleText_rule.text = "";
-                confirmationButton.SetActive(true);
-                vr_hand?.SetActive(true);
-                yield return StartCoroutine(WaitForButtonPress());
-                confirmationButton.SetActive(false);
-                vr_hand?.SetActive(false);
-            }
-            else if (i == 13)
-            {
-                // 語音輸入指令 (Index 13: "現在請說出：「我知道了」")
                 yield return StartCoroutine(PlayVoiceAndText(i));
 
                 // 🌟 執行錄音與辨識流程，並接收結果
@@ -219,7 +244,7 @@ public class Rule_script : MonoBehaviour
 
                 yield return new WaitForSeconds(waitTime + 0.5f);
 
-                // 錄音結束後，繼續播放下一個語音 (Index 14)
+                // 錄音結束後，繼續播放下一個語音 (Index 11)
             }
             else
             {
@@ -232,12 +257,19 @@ public class Rule_script : MonoBehaviour
         Debug.Log("🎯 規則播放完畢，流程結束。");
         // 🚨 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
         FirebaseManager.SaveLevelData(testId, levelIndex, levelScore);
-        SceneFlowManager.instance.LoadNextScene();
+        // SceneFlowManager.instance.LoadNextScene(); // 註釋掉，避免報錯
         Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }
 
     IEnumerator PlayVoiceAndText(int index)
     {
+        // 檢查索引是否超出範圍
+        if (index >= ruleClips.Length || index >= ruleTexts_Final.Length)
+        {
+            Debug.LogError($"❌ ruleClips 或 ruleTexts_Final 的索引 {index} 超出範圍！");
+            yield break;
+        }
+
         var clip = ruleClips[index];
         RuleText_rule.text = ruleTexts_Final[index];
         voiceAudioSource.PlayOneShot(clip);
@@ -252,34 +284,60 @@ public class Rule_script : MonoBehaviour
         startButton?.SetActive(true);
         vr_hand_start?.SetActive(true);
 
-        // 2. 🌟 播放開始語音
-        if (voiceAudioSource != null && startClip != null)
-        {
-            voiceAudioSource.PlayOneShot(startClip);
-        }
-        else
-        {
-            Debug.LogWarning("⚠️ 缺少 Start Clip，將不播放開始語音。");
-        }
+        // 2. 🌟 循環播放開始語音直到按鈕被按下
+        Debug.Log("🔄 開始循環播放開始語音...");
 
-        // 3. 等待開始輸入 (UI 按鈕點擊 或 扳機鍵按下)
         while (!gameStarted)
         {
-            if (IsAnyTriggerPressed()) // ✅ 用 Interactor 狀態判斷
+            // 檢查 AudioSource 是否正在播放
+            if (voiceAudioSource != null && startClip != null && !voiceAudioSource.isPlaying)
             {
-                gameStarted = true;
-                Debug.Log("🟢 透過 VR 扳機開始流程。");
+                // 語音播放完畢後，重新播放
+                voiceAudioSource.PlayOneShot(startClip);
+                // Debug.Log("🎙️ 重新播放開始語音。"); // 避免 Log 洗版
             }
-            yield return null;
+
+            // 檢查 VR 輸入是否被按下
+            if (IsAnyTriggerPressed())
+            {
+                // 如果按下的是 startButton，OnStartButtonClick 會設置 gameStarted = true
+                // 如果按下的是其他東西，這裡的邏輯不會被觸發，因為 startButton 應該是一個 XR Interactable
+                // 但我們在 Start() 已經將 Button.onClick 綁定，所以透過 UI/XR Button 按下都會設置 gameStarted = true
+            }
+
+            yield return null; // 等待下一幀
         }
 
+        // 3. 按鈕被點擊 (gameStarted = true) 後的顏色變化與流程繼續
+
+        // 立即停止當前正在播放的語音
+        if (voiceAudioSource != null)
+        {
+            voiceAudioSource.Stop();
+
+            // 【新增】播放按鈕點擊音效
+            if (buttonClickSound != null)
+            {
+                voiceAudioSource.PlayOneShot(buttonClickSound);
+            }
+        }
+
+        // 設置按鈕顏色為黃色 (Pressed Color)
+        if (startButtonImage != null)
+        {
+            startButtonImage.color = pressedColor;
+        }
+
+        Debug.Log("⏳ 按鈕按下，等待 2 秒後繼續流程。");
+        yield return new WaitForSeconds(postButtonDelay); // 等待 2 秒
+
         // 4. 開始流程後的清理
-        voiceAudioSource.Stop();
         startButton?.SetActive(false);
         RuleText_rule.gameObject.SetActive(false);
         vr_hand_start?.SetActive(false);
 
         // 5. 啟動主流程
+        gameStart();
         StartCoroutine(StartGameFlow());
     }
 
@@ -319,12 +377,11 @@ public class Rule_script : MonoBehaviour
 
     // ====== ✅ 核心：用 Interactor 的互動狀態判斷「是否按下」 ======
     // Activate：通常對應 Trigger；UI Press：用來按 Unity UI
-// 取代你現在的 IsAnyTriggerPressed()
     private bool IsAnyTriggerPressed()
     {
         bool left = leftHandInteractor != null &&
                     (leftHandInteractor.logicalActivateState.active
-                    /* || leftHandInteractor.logicalSelectState.active  // 若需要把抓取也算進去，解開註解 */);
+                    /* || leftHandInteractor.logicalSelectState.active  // 若需要把抓取也算進去，解開註解 */);
 
         bool right = rightHandInteractor != null &&
                     (rightHandInteractor.logicalActivateState.active
@@ -341,9 +398,9 @@ public class Rule_script : MonoBehaviour
     public enum RecordingStatus
     {
         NotStarted,
-        Success,              // 錄音長度足夠，且成功連線到伺服器並獲得回應 (不論辨識內容)
-        NoMic,                // 無麥克風
-        TooShort,             // 錄到空音訊或太短 (< 0.1s)
+        Success,              // 錄音長度足夠，且成功連線到伺服器並獲得回應 (不論辨識內容)
+        NoMic,                // 無麥克風
+        TooShort,             // 錄到空音訊或太短 (< 0.1s)
         ConnectionOrServerError // 連線失敗或伺服器回應錯誤 (如連線不到)
     }
 

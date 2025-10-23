@@ -51,7 +51,7 @@ public class QuestionManager : MonoBehaviour
 
     [Header("伺服器設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
-    public float recordingDuration = 3.5f; // 錄音長度
+    public float recordingDuration = 5.0f; // 錄音長度
 
     private AudioClip recordingClip;
 
@@ -291,8 +291,8 @@ public class QuestionManager : MonoBehaviour
         lastTimeLeft = (int)Mathf.Ceil(duration);
         float startTime = Time.time;
 
-        // 初始化顯示為整數
-        if (countdownDisplay != null) countdownDisplay.text = lastTimeLeft.ToString();
+        // 初始化顯示為整數，並加上「剩 X 秒」的格式
+        if (countdownDisplay != null) countdownDisplay.text = "剩 " + lastTimeLeft.ToString() + " 秒";
 
         while (Time.time < startTime + duration)
         {
@@ -301,16 +301,20 @@ public class QuestionManager : MonoBehaviour
 
             if (timeLeft != lastTimeLeft && timeLeft >= 0)
             {
-                if (countdownDisplay != null) countdownDisplay.text = timeLeft.ToString();
+                if (countdownDisplay != null)
+                {
+                    // ⬇️ 修改這裡，使用「剩 X 秒」的格式 ⬇️
+                    countdownDisplay.text = "剩 " + timeLeft.ToString() + " 秒";
+                }
                 lastTimeLeft = timeLeft;
             }
             yield return null;
         }
 
-        // 倒數結束，確保最後顯示 0 
+        // 倒數結束，確保最後顯示「剩 0 秒」
         if (countdownDisplay != null)
         {
-            countdownDisplay.text = "0";
+            countdownDisplay.text = "剩 0 秒";
             yield return new WaitForSeconds(0.1f);
         }
     }
