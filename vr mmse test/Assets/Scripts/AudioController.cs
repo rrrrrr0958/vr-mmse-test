@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class AudioController : MonoBehaviour
 {
@@ -10,6 +11,7 @@ public class AudioController : MonoBehaviour
     public AudioClip buttonClickSound; // 按鈕點擊音效
 
     [Header("Volume Settings")]
+    public float playSoundDelay = 0.5f;
     [Range(0f, 1f)] public float starSoundVolume = 1f;
     [Range(0f, 1f)] public float buttonSoundVolume = 1f;
 
@@ -24,13 +26,16 @@ public class AudioController : MonoBehaviour
                 audioSource = gameObject.AddComponent<AudioSource>();
             }
         }
+
+        StartCoroutine(PlayStarSpawnSound());
     }
 
     /// <summary>
     /// 播放星星出現音效
     /// </summary>
-    public void PlayStarSpawnSound()
+    private IEnumerator PlayStarSpawnSound()
     {
+        yield return new WaitForSeconds(playSoundDelay);
         if (starSpawnSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(starSpawnSound, starSoundVolume);
