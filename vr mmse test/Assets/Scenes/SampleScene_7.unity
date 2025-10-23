@@ -5658,7 +5658,7 @@ MonoBehaviour:
   outerRing: {fileID: 0}
   innerCircle: {fileID: 0}
   timeLabel: {fileID: 927307543}
-  duration: 90
+  duration: 150
   autoStart: 1
   showAsMMSS: 0
   warningThreshold: 10
