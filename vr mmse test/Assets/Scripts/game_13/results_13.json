@@ -1,10 +1,10 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-22 16:36:59.028",
+            "timestamp": "2025-10-23 23:16:47.769",
             "score": 1,
-            "wav_path": "D:/Github/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251022_163655514.wav",
-            "transcript": "我的答案就是你們太厲害了這樣可以嗎要湊滿還有兩秒",
+            "wav_path": "C:/Users/alanchang/Desktop/unity project_team/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251023_231645584.wav",
+            "transcript": "時間過好快",
             "error": "",
             "reasons": {
                 "has_subject_verb": true,
