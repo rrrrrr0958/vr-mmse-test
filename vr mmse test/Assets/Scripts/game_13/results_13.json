@@ -1,10 +1,10 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-21 18:02:51.717",
+            "timestamp": "2025-10-25 23:12:58.406",
             "score": 1,
-            "wav_path": "D:/Github/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251021_180249723.wav",
-            "transcript": "麥可什麼時候會回來",
+            "wav_path": "D:/Github/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251025_231256480.wav",
+            "transcript": "大屁眼魔獸",
             "error": "",
             "reasons": {
                 "has_subject_verb": true,
