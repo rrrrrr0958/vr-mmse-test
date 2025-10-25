@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.XR.CoreUtils;
 using System;
+using System.Collections;
 
 [DefaultExecutionOrder(100)]
 public class SessionController : MonoBehaviour
@@ -37,10 +38,8 @@ public class SessionController : MonoBehaviour
     [Tooltip("第一階段類別的正解（例如：市集）")]
     public string stage1CorrectCategory = "市集";
 
-    // ===== 修正 #1：將 "市集" 加入預設干擾池 =====
     [Tooltip("第一階段類別的干擾選項池（會隨機挑兩個組合）")]
     public string[] stage1DistractorPool = new[] { "市集", "動物園", "遊樂園", "博物館", "校園", "海邊", "車站" };
-    // ============================================
 
     [Tooltip("正確判定模式：AllStages=三階段都要對；StallOnly=只看第三階段攤位是否正確")]
     public CorrectMode finalCorrectMode = CorrectMode.AllStages;
@@ -51,23 +50,30 @@ public class SessionController : MonoBehaviour
     [Tooltip("若場景內找不到 RunLogger，是否自動建立一顆常駐的？")]
     public bool autoCreateLoggerIfMissing = true;
 
+    // ★ Voice（可選）
+    [Header("Voice (optional)")]
+    public AudioSource voiceSource;      // 建議 2D、非空間化
+    public AudioClip voiceStage1;
+    public AudioClip voiceStage2;
+    public AudioClip voiceStage3;
+    public float voicePreDelay = 0.05f;
+    public bool waitVoiceBeforeOptions = true;
+    
     // ===== Internal =====
     PlayerRigMover _mover;
     System.Random _rng = new System.Random();
-    List<LocationEntry> _currentOptions = new(); // 僅供第三階段（攤位）使用
-    string[] _currentStringOptions;              // 儲存當前顯示的字串選項
+    List<LocationEntry> _currentOptions = new(); // 第三階段（攤位）使用
+    string[] _currentStringOptions;              // 當前顯示的字串選項
     int _correctIndex = -1;
     bool _quizActive = false;
     bool _boundTargetEvent = false;
 
-    // NavPanel 期望顯示狀態（避免在 OnDisable 階段 SetActive 造成錯誤）
     bool _navPanelVisibleDesired = true;
 
-    // ===== 三階段狀態 =====
     enum Stage { None, Category, Floor, Stall, Done }
     Stage _stage = Stage.None;
 
-    LocationEntry _correctEntry;  // 當前視角對應的正解
+    LocationEntry _correctEntry;  // 當前視角對應正解
     string _pickedCategory = "";
     string _pickedFloor = "";
     bool _stage1Ok = false;
@@ -90,6 +96,10 @@ public class SessionController : MonoBehaviour
         logger?.EndRun();
 
         if (forceShowNavPanelOnDisable) _navPanelVisibleDesired = true;
+
+        // ★ 防止跨場景殘留音效
+        if (voiceSource) voiceSource.Stop();
+
         if (quizPanel) quizPanel.Hide();
     }
 
@@ -101,6 +111,9 @@ public class SessionController : MonoBehaviour
         TryWireNavPanelGroup();
         RewireLoggerIfNeeded();
         ApplyNavPanelDesiredState();
+
+        // ★ 進新場景時，確保不會延續播放
+        if (voiceSource) voiceSource.Stop();
     }
 
     // ===== 綁定 mover（僅使用帶 Transform 的事件）=====
@@ -212,25 +225,30 @@ public class SessionController : MonoBehaviour
         // 類別題
         var options = BuildStage1Options(out _correctIndex);
         _currentStringOptions = options; // 儲存選項
-        quizPanel.Show(stage1Title, _currentStringOptions, OnPick);
+
+        PlayVoiceThen(voiceStage1, () =>
+        {
+            quizPanel.Show(stage1Title, _currentStringOptions, OnPick);
+        });
     }
 
     // ===== OnPick：依階段進行 =====
     void OnPick(int idx)
     {
+        // ★ 修正 #2：點擊後立刻收起現有選項，避免視覺殘留與重複點擊
+        if (quizPanel) quizPanel.Hide();
+
         switch (_stage)
         {
             case Stage.Category: HandleStage1(idx); break;
-            case Stage.Floor: HandleStage2(idx); break;
-            case Stage.Stall: HandleStage3(idx); break;
+            case Stage.Floor:    HandleStage2(idx);  break;
+            case Stage.Stall:    HandleStage3(idx);  break;
         }
     }
 
     // ---------- 外部觸發 (FloorNavNode / StallTrigger) ----------
-    public void OnArrivedAtViewpoint(Transform vp)
-    {
-        HandleTeleportedTarget(vp);
-    }
+    public void OnArrivedAtViewpoint(Transform vp) => HandleTeleportedTarget(vp);
+
     public void StartQuizByStallId(string stallId)
     {
         if (_quizActive) return;
@@ -249,45 +267,44 @@ public class SessionController : MonoBehaviour
     // ---------- Stage 1：場所類別 ----------
     void HandleStage1(int idx)
     {
-        // (修正點：不再重新 Build，使用 _currentStringOptions)
-        _stage1Ok = (idx == _correctIndex); 
+        _stage1Ok = (idx == _correctIndex);
         _pickedCategory = _currentStringOptions[Mathf.Clamp(idx, 0, _currentStringOptions.Length - 1)];
 
         // 進 Stage 2
         _stage = Stage.Floor;
         var floorOptions = BuildStage2Options(out _correctIndex);
-        _currentStringOptions = floorOptions; // 儲存 Stage 2 的選項
-        quizPanel.Show(stage2Title, _currentStringOptions, OnPick);
+        _currentStringOptions = floorOptions;
+
+        PlayVoiceThen(voiceStage2, () =>
+        {
+            quizPanel.Show(stage2Title, _currentStringOptions, OnPick);
+        });
     }
 
     // ---------- Stage 2：樓層 ----------
-    // ---------- Stage 2：樓層 ----------
     void HandleStage2(int idx)
     {
-        // (處理 Stage 2 樓層選擇的邏輯 - 保持不變)
         _stage2Ok = (idx == _correctIndex);
         _pickedFloor = _currentStringOptions[Mathf.Clamp(idx, 0, _currentStringOptions.Length - 1)];
-        _currentStringOptions = null; 
+        _currentStringOptions = null;
 
-        // 進 Stage 3
+        // 進 Stage 3（攤位）
         _stage = Stage.Stall;
 
-        // (建立 Stage 3 選項 - 保持不變)
         _currentOptions = BuildStage3StallOptions(_correctEntry, out _correctIndex);
-        
-        
-        // ===== 修正：優先使用 displayText =====
-        // 你的 displayText 已經是乾淨的攤位名稱，所以我們優先使用它。
-        // 只有當 displayText 為空時，才不得已退回(fallback)使用 stallLabel。
+
+        // 優先使用 displayText，空才退回 stallLabel
         var labels = _currentOptions.Select(e => {
             string display = (e.displayText ?? "").Trim();
             return !string.IsNullOrEmpty(display) ? display : (e.stallLabel ?? "").Trim();
         }).ToArray();
-        // ======================================
-        
 
-        quizPanel.Show(stage3Title, labels, OnPick);
+        PlayVoiceThen(voiceStage3, () =>
+        {
+            quizPanel.Show(stage3Title, labels, OnPick);
+        });
     }
+
     // ---------- Stage 3：攤位（最終計分與結束） ----------
     void HandleStage3(int idx)
     {
@@ -304,24 +321,26 @@ public class SessionController : MonoBehaviour
             categoryCorrect: stage1CorrectCategory,
             categoryChosen: _pickedCategory,
             categoryIsCorrect: _stage1Ok,
-            
+
             floorCorrect: NormalizeFloorLabel(_correctEntry.floorLabel),
             floorChosen: _pickedFloor,
             floorIsCorrect: _stage2Ok,
-            
+
             stallChosenKey: selectedKey,
-            stallChosenDisplay: selectedDisplay, 
+            stallChosenDisplay: selectedDisplay,
             stallIsCorrect: stallOk,
-            
+
             finalCorrect: finalOk
         );
 
-        if (quizPanel) quizPanel.Hide();
         if (_mover) _mover.allowMove = true;
         if (showNavPanelAfterAnswer) ShowNavPanel();
 
         _stage = Stage.Done;
         _quizActive = false;
+
+        // 結束當題才把面板收起（避免最後一刻被擋）
+        if (quizPanel) quizPanel.Hide();
 
         SceneFlowManager.instance.LoadNextScene();
     }
@@ -329,16 +348,20 @@ public class SessionController : MonoBehaviour
     // ====== Stage 1 Builders ======
     string[] BuildStage1Options(out int correctIndex)
     {
-        // 1. 確定正解 (如果 Inspector 為空，預設為 "市集")
+        // 1) 正解清理
         string correctCategory = string.IsNullOrWhiteSpace(stage1CorrectCategory) ? "市集" : stage1CorrectCategory.Trim();
-        
-        // 2. 將正解放入 Set
-        var set = new HashSet<string> { correctCategory };
 
-        // 3. 從 Inspector 上的干擾池 (stage1DistractorPool) 隨機抓取
+        // 2) 集合加入正解
+        var set = new HashSet<string>(System.StringComparer.Ordinal)
+        { 
+            correctCategory
+        };
+
+        // 3) 從干擾池補滿
         var pool = stage1DistractorPool
-            .Where(s => !string.IsNullOrWhiteSpace(s) && s.Trim() != correctCategory)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s.Trim())
+            .Where(s => !string.Equals(s, correctCategory, StringComparison.Ordinal))
             .OrderBy(_ => _rng.Next())
             .ToList();
 
@@ -347,25 +370,28 @@ public class SessionController : MonoBehaviour
             if (set.Count >= optionsPerQuestion) break;
             set.Add(p);
         }
-        
-        // ===== 修正 #2：將 "市集" 加入後備清單，確保萬無一失 =====
-        // (如果 Inspector 上的干擾池不夠用，會從這裡補)
-        string[] fallback = { "市集", "動物園", "遊樂園", "博物館", "校園", "車站" }; 
-        // ===================================================
 
+        // 4) 後備清單，確保數量
+        string[] fallback = { "市集", "動物園", "遊樂園", "博物館", "校園", "海邊", "車站" };
         foreach (var f in fallback)
         {
             if (set.Count >= optionsPerQuestion) break;
-            // HashSet.Add() 會自動處理 "市集" 已經是正解 (correctCategory) 的情況
-            set.Add(f); 
+            if (!set.Contains(f)) set.Add(f);
         }
 
-        // 5. 轉換為列表並打亂
+        // 5) 轉列表打亂
         var list = set.ToList().OrderBy(_ => _rng.Next()).ToList();
-        correctIndex = list.IndexOf(correctCategory);
 
-        // 6. (安全機制) 萬一正解還是不在裡面，強制替換第一項
-        if (correctIndex < 0 && list.Count > 0)
+        // 6) **強制保障**：若因任何原因缺少正解，插回去
+        if (!list.Contains(correctCategory))
+        {
+            if (list.Count < optionsPerQuestion) list.Add(correctCategory);
+            else list[0] = correctCategory; // 直接用第一格換正解
+        }
+
+        // 7) 重新找正解索引
+        correctIndex = list.IndexOf(correctCategory);
+        if (correctIndex < 0)
         {
             correctIndex = 0;
             list[0] = correctCategory;
@@ -382,15 +408,23 @@ public class SessionController : MonoBehaviour
         var allFloors = new List<string> { "一樓", "二樓", "三樓" };
         if (!allFloors.Contains(correctFloor)) allFloors.Insert(0, correctFloor);
 
-        var set = new HashSet<string> { correctFloor };
-        foreach (var f in allFloors)
+        var set = new HashSet<string>(allFloors);
+        // 確保正解在內
+        set.Add(correctFloor);
+
+        // 裁成目標數量
+        var list = set.ToList().OrderBy(_ => _rng.Next()).Take(optionsPerQuestion).ToList();
+
+        // 強制保障正解在列表中
+        if (!list.Contains(correctFloor))
         {
-            if (set.Count >= optionsPerQuestion) break;
-            set.Add(f);
+            if (list.Count < optionsPerQuestion) list.Add(correctFloor);
+            else list[0] = correctFloor;
         }
 
-        var list = set.ToList().OrderBy(_ => _rng.Next()).ToList();
         correctIndex = list.IndexOf(correctFloor);
+        if (correctIndex < 0) { correctIndex = 0; list[0] = correctFloor; }
+
         return list.ToArray();
     }
 
@@ -420,13 +454,9 @@ public class SessionController : MonoBehaviour
 
         var pool = sameFloor.ToList();
         if (pool.Count < optionsPerQuestion)
-        {
             pool = pool.Concat(db.entries.Where(e => e.sceneName == correct.sceneName && !pool.Contains(e))).ToList();
-        }
         if (pool.Count < optionsPerQuestion)
-        {
             pool = pool.Concat(db.entries.Where(e => !pool.Contains(e))).ToList();
-        }
 
         list.Add(correct);
         foreach (var e in pool.OrderBy(_ => _rng.Next()))
@@ -498,7 +528,37 @@ public class SessionController : MonoBehaviour
         }
     }
 
-    bool TryWireNavPanelGroup()
+    // ---------- Voice helpers ----------
+    void PlayVoiceThen(AudioClip clip, Action then)
+    {
+        // ★ 修正 #1 的一部份：若同一個 clip 正在播，視為已播放，避免重複觸發
+        if (voiceSource && clip && voiceSource.isPlaying && voiceSource.clip == clip)
+        {
+            then?.Invoke();
+            return;
+        }
+
+        if (!waitVoiceBeforeOptions || clip == null || voiceSource == null)
+        {
+            then?.Invoke();
+            return;
+        }
+        StartCoroutine(CoPlayVoiceThen(clip, then));
+    }
+
+    IEnumerator CoPlayVoiceThen(AudioClip clip, Action then)
+    {
+        if (voicePreDelay > 0f) yield return new WaitForSeconds(voicePreDelay);
+
+        voiceSource.Stop();
+        voiceSource.clip = clip;
+        voiceSource.Play();
+
+        yield return new WaitWhile(() => voiceSource.isPlaying);
+
+        then?.Invoke();
+    }
+        bool TryWireNavPanelGroup()
     {
         if (navPanelGroup) return true;
 
@@ -506,7 +566,8 @@ public class SessionController : MonoBehaviour
         if (nav)
         {
             navPanelGroup = nav.GetComponent<CanvasGroup>();
-            if (!navPanelGroup) navPanelGroup = nav.gameObject.AddComponent<CanvasGroup>();
+            if (!navPanelGroup)
+                navPanelGroup = nav.gameObject.AddComponent<CanvasGroup>();
             return true;
         }
 
@@ -518,4 +579,5 @@ public class SessionController : MonoBehaviour
         }
         return false;
     }
+
 }

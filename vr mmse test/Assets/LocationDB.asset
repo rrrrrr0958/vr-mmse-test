@@ -27,7 +27,7 @@ MonoBehaviour:
     floorLabel: f2_8
     stallLabel: Weapons
     viewpointName: VP_Weapons_8
-    displayText: "\u6B66\u5668\u5E97"
+    displayText: "\u4E94\u91D1\u884C"
   - sceneName: f1_8
     floorLabel: f1_8
     stallLabel: Bread
