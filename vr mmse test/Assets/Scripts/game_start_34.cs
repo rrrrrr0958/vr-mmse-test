@@ -1001,7 +1001,7 @@ public class game_start_34 : MonoBehaviour
 
             if (textDisplay != null)
             {
-                textDisplay.text = "語音處理中"; // 顯示 "語音處理中"
+                textDisplay.text = "錄音已結束"; // 顯示 "錄音已結束"
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);

@@ -325,8 +325,8 @@ public class RunLogger : MonoBehaviour
 
                     string testId = FirebaseManager_Firestore.Instance.testId;
                     string levelIndex = "9"; // 用場景名稱當關卡索引
-                    string correctOption = r.vpKey;
-                    string chosenOption = r.userChoiceKey;
+                    string correctOption = r.stallCorrectKey;
+                    string chosenOption = r.stallChosenKey;
                     
                     var correctDict = new Dictionary<string, string> { { "option", correctOption } };
                     var chosenDict = new Dictionary<string, string> { { "option", chosenOption } };
