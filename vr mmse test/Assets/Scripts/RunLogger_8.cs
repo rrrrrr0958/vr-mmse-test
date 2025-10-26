@@ -325,13 +325,26 @@ public class RunLogger : MonoBehaviour
 
                     string testId = FirebaseManager_Firestore.Instance.testId;
                     string levelIndex = "9"; // 用場景名稱當關卡索引
-                    string correctOption = r.stallCorrectKey;
-                    string chosenOption = r.stallChosenKey;
+                    int score = 0;
+                    if (r.categoryIsCorrect)
+                        score += 1;
+                    if (r.floorIsCorrect)
+                        score += 2;
+                    if (r.stallIsCorrect)
+                        score += 2;
+
                     
-                    var correctDict = new Dictionary<string, string> { { "option", correctOption } };
-                    var chosenDict = new Dictionary<string, string> { { "option", chosenOption } };
+                    var correctDict = new Dictionary<string, string> { { "場景地點Ans", r.categoryCorrect },
+                                                                        { "樓層Ans", r.floorCorrect },
+                                                                        { "攤販Ans", r.stallCorrectKey } };
+                    var chosenDict = new Dictionary<string, string> { { "場景地點Chosen", r.categoryChosen },
+                                                                        { "樓層Chosen", r.floorChosen },
+                                                                        { "攤販Chosen", r.stallChosenKey } };
 
                     FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
+                    FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
+                    FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
+
                 }
             }
 
