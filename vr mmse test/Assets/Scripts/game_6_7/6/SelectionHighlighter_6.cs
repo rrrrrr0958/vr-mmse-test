@@ -9,6 +9,7 @@ public class SelectionHighlighter_6 : MonoBehaviour
     [Header("Size (統一大小)")]
     public float ringRadius = 0.18f;
     public float ringWidth  = 0.03f;
+    public float xOffset    = 0.00f;  // ← 新增 X 軸偏移
     public float yOffset    = 0.02f;
     public float zOffset    = 0.00f;
     public int   segments   = 64;
@@ -27,7 +28,9 @@ public class SelectionHighlighter_6 : MonoBehaviour
     public int  sortingOrder = 4000;
 
     [Header("Orientation")]
-    public float yawDegrees = 0f;
+    public float pitchDegrees = 90f;  // ← 新增 Pitch (繞 X 軸旋轉)
+    public float yawDegrees   = 0f;   // 原有的 Yaw (繞 Y 軸旋轉)
+    public float rollDegrees  = 0f;   // ← 新增 Roll (繞 Z 軸旋轉)
 
     const string kRingName = "HighlightRing";
 
@@ -106,8 +109,8 @@ public class SelectionHighlighter_6 : MonoBehaviour
             ring = t.GetComponent<LineRenderer>() ?? t.gameObject.AddComponent<LineRenderer>();
         }
 
-        t.localPosition = new Vector3(0f, yOffset, zOffset);
-        t.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+        t.localPosition = new Vector3(xOffset, yOffset, zOffset);  // ← 使用 xOffset
+        t.localRotation = Quaternion.Euler(pitchDegrees, yawDegrees, rollDegrees);  // ← 使用三個旋轉軸
         ApplyScaleCompensation(t);
 
         ring.loop = true;
@@ -159,8 +162,8 @@ public class SelectionHighlighter_6 : MonoBehaviour
     {
         if (!ring) return;
 
-        ring.transform.localPosition = new Vector3(0f, yOffset, zOffset);
-        ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+        ring.transform.localPosition = new Vector3(xOffset, yOffset, zOffset);  // ← 使用 xOffset
+        ring.transform.localRotation = Quaternion.Euler(pitchDegrees, yawDegrees, rollDegrees);  // ← 使用三個旋轉軸
         ApplyScaleCompensation(ring.transform);
 
         // 鎖關之後，非選定物件一律隱藏；選定者仍應顯示
@@ -357,8 +360,8 @@ public class SelectionHighlighter_6 : MonoBehaviour
         {
             ApplyScaleCompensation(ring.transform);
             RebuildCircle();
-            ring.transform.localPosition = new Vector3(0f, yOffset, zOffset);
-            ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, yawDegrees, 0f);
+            ring.transform.localPosition = new Vector3(xOffset, yOffset, zOffset);  // ← 使用 xOffset
+            ring.transform.localRotation = Quaternion.Euler(pitchDegrees, yawDegrees, rollDegrees);  // ← 使用三個旋轉軸
 
             var mr = ring.GetComponent<MeshRenderer>();
             if (mr) mr.sortingOrder = sortingOrder;

@@ -1,36 +1,37 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
+using UnityEngine.XR.Interaction.Toolkit;
 
-
+[DefaultExecutionOrder(10000)] // 等 XR 系統更新完再跑，避免一幀延遲
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor))]
 public class RayDrawDriverXRI_7 : MonoBehaviour
 {
     [Header("Whiteboard / Brush")]
     public WhiteBoard_7 whiteboard;
-    public int brushIndex = 0;                 // 對應 WhiteBoard.brushes
+    public int brushIndex = 0;
 
     [Header("Input")]
-    [Tooltip("扳機/Activate 動作（XRI Default Input Actions → Activate）")]
     public InputActionProperty drawAction;
 
     [Header("Hover Dot")]
     public bool showHoverDot = true;
-    [Tooltip("直接指定一個預製物；若為空，會自動做一顆小球")]
     public GameObject hoverDotPrefab;
-    [Tooltip("點的世界尺寸（直徑，公尺）")]
     public float hoverDotSize = 0.02f;
-    [Tooltip("點的顏色")]
     public Color hoverDotColor = Color.red;
-    [Tooltip("點與表面的偏移量，避免 Z-fighting（公尺）")]
     public float surfaceOffset = 0.001f;
-    [Tooltip("是否在按著繪圖時也顯示點")]
     public bool showWhileDrawing = true;
-    [Tooltip("0~1：位置/旋轉插值，1=瞬間貼齊")]
+
+    [Tooltip("0~1：位置/旋轉插值（未按住時使用）。按住繪圖時會強制=1。")]
     [Range(0f,1f)] public float followLerp = 0.5f;
 
+    [Header("進階")]
+    [Tooltip("命中 UI 時是否仍保持全長（不在命中點截斷）")]
+    public bool keepFullLengthOnUI = true;
+
     UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor ray;
-    Transform dot;       // 實例
-    Material dotMat;     // 動態材質（若自動生成）
+    Transform dot;
+    Material dotMat;
 
     void Awake() {
         ray = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor>();
@@ -40,28 +41,55 @@ public class RayDrawDriverXRI_7 : MonoBehaviour
     void OnEnable()  { if (drawAction.action != null) drawAction.action.Enable(); }
     void OnDisable() { if (drawAction.action != null) drawAction.action.Disable(); }
 
-    void Update()
+    void LateUpdate()
     {
         bool pressed = drawAction.action != null && drawAction.action.IsPressed();
 
-        // --- 繪圖邏輯（跟之前一樣） ---
+        // --- 按住繪圖：命中白板就直接貼齊（無 Lerp） ---
         if (pressed && ray.TryGetCurrent3DRaycastHit(out RaycastHit hit))
         {
             if (hit.collider && whiteboard && hit.collider.gameObject == whiteboard.gameObject)
             {
                 whiteboard.StrokeFromHit(hit, brushIndex, 0f);
-                UpdateHoverDot(hit, visible: showHoverDot && showWhileDrawing);
+                UpdateHoverDotImmediate(hit, visible: showHoverDot && showWhileDrawing);
                 return;
             }
         }
-        // 沒按或沒命中白板
+
+        // 結束筆畫
         if (whiteboard) whiteboard.EndStroke(brushIndex);
 
-        // 只有懸停在白板上才顯示點（沒按著）
-        if (!pressed && showHoverDot && ray.TryGetCurrent3DRaycastHit(out RaycastHit hoverHit) &&
-            hoverHit.collider && whiteboard && hoverHit.collider.gameObject == whiteboard.gameObject)
+        // --- 懸停顯示 ---
+        if (!pressed && showHoverDot)
         {
-            UpdateHoverDot(hoverHit, visible: true);
+            // 在白板上懸停 → 顯示點（有一點 Lerp 比較順）
+            if (ray.TryGetCurrent3DRaycastHit(out RaycastHit hoverHit) &&
+                hoverHit.collider && whiteboard && hoverHit.collider.gameObject == whiteboard.gameObject)
+            {
+                UpdateHoverDotLerped(hoverHit, visible: true, followLerp);
+            }
+            else
+            {
+                // 不在白板：使用與射線一致的末端（自己計算）
+                Vector3 origin = ray.transform.position;
+                Vector3 dir    = ray.transform.forward;
+                Vector3 end;
+
+                if (ray.TryGetCurrentUIRaycastResult(out RaycastResult uiHit))
+                {
+                    end = keepFullLengthOnUI
+                        ? origin + dir * ray.maxRaycastDistance         // 保持全長
+                        : uiHit.worldPosition;                           // 截斷到 UI 命中點
+                }
+                else
+                {
+                    // 沒打到任何東西 → 固定全長
+                    end = origin + dir * ray.maxRaycastDistance;
+                }
+
+                Pose p = new Pose(end, Quaternion.LookRotation(-dir));
+                UpdateHoverDotPoseLerped(p, true, followLerp);
+            }
         }
         else
         {
@@ -72,18 +100,16 @@ public class RayDrawDriverXRI_7 : MonoBehaviour
     // ================== Hover Dot ==================
     void EnsureDot()
     {
-        if (!showHoverDot) return;
-        if (dot != null) return;
+        if (!showHoverDot || dot != null) return;
 
         if (hoverDotPrefab)
         {
             dot = Instantiate(hoverDotPrefab).transform;
-            dot.gameObject.SetActive(false);
             dot.localScale = Vector3.one * hoverDotSize;
+            dot.gameObject.SetActive(false);
         }
         else
         {
-            // 自動生成一顆小球（無碰撞、Unlit）
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = "HoverDot(Auto)";
             DestroyImmediate(go.GetComponent<Collider>());
@@ -97,27 +123,42 @@ public class RayDrawDriverXRI_7 : MonoBehaviour
         }
     }
 
-    void UpdateHoverDot(RaycastHit hit, bool visible)
+    void UpdateHoverDotImmediate(RaycastHit hit, bool visible)
+    {
+        if (!showHoverDot || dot == null) return;
+        dot.position = hit.point + hit.normal * surfaceOffset;
+        if (whiteboard)
+            dot.rotation = Quaternion.LookRotation(-hit.normal, whiteboard.transform.up);
+        dot.localScale = Vector3.one * hoverDotSize;
+        if (dotMat) dotMat.SetColor("_BaseColor", hoverDotColor);
+        SetDotVisible(visible);
+    }
+
+    void UpdateHoverDotLerped(RaycastHit hit, bool visible, float t)
     {
         if (!showHoverDot || dot == null) return;
 
-        // 位置：命中點略微抬離表面
         Vector3 targetPos = hit.point + hit.normal * surfaceOffset;
-        dot.position = Vector3.Lerp(dot.position, targetPos, followLerp);
+        dot.position = Vector3.Lerp(dot.position, targetPos, Mathf.Clamp01(t));
 
-        // 旋轉：面向表面（使用白板的 up，避免滾動）
         if (whiteboard)
         {
             Quaternion desired = Quaternion.LookRotation(-hit.normal, whiteboard.transform.up);
-            dot.rotation = Quaternion.Slerp(dot.rotation, desired, followLerp);
+            dot.rotation = Quaternion.Slerp(dot.rotation, desired, Mathf.Clamp01(t));
         }
 
-        // 大小固定：確保不因距離變化
         dot.localScale = Vector3.one * hoverDotSize;
-
-        // 顏色（若用了自動材質）
         if (dotMat) dotMat.SetColor("_BaseColor", hoverDotColor);
+        SetDotVisible(visible);
+    }
 
+    void UpdateHoverDotPoseLerped(Pose pose, bool visible, float t)
+    {
+        if (!showHoverDot || dot == null) return;
+        dot.position = Vector3.Lerp(dot.position, pose.position, Mathf.Clamp01(t));
+        dot.rotation = Quaternion.Slerp(dot.rotation, pose.rotation, Mathf.Clamp01(t));
+        dot.localScale = Vector3.one * hoverDotSize;
+        if (dotMat) dotMat.SetColor("_BaseColor", hoverDotColor);
         SetDotVisible(visible);
     }
 
