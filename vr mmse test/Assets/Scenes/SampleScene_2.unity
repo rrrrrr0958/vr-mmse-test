@@ -17414,7 +17414,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  - {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -21073,7 +21073,6 @@ MonoBehaviour:
   statusText: {fileID: 1707024648}
   introClip: {fileID: 8300000, guid: 9e65b1213fbefd74b90e579683bab8f3, type: 3}
   clip1: {fileID: 8300000, guid: cc8a6fd2656eacc4a8218e5a2bbcf9ad, type: 3}
-  clip2: {fileID: 8300000, guid: 542307a3d49bc47449730230679b252c, type: 3}
   clip3: {fileID: 8300000, guid: ccbb7bc42e8cde54da85d391e9264aaf, type: 3}
   waitAfterIntro: 2
   waitAfterQuestion: 0

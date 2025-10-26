@@ -336,8 +336,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u8F49\u982D\u627E\u627E\u770B"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
-  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fe55bb1906cfa42b8b2cb4ed87fdf054, type: 2}
+  m_sharedMaterial: {fileID: 8177093841930004914, guid: fe55bb1906cfa42b8b2cb4ed87fdf054, type: 2}
   m_fontSharedMaterials:
   - {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_fontMaterial: {fileID: 0}
@@ -1421,6 +1421,54 @@ MonoBehaviour:
     m_InputActionReference: {fileID: 0}
     m_ObjectReferenceObject: {fileID: 0}
     m_ManualValue: 0
+--- !u!1 &341261638
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 341261639}
+  - component: {fileID: 341261640}
+  m_Layer: 0
+  m_Name: SoundEffect
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &341261639
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 341261638}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.7318262, y: -2.870974, z: -13.182317}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &341261640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 341261638}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7cf98b5fd8685f4cab7bc227b812e9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  audioSource: {fileID: 0}
+  clickSound: {fileID: 8300000, guid: 49b6f943eb0d8ab4f9a4baa8f1398c3e, type: 3}
+  volume: 1
+  targetButton: {fileID: 84367408}
 --- !u!1001 &367310731
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2362,8 +2410,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u7E7C\u7E8C"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 348cd0371e7dd45758fe4c58804b7342, type: 2}
-  m_sharedMaterial: {fileID: -7358940907007269749, guid: 348cd0371e7dd45758fe4c58804b7342, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2498,8 +2546,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\n\u6C99\u767C\u5728\u54EA\u88E1"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
-  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fe55bb1906cfa42b8b2cb4ed87fdf054, type: 2}
+  m_sharedMaterial: {fileID: 8177093841930004914, guid: fe55bb1906cfa42b8b2cb4ed87fdf054, type: 2}
   m_fontSharedMaterials:
   - {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_fontMaterial: {fileID: 0}
@@ -3120,8 +3168,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u606D\u559C\u4F60\n\u627E\u5230\u6C99\u767C\u4E86"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
-  m_sharedMaterial: {fileID: 1861800727711559638, guid: d50060fee046b403e84fd69c7b51fa9c, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
+  m_sharedMaterial: {fileID: -1949580083547102706, guid: 35d27aa9b9a31734fa2d3ec614c11676, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3778,3 +3826,4 @@ SceneRoots:
   - {fileID: 2092043040}
   - {fileID: 1426072355}
   - {fileID: 21784922}
+  - {fileID: 341261639}

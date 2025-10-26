@@ -10,6 +10,8 @@ using System.Collections;
 [DefaultExecutionOrder(100)]
 public class SessionController : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("Data")]
     public LocationDB db;
 

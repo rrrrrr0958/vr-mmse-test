@@ -10,17 +10,18 @@ using System.Collections;
 [DefaultExecutionOrder(-50)]
 public class GameManagerMenu_10 : MonoBehaviour
 {
-    public static GameManagerMenu_10 instance;
-    public List<string> clickedAnimalSequence = new List<string>();
-
-    [Header("UI References")]
+    // === 仍保留但不使用的欄位（避免 Prefab 失參考） ===
+    [Header("UI References (not used)")]
     public GameObject panel1;
     public GameObject confirmPanel;
     public TextMeshProUGUI resultText;
 
-    [Header("Confirm UI Buttons")]
+    [Header("Confirm UI Buttons (not used)")]
     public Button confirmButton;
     public Button retryButton;
+
+    // === 實際使用欄位 ===
+    public static GameManagerMenu_10 instance;
 
     [Header("Animal Buttons (可留空)")]
     public List<Button> animalButtons = new List<Button>();
@@ -32,15 +33,19 @@ public class GameManagerMenu_10 : MonoBehaviour
     [Header("Save Settings (相對路徑)")]
     public string saveFolder = "Game_10";
 
+    public List<string> clickedAnimalSequence = new List<string>();
+
     private readonly HashSet<string> selectedSet = new HashSet<string>();
     private readonly Dictionary<Button, Color> originalColors = new Dictionary<Button, Color>();
+
     private string saveFilePath;
-    private bool finalizedSave = false;
+    private bool hasProgressed = false;   // 避免重複存檔與重複切場景
     private float startTime;
 
     void Awake()
     {
         SetupRelativeSavePath();
+
         if (instance == null)
         {
             instance = this;
@@ -51,6 +56,7 @@ public class GameManagerMenu_10 : MonoBehaviour
         else
         {
             Destroy(gameObject);
+            return;
         }
 
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -64,6 +70,8 @@ public class GameManagerMenu_10 : MonoBehaviour
     void Start()
     {
         startTime = Time.time;
+
+        // 不再使用 confirmPanel / resultText
         if (confirmPanel) confirmPanel.SetActive(false);
         if (resultText) resultText.gameObject.SetActive(false);
 
@@ -79,45 +87,18 @@ public class GameManagerMenu_10 : MonoBehaviour
     private IEnumerator WaitAndBindUI()
     {
         float timeout = 5f;
-
-        while (timeout > 0)
+        while (timeout > 0f)
         {
             bool allFound = TryFindUI();
             if (allFound) break;
-
             timeout -= Time.deltaTime;
             yield return null;
         }
-
-        if (confirmButton)
-        {
-            confirmButton.onClick.RemoveAllListeners();
-            confirmButton.onClick.AddListener(() => { PlayClickSound(); OnConfirm(); });
-            Debug.Log("[Menu] ✅ ConfirmButton 綁定成功");
-        }
-        else
-            Debug.LogWarning("[Menu] ⚠ ConfirmButton 未找到");
-
-        if (retryButton)
-        {
-            retryButton.onClick.RemoveAllListeners();
-            retryButton.onClick.AddListener(() => { PlayClickSound(); OnRetry(); });
-            Debug.Log("[Menu] ✅ RetryButton 綁定成功");
-        }
-        else
-            Debug.LogWarning("[Menu] ⚠ RetryButton 未找到");
     }
 
     private bool TryFindUI()
     {
-        bool foundAny = false;
-
-        if (confirmButton == null)
-            confirmButton = GameObject.Find("ConfirmButton")?.GetComponent<Button>();
-
-        if (retryButton == null)
-            retryButton = GameObject.Find("RetryButton")?.GetComponent<Button>();
-
+        // 只處理動物按鈕；不再尋找/綁定 confirm / retry
         if (animalButtons == null || animalButtons.Count == 0)
         {
             var allBtns = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -127,7 +108,7 @@ public class GameManagerMenu_10 : MonoBehaviour
         foreach (var btn in animalButtons)
             EnsureOriginalColorCached(btn);
 
-        return (confirmButton != null && retryButton != null);
+        return true;
     }
 
     private void PlayClickSound()
@@ -138,6 +119,7 @@ public class GameManagerMenu_10 : MonoBehaviour
 
     private void SetupRelativeSavePath()
     {
+        // 依你的要求：不要改存檔路徑策略
         try
         {
             string folderPath = Path.Combine(Application.dataPath, "Scripts", saveFolder);
@@ -146,6 +128,7 @@ public class GameManagerMenu_10 : MonoBehaviour
         }
         catch
         {
+            // 原程式的 fallback 保留
             saveFilePath = Path.Combine(Application.persistentDataPath, "gamedata.json");
         }
         Debug.Log($"[Menu] 儲存路徑：{saveFilePath}");
@@ -157,8 +140,11 @@ public class GameManagerMenu_10 : MonoBehaviour
             originalColors[btn] = btn.image.color;
     }
 
+    // 供按鈕的 OnClick 傳入 (Button 自己, 顯示名稱/動物名)
     public void OnAnimalButtonClick(Button btn, string animalName)
     {
+        if (hasProgressed) return; // 已經進入下一關就忽略後續點擊
+
         PlayClickSound();
 
         if (string.IsNullOrEmpty(animalName))
@@ -168,6 +154,7 @@ public class GameManagerMenu_10 : MonoBehaviour
 
         if (selectedSet.Contains(animalName))
         {
+            // 允許反選
             selectedSet.Remove(animalName);
             clickedAnimalSequence.Remove(animalName);
             if (btn && btn.image && originalColors.TryGetValue(btn, out var oc))
@@ -175,7 +162,7 @@ public class GameManagerMenu_10 : MonoBehaviour
         }
         else
         {
-            if (selectedSet.Count >= 3) return;
+            if (selectedSet.Count >= 3) return; // 已到上限
             selectedSet.Add(animalName);
             clickedAnimalSequence.Add(animalName);
             if (btn && btn.image)
@@ -186,41 +173,40 @@ public class GameManagerMenu_10 : MonoBehaviour
             }
         }
 
-        SaveToLocalFile();
-        if (confirmPanel)
-            confirmPanel.SetActive(selectedSet.Count == 3);
+        // 每次點擊都嘗試存檔；失敗會在 Console 顯示細節
+        bool saveOk = SaveToLocalFile();
+
+        // 滿 3 個就立即前往下一關（不需要 Confirm/Retry）
+        if (!hasProgressed && selectedSet.Count == 3)
+        {
+            // 再存一次，確保最終狀態寫入
+            saveOk = SaveToLocalFile() && saveOk;
+
+            hasProgressed = true; // 去抖動，避免重複切場景
+            if (SceneFlowManager.instance != null)
+            {
+                Debug.Log($"[Menu] 已選滿 3 個，saveOk={saveOk} → LoadNextScene()");
+                SceneFlowManager.instance.LoadNextScene();
+            }
+            else
+            {
+                Debug.LogError("[Menu] SceneFlowManager.instance 為 null，無法切換場景！");
+            }
+        }
     }
 
-    public void OnConfirm()
-    {
-        if (confirmPanel) confirmPanel.SetActive(false);
-        if (panel1) panel1.SetActive(false);
-        SaveToLocalFile();
-        finalizedSave = true;
-
-        if (SceneFlowManager.instance != null)
-            SceneFlowManager.instance.LoadNextScene();
-    }
-
-    public void OnRetry()
-    {
-        selectedSet.Clear();
-        clickedAnimalSequence.Clear();
-
-        foreach (var kv in originalColors)
-            if (kv.Key && kv.Key.image) kv.Key.image.color = kv.Value;
-
-        if (confirmPanel) confirmPanel.SetActive(false);
-    }
-
-    public void SaveToLocalFile()
+    /// <summary>
+    /// 寫入本地檔案，並嘗試上傳 Firebase（若有初始化）
+    /// </summary>
+    /// <returns>是否成功將 JSON 寫入到本地檔案</returns>
+    public bool SaveToLocalFile()
     {
         try
         {
-            if (clickedAnimalSequence.Count == 0)
+            if (clickedAnimalSequence == null || clickedAnimalSequence.Count == 0)
             {
                 Debug.Log("[Menu] selections 為空，略過寫檔");
-                return;
+                return false;
             }
 
             GameMultiAttemptData data = new GameMultiAttemptData
@@ -230,12 +216,49 @@ public class GameManagerMenu_10 : MonoBehaviour
             };
 
             string json = JsonUtility.ToJson(data, true);
+
+            // 確保目錄存在（避免偶發刪除）
+            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
             File.WriteAllText(saveFilePath, json);
             Debug.Log($"[Menu] 寫入 {saveFilePath}\n{json}");
+
+            // Firebase 上傳做防呆，避免 null 造成「保存失敗」
+            var fb = FirebaseManager_Firestore.Instance;
+            if (fb == null)
+            {
+                Debug.LogWarning("[Menu] FirebaseManager_Firestore.Instance 為 null，僅完成本地存檔");
+                return true;
+            }
+
+            string testId = fb.testId;
+            if (string.IsNullOrEmpty(testId))
+            {
+                Debug.LogWarning("[Menu] Firebase testId 為空，略過雲端上傳（已完成本地存檔）");
+                return true;
+            }
+
+            string levelIndex = "8_Round0"; // 保持你原本的 key
+            try
+            {
+                // 若 SaveLevelData 需要實際資料，請在其內部取用本地檔或調整實作；
+                // 依你原本程式介面維持呼叫順序
+                fb.SaveLevelData(testId, levelIndex, 0);
+
+                byte[] jsonBytes = System.Text.Encoding.UTF8.GetBytes(json);
+                var files = new Dictionary<string, byte[]> { { "記憶選擇_jsonData.json", jsonBytes } };
+                fb.UploadFilesAndSaveUrls(testId, levelIndex, files);
+            }
+            catch (Exception exUp)
+            {
+                Debug.LogWarning($"[Menu] Firebase 上傳失敗（本地已存）：{exUp.Message}");
+            }
+
+            return true;
         }
         catch (Exception e)
         {
-            Debug.LogError("保存失敗：" + e.Message);
+            Debug.LogError("保存失敗（本地寫檔例外）：" + e);
+            return false;
         }
     }
 }

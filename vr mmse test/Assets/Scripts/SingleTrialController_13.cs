@@ -1,10 +1,15 @@
+// SingleTrialController_13.cs
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
+
 
 public class SingleTrialController : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("Refs")]
     public MicRecorder recorder;
     public AsrClient client;

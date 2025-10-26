@@ -27,7 +27,8 @@ public class game_start_34 : MonoBehaviour
     // =========================================================================
     // 公開變數 (在 Unity Inspector 中設定)
     // =========================================================================
-
+    
+    private FirebaseManager_Firestore FirebaseManager;
     [Header("遊戲開始設定")]
     public float initialTextDelay = 0.5f;
     public float questionBroadcastDelay = 1f;
@@ -65,7 +66,7 @@ public class game_start_34 : MonoBehaviour
 
     [Header("魚攤問題語音設定")]
     public AudioClip whatIsSellingAudioClip;
-     public AudioClip fishColorAudioClip; // <-- 這是被移除的語音，但程式碼中暫時保留以避免 Inspector 報錯
+    public AudioClip fishColorAudioClip; // <-- 這是被移除的語音，但程式碼中暫時保留以避免 Inspector 報錯
     public AudioClip whatIsThatAudioClip; // <-- 新的第二題語音 (原來的 Q3)
     public AudioClip bananaColorAudioClip; // <-- 【新增】新的第三題語音（請在 Unity Inspector 中設定此 AudioClip！）
 
@@ -140,6 +141,7 @@ public class game_start_34 : MonoBehaviour
 
     private int currentVoiceQuestionIndex = 0; // 新增：用於追蹤目前的語音問題編號
 
+    private Coroutine clickHandlingCoroutine = null;
 
 #if ENABLE_INPUT_SYSTEM
     private bool lastTriggerPressed = false;
@@ -268,16 +270,24 @@ public class game_start_34 : MonoBehaviour
         if (!didRaycastHit)
         {
             // 【修正點 1】：使用新版 Input System 讀取滑鼠位置
-            if (UnityEngine.InputSystem.Mouse.current != null)
+            if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
             {
-                Vector2 mousePos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
-                hoverRay = Camera.main.ScreenPointToRay(mousePos);
+                Vector2 pos = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+                Ray mouseRay = Camera.main.ScreenPointToRay(pos);
+                // 原始呼叫：HandleClickRaycast(mouseRay.origin, mouseRay.direction);
 
-                // 執行 Raycast 賦值
-                if (Physics.Raycast(hoverRay.origin, hoverRay.direction, out hoverHit, Mathf.Infinity, stallLayerMask))
-                {
-                    didRaycastHit = true;
-                }
+                // 如果您想使用新的 Coroutine 方式：
+                // RaycastHit hit;
+                // if (Physics.Raycast(mouseRay.origin, mouseRay.direction, out hit, Mathf.Infinity, stallLayerMask.value))
+                // {
+                //    if (hit.collider != null && hit.collider.CompareTag("ClickableStall"))
+                //    {
+                //        if (clickHandlingCoroutine == null)
+                //        {
+                //             clickHandlingCoroutine = StartCoroutine(HandleClickRaycastCoroutine(mouseRay.origin, mouseRay.direction));
+                //        }
+                //    }
+                // }
             }
         }
 
@@ -394,6 +404,10 @@ public class game_start_34 : MonoBehaviour
         }
     }
 
+    int currentQuestionIndex = 0;
+    Dictionary<string, string> correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> playerOptions = new Dictionary<string, string>();
+
     void HandleClickRaycast(Vector3 origin, Vector3 direction)
     {
         RaycastHit hit;
@@ -467,7 +481,17 @@ public class game_start_34 : MonoBehaviour
                         Debug.LogWarning($"❌ 錯誤！你點擊了 {clickedStallName}，但正確答案是 {currentTargetStallName}。");
                     }
 
+                    // 儲存這一題的紀錄
+                    correctOptions[$"Q{currentQuestionIndex + 1}"] = currentTargetStallName;
+                    playerOptions[$"Q{currentQuestionIndex + 1}"] = clickedStallName;
+
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    string levelIndex = "4";
+                    FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
+                    currentQuestionIndex++;
+
                     currentTargetStallName = "";
+                    isWaitingForClickInput = false;
                 }
                 else
                 {
@@ -537,6 +561,7 @@ public class game_start_34 : MonoBehaviour
 
         correctAnswersCount = 0;
 
+        // --- 第一、二輪 (隨機攤位) ---
         for (int i = 0; i < 2; i++)
         {
             ShowAllStallObjects(); // 確保所有物件在回合開始時顯示
@@ -560,20 +585,29 @@ public class game_start_34 : MonoBehaviour
 
             tempNonFishStallNames.RemoveAt(randomIndex);
 
+            // 啟動點擊等待狀態
             isWaitingForClickInput = true;
 
-            // 【修正點 1】計算等待時間時，必須傳入 questionRound 參數
+            // 1. 等待語音播放結束 + 緩衝時間
             AudioClip currentClip = GetAudioClipForStall(currentTargetStallName, currentRound);
-            float totalWaitTime = (currentClip != null ? currentClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
+            float voiceAndBufferTime = (currentClip != null ? currentClip.length : 0f) + voiceQuestionBufferTime;
 
-            yield return new WaitForSeconds(totalWaitTime);
+            // 【修改點 A】移除 clickResponseDuration 的固定等待，只等待語音緩衝時間
+            yield return new WaitForSeconds(voiceAndBufferTime);
 
-            currentTargetStallName = "";
-            isWaitingForClickInput = false;
+            // 2. 【核心修改點 B】無限期等待玩家點擊 (直到 HandleClickRaycast 將 isWaitingForClickInput 設為 false)
+            // 玩家點擊後，HandleClickRaycast 會將 isWaitingForClickInput 設為 false
+            Debug.Log("等待玩家點擊 (無限期)...");
+            yield return new WaitUntil(() => isWaitingForClickInput == false);
+            // 玩家已點擊
+
+            // currentTargetStallName 在 HandleClickRaycast 中被清空
+            // isWaitingForClickInput 在 HandleClickRaycast 中被設為 false
 
             yield return new WaitForSeconds(timeBetweenQuestions);
         }
 
+        // --- 第三輪 (固定魚攤) ---
         ShowAllStallObjects();
         ResetAllStallColors();
 
@@ -585,42 +619,38 @@ public class game_start_34 : MonoBehaviour
         int fishStallRound = 3;
         PlayInitialVoiceQuestion(currentTargetStallName, fishStallRound);
 
-
+        // 啟動點擊等待狀態
         isWaitingForClickInput = true;
 
-        // 【修正點 2】計算魚攤等待時間時，必須傳入 questionRound 參數
+        // 1. 等待語音播放結束 + 緩衝時間
         AudioClip fishStallClip = GetAudioClipForStall("魚攤", fishStallRound);
-        float fishStallTotalWaitTime = (fishStallClip != null ? fishStallClip.length : 0f) + voiceQuestionBufferTime + clickResponseDuration;
-        yield return new WaitForSeconds(fishStallTotalWaitTime);
+        float fishStallVoiceAndBufferTime = (fishStallClip != null ? fishStallClip.length : 0f) + voiceQuestionBufferTime;
 
-        currentTargetStallName = "";
-        isWaitingForClickInput = false;
+        // 【修改點 C】移除 clickResponseDuration 的固定等待，只等待語音緩衝時間
+        yield return new WaitForSeconds(fishStallVoiceAndBufferTime);
 
-        Debug.Log($"點擊題目正確數: {correctAnswersCount}/3"); //game_3的答對題數
+        // 2. 【核心修改點 D】無限期等待玩家點擊
+        Debug.Log("等待玩家點擊魚攤 (無限期)...");
+        yield return new WaitUntil(() => isWaitingForClickInput == false);
+        // 玩家已點擊
 
-        if (dbReference != null)
+        // currentTargetStallName 在 HandleClickRaycast 中被清空
+        // isWaitingForClickInput 在 HandleClickRaycast 中被設為 false
+
+
+        Debug.Log($"點擊題目正確數: {correctAnswersCount}/3");
+
+        // ... (Firebase 儲存邏輯不變) ...
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        if (testId != null)
         {
-            string userId = SystemInfo.deviceUniqueIdentifier;
-            string timestamp = System.DateTime.Now.ToString("yyyyMMddHHmmss");
-            string recordKey = $"{userId}_{timestamp}";
-
             Dictionary<string, object> scoreData = new Dictionary<string, object>();
             scoreData["Command_score"] = correctAnswersCount;
-            scoreData["totalQuestions"] = 3;
-            scoreData["timestamp"] = ServerValue.Timestamp;
-            scoreData["userName"] = "PlayerName";
 
-            dbReference.Child("scores").Child(recordKey).SetValueAsync(scoreData).ContinueWithOnMainThread(task =>
-            {
-                if (task.IsCompleted)
-                {
-                    Debug.Log($"成功將點擊分數寫入 Firebase: 正確 {correctAnswersCount}/3");
-                }
-                else if (task.IsFaulted)
-                {
-                    Debug.LogError($"寫入 Firebase 失敗: {task.Exception}");
-                }
-            });
+            string levelIndex = "4";
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + correctAnswersCount;
+
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, correctAnswersCount);
         }
         else
         {
@@ -628,7 +658,10 @@ public class game_start_34 : MonoBehaviour
         }
 
         Debug.Log("所有點擊任務完成，準備進入魚攤流程。");
+
+        // 只有在完成所有點擊題後才將 hasClickedStall 設為 true，用於後續流程標記
         hasClickedStall = true;
+
         HideAllStallNamesAndQuestion();
         StartCoroutine(MoveCameraToFishStallAndStartFishStallQuestions());
     }
@@ -715,7 +748,12 @@ public class game_start_34 : MonoBehaviour
 
         currentVoiceQuestionIndex = 0;
 
-        UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "5";
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + voiceCorrectAnswersCount;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, voiceCorrectAnswersCount);
+
+        // UploadVoiceScoreToFirebase(voiceCorrectAnswersCount);
         SceneFlowManager.instance.LoadNextScene();
     }
 
@@ -967,6 +1005,14 @@ public class game_start_34 : MonoBehaviour
             }
 
             byte[] wavData = ConvertAudioClipToWav(recordingClip);
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "5";
+            var files = new Dictionary<string, byte[]>();
+            string key = $"voice_{currentVoiceQuestionIndex}";
+            files[key] = wavData;
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
+
             SaveWavFile(wavData, currentVoiceQuestionIndex);
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
         }
@@ -1009,6 +1055,10 @@ public class game_start_34 : MonoBehaviour
         }
     }
 
+    int level5QuestionIndex = 0;
+    Dictionary<string, string> level5correctOptions = new Dictionary<string, string>();
+    Dictionary<string, string> level5playerOptions = new Dictionary<string, string>();
+
     void CheckAnswer(string userResponse, List<string> correctAnswers)
     {
         if (string.IsNullOrEmpty(userResponse))
@@ -1039,6 +1089,16 @@ public class game_start_34 : MonoBehaviour
         {
             Debug.Log($"答案錯誤。你說了: \"{userResponse}\"，正確答案是: \"{string.Join("/", correctAnswers)}\"");
         }
+
+        string qKey = $"Q{level5QuestionIndex + 1}";
+        level5correctOptions[qKey] = string.Join("/", correctAnswers);
+        level5playerOptions[qKey] = userResponse;
+
+        level5QuestionIndex++;
+
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "5"; // 這一關的代號，請依場景改
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, level5correctOptions, level5playerOptions);
 
         StartCoroutine(ShowResultAndContinue(isCorrect));
     }

@@ -4,6 +4,8 @@ using System.Linq;
 
 public class AnswerLogicManager : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("UI 顯示")]
     public TextMeshProUGUI statusText;
 
@@ -35,6 +37,9 @@ public class AnswerLogicManager : MonoBehaviour
                 // 不再 return，改為視為答錯，但允許流程繼續
                 // if (statusText != null)
                 //     statusText.text = "⚠️ 辨識結果為空，已自動視為未回答。";
+                string testId = FirebaseManager_Firestore.Instance.testId;
+                string levelIndex = "6";
+                FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 0);
                 Debug.Log($"[Answer] 您的回答: {userDisplay}. 判定：結果為空，視為未回答。");
             }
             else
@@ -57,7 +62,13 @@ public class AnswerLogicManager : MonoBehaviour
                 //         statusText.text = $"❌ 答錯了。\n正確答案:「{correctAnswer}」\n相似度: {similarityPercent}";
                 // }
 
-                string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
+                // string consoleResult = isCorrect ? "✅ 答對" : "❌ 答錯";
+                int consoleResult = isCorrect ? 1 : 0;
+                string testId = FirebaseManager_Firestore.Instance.testId;
+                string levelIndex = "6";
+                FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + consoleResult;
+                FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, consoleResult);
+
                 Debug.Log($"\n--- 答題結果 ---");
                 Debug.Log($"題目索引: {questionIndex}");
                 Debug.Log($"正確答案: {correctAnswer}");

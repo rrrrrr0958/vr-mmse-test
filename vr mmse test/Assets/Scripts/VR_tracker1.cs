@@ -64,7 +64,7 @@ public class VRTracker1 : MonoBehaviour
     }
 
     /// <summary>手動或流程結束時呼叫，將目前緩衝寫入 CSV 檔</summary>
-    public void SaveTrajectoryToCsv()
+    public string SaveTrajectoryToCsv()
     {
         // ✅ 若是相對路徑，轉成絕對實際路徑
         string folderPath = Path.Combine(Application.dataPath, "Scripts", saveFolder);
@@ -101,6 +101,9 @@ public class VRTracker1 : MonoBehaviour
         leftTriggerPressed.Clear();
         timestamps.Clear();
         isRecording = false;
+
+        // ✅ 回傳 CSV 檔案的完整路徑
+        return filePath;
     }
     public void ClearCurrentCSVData()
     {

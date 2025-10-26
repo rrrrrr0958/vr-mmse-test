@@ -5,12 +5,16 @@ using UnityEngine.UI;   // 給 uGUI Text 用
 using TMPro;            // 如果你用 TextMeshPro
 using System.Collections;
 using System.IO;
+using Oculus.Platform.Models;
+using System.Collections.Generic;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 public class ShapeScorer_7 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
     [Header("Pass/Fail")]
     [Tooltip("大於此分數視為 1，否則 0")]
     public float passCutoff = 60f;
@@ -156,17 +160,22 @@ public class ShapeScorer_7 : MonoBehaviour
                 VRTracker tracker = FindFirstObjectByType<VRTracker>();
                 if (tracker != null)
                 {
-                    tracker.SaveTrajectoryToCsv();
+                    string csvPath = tracker.SaveTrajectoryToCsv();
+                    Debug.Log($"🎯 已取得軌跡 CSV 路徑：{csvPath}");
+
+                    byte[] csvData = File.ReadAllBytes(csvPath);
+                    string testId = FirebaseManager_Firestore.Instance.testId;
+                    string levelIndex = "1";
+
+                    var files = new Dictionary<string, byte[]>();
+                    files["trajectoryCsv"] = csvData;
+
+                    FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
                 }
                 else
                 {
                     Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
                 }
-                // 若 SceneFlowManager 沒掛，避免 NRE
-                if (SceneFlowManager.instance != null)
-                    SceneFlowManager.instance.LoadNextScene();
-                else
-                    Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
             }
             catch (System.Exception e)
             {
@@ -258,6 +267,20 @@ public class ShapeScorer_7 : MonoBehaviour
 
 
             FindObjectOfType<ScoreUI_7>()?.UpdateScore(score);
+
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "1";
+            FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + pass01;
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, pass01);
+            // 準備檔案字典（key 為你想在 firestore/storage 中標記的欄位名）
+            var files = new Dictionary<string, byte[]>();
+            files["userPng"] = userPng; // userPng 是你之前 CaptureUserPNG() 的 byte[]
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
+            // 若 SceneFlowManager 沒掛，避免 NRE
+            if (SceneFlowManager.instance != null)
+                SceneFlowManager.instance.LoadNextScene();
+            else
+                Debug.LogWarning("[GM] SceneFlowManager.instance 為 null，略過切換場景");
 
             if (verboseLogs)
             {

@@ -2,6 +2,7 @@
   "dependencies": {
     "com.github-glitchenzo.nugetforunity": "4.5.0",
     "com.meta.xr.sdk.all": "77.0.0",
+    "com.meta.xr.sdk.core": "78.0.0",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.ai.navigation": "2.0.7",
     "com.unity.collab-proxy": "2.8.2",
@@ -21,7 +22,6 @@
     "com.unity.xr.management": "4.5.1",
     "com.unity.xr.meta-openxr": "2.2.0",
     "com.unity.xr.mock-hmd": "1.4.0-preview.2",
-    "com.unity.xr.oculus": "4.5.2",
     "com.unity.xr.openxr": "1.15.1",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",

@@ -4,9 +4,13 @@ using TMPro;
 using System;
 using System.IO;
 using UnityEngine.UI;
+using System.Collections.Generic;
+
 
 public class RecordingState2 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     // 顯示錄音階段的狀態
     public TextMeshProUGUI statusText;
     public Image progressBar; 
@@ -128,6 +132,13 @@ public class RecordingState2 : MonoBehaviour
 
         // ✅ 轉成 WAV 資料
         byte[] wavData = ConvertAudioClipToWav(clip);
+
+        // 上傳 Firebase
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "6";
+        var files = new Dictionary<string, byte[]>();
+        files["重複語句_wavData"] = wavData;
+        FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
 
         // ✅ 本地存檔：Assets/Scripts/Game_2/
         try

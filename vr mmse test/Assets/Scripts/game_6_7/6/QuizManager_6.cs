@@ -6,6 +6,8 @@ using UnityEngine.Events;
 
 public class QuizManager_6 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+
     [Header("診斷輸出")]
     public bool logEvaluationToConsole = true;
 
@@ -38,9 +40,9 @@ public class QuizManager_6 : MonoBehaviour
     readonly List<(string prompt, string id)> pool = new()
     {
         ("請用控制器指向桌上的起司並停留3秒", "cheese"),
-        ("請用控制器指向桌上的香腸並停留3秒", "sausage"),
-        ("請用控制器指向桌上的碗並停留3秒",   "bowl"),
-        ("請用控制器指向桌上的肉排並停留3秒", "meat"),
+        ("請用控制器指向桌上的茄子並停留3秒", "eggplant"),
+        ("請用控制器指向桌上的麵包並停留3秒",   "bread"),
+        ("請用控制器指向桌上的魚肉並停留3秒", "fish"),
     };
 
     int picked = -1;
@@ -127,6 +129,15 @@ public class QuizManager_6 : MonoBehaviour
         // 啟動「選後停留 → 進關」序列
         if (holdCo != null) StopCoroutine(holdCo);
         holdCo = StartCoroutine(HoldThenAdvanceCoroutine(ok));
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "10";
+        FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
+
+        var correctDict = new Dictionary<string, string> { { "option", currentAnswer } };
+        var chosenDict = new Dictionary<string, string> { { "option", targetId } };
+        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctDict, chosenDict);
+        FirebaseManager_Firestore.Instance.SaveTestResult(testId);
         SceneFlowManager.instance.LoadNextScene();
     }
 

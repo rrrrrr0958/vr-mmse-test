@@ -11,6 +11,9 @@ using System.Linq;
 [DefaultExecutionOrder(-50)]
 public class GameManager_10 : MonoBehaviour
 {
+    private FirebaseManager_Firestore FirebaseManager;
+    private string levelID;
+
     public static GameManager_10 instance;
     public List<string> clickedAnimalSequence = new List<string>();
 
@@ -19,7 +22,7 @@ public class GameManager_10 : MonoBehaviour
     public GameObject confirmPanel;
     public TextMeshProUGUI resultText;
 
-    [Header("Confirm UI Buttons")]
+    [Header("Confirm UI Buttons (not used)")]
     public Button confirmButton;
     public Button retryButton;
 
@@ -39,6 +42,9 @@ public class GameManager_10 : MonoBehaviour
     private List<string> correctAnswers = new List<string>();
     private float startTime;
     private bool finalizedSave = false;
+
+    // 新增：避免重複觸發跳關
+    private bool hasProgressed = false;
 
     void Awake()
     {
@@ -68,6 +74,10 @@ public class GameManager_10 : MonoBehaviour
 
     void Start()
     {
+        int round = GameSessionManager.Instance.GetNextRoundNumber("SampleScene_11");
+        levelID = $"{"8"}_Round{round}";
+        Debug.Log($"📊 Level Session ID: {levelID}");
+        
         startTime = Time.time;
         StartCoroutine(WaitAndBindUI());
         LoadCorrectAnswersFromFile();
@@ -83,15 +93,21 @@ public class GameManager_10 : MonoBehaviour
     {
         float timeout = 5f;
 
-        // 等待場景中 UI 生成
-        while ((confirmButton == null || retryButton == null) && timeout > 0)
+        // 只等待基本 UI 與文字（不再尋找/綁定 Confirm/Retry）
+        while (timeout > 0)
         {
-            confirmButton = GameObject.Find("ConfirmButton")?.GetComponent<Button>();
-            retryButton = GameObject.Find("RetryButton")?.GetComponent<Button>();
+            panel1 = panel1 ?? GameObject.Find("Panel1");
+            confirmPanel = confirmPanel ?? GameObject.Find("ConfirmPanel");
+            resultText = resultText ?? GameObject.Find("ResultText")?.GetComponent<TextMeshProUGUI>();
 
-            panel1 = GameObject.Find("Panel1");
-            confirmPanel = GameObject.Find("ConfirmPanel");
-            resultText = GameObject.Find("ResultText")?.GetComponent<TextMeshProUGUI>();
+            // 若動物按鈕列表未填，收集一次
+            if (animalButtons == null || animalButtons.Count == 0)
+            {
+                var allBtns = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                animalButtons = new List<Button>(allBtns);
+            }
+
+            if (animalButtons.Count > 0) break;
 
             timeout -= Time.deltaTime;
             yield return null;
@@ -100,33 +116,6 @@ public class GameManager_10 : MonoBehaviour
         // 保險重設 UI 狀態
         if (confirmPanel) confirmPanel.SetActive(false);
         if (resultText) resultText.gameObject.SetActive(false);
-
-        BindButtons();
-    }
-
-    private void BindButtons()
-    {
-        if (confirmButton)
-        {
-            confirmButton.onClick.RemoveAllListeners();
-            confirmButton.onClick.AddListener(() => { PlayClickSound(); OnConfirm(); });
-            Debug.Log("[GM] ✅ ConfirmButton 綁定成功");
-        }
-        else Debug.LogWarning("[GM] ⚠ 找不到 ConfirmButton");
-
-        if (retryButton)
-        {
-            retryButton.onClick.RemoveAllListeners();
-            retryButton.onClick.AddListener(() => { PlayClickSound(); OnRetry(); });
-            Debug.Log("[GM] ✅ RetryButton 綁定成功");
-        }
-        else Debug.LogWarning("[GM] ⚠ 找不到 RetryButton");
-
-        if (animalButtons == null || animalButtons.Count == 0)
-        {
-            var allBtns = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            animalButtons = new List<Button>(allBtns);
-        }
 
         foreach (var btn in animalButtons)
             EnsureOriginalColorCached(btn);
@@ -158,6 +147,7 @@ public class GameManager_10 : MonoBehaviour
         if (btn && btn.image && !originalColors.ContainsKey(btn))
             originalColors[btn] = btn.image.color;
     }
+
     private void LoadCorrectAnswersFromFile()
     {
         try
@@ -200,8 +190,11 @@ public class GameManager_10 : MonoBehaviour
             Debug.LogError("讀取正確答案失敗：" + e.Message);
         }
     }
+
     public void OnAnimalButtonClick(Button btn, string animalName)
     {
+        if (hasProgressed) return; // 已跳關就不再處理
+
         PlayClickSound();
 
         if (string.IsNullOrEmpty(animalName))
@@ -229,41 +222,33 @@ public class GameManager_10 : MonoBehaviour
             }
         }
 
-        if (confirmPanel)
-            confirmPanel.SetActive(selectedSet.Count == 3);
-    }
-
-    public void OnConfirm()
-    {
-        if (confirmPanel) confirmPanel.SetActive(false);
-        if (panel1) panel1.SetActive(false);
-        SaveAttemptResult();
-        finalizedSave = true;
-
-        VRTracker tracker = FindFirstObjectByType<VRTracker>();
-        if (tracker != null)
+        // ✅ 點滿 3 個：存檔 →（可選）存軌跡 → 跳下一關
+        if (selectedSet.Count == 3 && !hasProgressed)
         {
-            tracker.SaveTrajectoryToCsv();
-        }
-        else
-        {
-            Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
-        }
+            hasProgressed = true;
 
-        if (SceneFlowManager.instance != null)
-            SceneFlowManager.instance.LoadNextScene();
+            SaveAttemptResult();
+            finalizedSave = true;
+
+            VRTracker tracker = FindFirstObjectByType<VRTracker>();
+            if (tracker != null)
+            {
+                tracker.SaveTrajectoryToCsv();
+            }
+            else
+            {
+                Debug.LogWarning("[GM] 沒有找到 VRTracker 物件，無法保存軌跡。");
+            }
+
+            if (SceneFlowManager.instance != null)
+                SceneFlowManager.instance.LoadNextScene();
+            else
+                Debug.LogError("[GM] SceneFlowManager.instance 為 null，無法切換場景！");
+        }
     }
 
-    public void OnRetry()
-    {
-        selectedSet.Clear();
-        clickedAnimalSequence.Clear();
-
-        foreach (var kv in originalColors)
-            if (kv.Key && kv.Key.image) kv.Key.image.color = kv.Value;
-
-        if (confirmPanel) confirmPanel.SetActive(false);
-    }
+    // ⛔️ 依需求：不需要 OnConfirm / OnRetry，已移除其功能與綁定
+    // （保留欄位但不使用，避免 Prefab 失參考）
 
     private void SaveAttemptResult()
     {
@@ -279,27 +264,25 @@ public class GameManager_10 : MonoBehaviour
             if (File.Exists(saveFilePath))
             {
                 string json = File.ReadAllText(saveFilePath);
-                data = JsonUtility.FromJson<GameMultiAttemptData>(json);
+                data = JsonUtility.FromJson<GameMultiAttemptData>(json) ?? new GameMultiAttemptData();
             }
             else
             {
                 data = new GameMultiAttemptData();
             }
 
+            if (data.attempts == null) data.attempts = new List<GameAttempt>();
+
             // 清理字串
             List<string> cleanCorrect = new List<string>();
             foreach (var s in correctAnswers)
-            {
                 if (!string.IsNullOrWhiteSpace(s))
                     cleanCorrect.Add(s.Trim().Replace("　", ""));
-            }
 
             List<string> cleanSelected = new List<string>();
             foreach (var s in clickedAnimalSequence)
-            {
                 if (!string.IsNullOrWhiteSpace(s))
                     cleanSelected.Add(s.Trim().Replace("　", ""));
-            }
 
             var correctSet = new HashSet<string>(cleanCorrect);
             int correctCount = correctSet.Intersect(cleanSelected).Count();
@@ -318,7 +301,63 @@ public class GameManager_10 : MonoBehaviour
             data.attempts.Add(attempt);
 
             string updatedJson = JsonUtility.ToJson(data, true);
+
+            // 本地存檔（保留你的路徑策略）
+            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
             File.WriteAllText(saveFilePath, updatedJson);
+
+            // ✅ Firebase 防呆：Instance/testId 檢查，上傳失敗不擋流程
+            var fb = FirebaseManager_Firestore.Instance;
+            if (fb == null)
+            {
+                Debug.LogWarning("[GM] FirebaseManager_Firestore.Instance 為 null，僅完成本地存檔");
+            }
+            else
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(fb.testId))
+                    {
+                        Debug.LogWarning("[GM] Firebase testId 為空，略過雲端上傳（已完成本地存檔）");
+                    }
+                    else
+                    {
+                        // 分段 try-catch，避免互相影響
+                        try
+                        {
+                            fb.totalScore = fb.totalScore + correctCount;
+                        }
+                        catch (Exception scoreEx)
+                        {
+                            Debug.LogWarning($"[GM] 更新 totalScore 失敗：{scoreEx.Message}");
+                        }
+
+                        try
+                        {
+                            fb.SaveLevelData(fb.testId, levelID, correctCount);
+                        }
+                        catch (Exception saveEx)
+                        {
+                            Debug.LogWarning($"[GM] SaveLevelData 失敗：{saveEx.Message}");
+                        }
+
+                        try
+                        {
+                            byte[] updatedJsonBytes = System.Text.Encoding.UTF8.GetBytes(updatedJson);
+                            var files = new Dictionary<string, byte[]> { { "記憶選擇_jsonData.json", updatedJsonBytes } };
+                            fb.UploadFilesAndSaveUrls(fb.testId, levelID, files);
+                        }
+                        catch (Exception uploadEx)
+                        {
+                            Debug.LogWarning($"[GM] UploadFilesAndSaveUrls 失敗：{uploadEx.Message}");
+                        }
+                    }
+                }
+                catch (Exception outerEx)
+                {
+                    Debug.LogWarning($"[GM] Firebase 上傳流程例外：{outerEx.Message}");
+                }
+            }
 
             Debug.Log($"[GM] ✅ 已保存第 {round} 次作答");
             Debug.Log($"正確答案：{string.Join("、", cleanCorrect)}");
