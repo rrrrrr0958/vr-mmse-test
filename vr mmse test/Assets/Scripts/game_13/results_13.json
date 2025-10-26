@@ -1,10 +1,10 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-26 14:09:20.619",
+            "timestamp": "2025-10-26 21:47:55.934",
             "score": 1,
-            "wav_path": "D:/Github/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251026_140917976.wav",
-            "transcript": "好羨慕你喔幹嘛",
+            "wav_path": "D:/project/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251026_214753365.wav",
+            "transcript": "今天天氣很好",
             "error": "",
             "reasons": {
                 "has_subject_verb": true,

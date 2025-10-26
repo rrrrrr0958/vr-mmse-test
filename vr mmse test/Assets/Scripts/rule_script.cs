@@ -337,7 +337,7 @@ public class Rule_script : MonoBehaviour
         vr_hand_start?.SetActive(false);
 
         // 5. 啟動主流程
-        gameStart();
+        // gameStart();
         StartCoroutine(StartGameFlow());
     }
 

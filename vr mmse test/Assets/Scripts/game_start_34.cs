@@ -1061,6 +1061,7 @@ public class game_start_34 : MonoBehaviour
 
     void CheckAnswer(string userResponse, List<string> correctAnswers)
     {
+        Debug.Log(correctAnswers);
         string qKey = $"Q{level5QuestionIndex + 1}";
 
         if (string.IsNullOrEmpty(userResponse))
