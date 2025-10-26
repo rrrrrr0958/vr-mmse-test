@@ -18,7 +18,7 @@ public class SceneFlowManager : MonoBehaviour
 
     private readonly List<string> sceneOrder = new List<string>
     {
-        "Opening",
+        // "Opening",
         "Login Scene",
         // "Opening",
         "SampleScene_rule",
