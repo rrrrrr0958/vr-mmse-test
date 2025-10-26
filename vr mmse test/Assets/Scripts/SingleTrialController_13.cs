@@ -15,36 +15,34 @@ public class SingleTrialController : MonoBehaviour
     public AsrClient client;
 
     [Header("UI")]
-    public TextMeshProUGUI titleText; 	// 標題
+    public TextMeshProUGUI titleText;    // 標題
     public TextMeshProUGUI subtitleText; // 狀態/倒數
-    public Image countdownFill; 		// Image: Filled/Radial
-    public Image levelFill; 			// Image: Filled/Horizontal
+    public Image countdownFill;          // Image: Filled/Radial
+    public Image levelFill;              // Image: Filled/Horizontal
 
     [Header("Config")]
     public float maxSeconds = 10f;
 
     [Header("Auto flow")]
-    public bool autoStartOnSceneLoad = true; 	// 場景載入自動流程
-    public AudioSource promptSource; 			// 播題目用 AudioSource
-    public AudioClip promptClip; 				// 題目音檔
-    public float delayBeforePrompt = 0.2f; 	// 場景穩定一下再播
-    public float delayAfterPrompt = 0.0f; 	// 題目播完後緩衝（你希望立刻錄音就設 0）
+    public bool autoStartOnSceneLoad = true;   // 場景載入自動流程
+    public AudioSource promptSource;           // 播題目用 AudioSource
+    public AudioClip promptClip;               // 題目音檔
+    public float delayBeforePrompt = 0.2f;     // 場景穩定一下再播
+    public float delayAfterPrompt = 0.0f;      // 題目播完後緩衝（你希望立刻錄音就設 0）
 
     [Header("DSP Scheduling")]
-    public bool useDspScheduling = true; 		// 使用 DSP 精準排程讓題目一結束就錄音
-    public double dspLeadIn = 0.03; 			// 預留少量啟動緩衝
+    public bool useDspScheduling = true;       // 使用 DSP 精準排程讓題目一結束就錄音
+    public double dspLeadIn = 0.03;            // 預留少量啟動緩衝
 
-    // [Header("Diagnostics")]
-    // public bool verboseLog = true; // <--- 移除此行
     public float waitMaxGuardSeconds = 10f;
 
     private float tRemain;
     private bool recording;
-    private bool isProcessingComplete = false; // <-- 新增此旗標
+    private bool isProcessingComplete = false; // 成功/失敗後避免重複處理
 
     void Start()
     {
-        Debug.Log("[SingleTrial] Scene started. Initializing UI and Recorder."); // 加入日誌
+        Debug.Log("[SingleTrial] Scene started. Initializing UI and Recorder.");
         if (titleText) titleText.text = "請聽題目";
         if (subtitleText) subtitleText.text = "準備中…";
 
@@ -67,7 +65,7 @@ public class SingleTrialController : MonoBehaviour
             {
                 if (levelFill) levelFill.fillAmount = Mathf.Clamp01(lv);
             };
-            recorder.OnWavReady += OnWavReady; 	// 錄完觸發
+            recorder.OnWavReady += OnWavReady;  // 錄完觸發
         }
         else
         {
@@ -82,7 +80,7 @@ public class SingleTrialController : MonoBehaviour
 
     IEnumerator AutoFlowRoutine()
     {
-        Debug.Log($"[SingleTrial] Auto flow starting. Delay {delayBeforePrompt:F2}s."); // 加入日誌
+        Debug.Log($"[SingleTrial] Auto flow starting. Delay {delayBeforePrompt:F2}s.");
         if (delayBeforePrompt > 0f)
             yield return new WaitForSecondsRealtime(delayBeforePrompt);
 
@@ -98,16 +96,16 @@ public class SingleTrialController : MonoBehaviour
 
             // 1) 計算實際播放秒數（考慮 pitch）
             double duration = promptClip.length / Mathf.Max(0.01f, promptSource.pitch);
-            Debug.Log($"[SingleTrial] clip='{promptClip.name}', len={promptClip.length:F3}s, pitch={promptSource.pitch:F3}, dur={duration:F3}s"); // 日誌
+            Debug.Log($"[SingleTrial] clip='{promptClip.name}', len={promptClip.length:F3}s, pitch={promptSource.pitch:F3}, dur={duration:F3}s");
 
             // 2) 用 DSP 播，但用固定秒數等待（Hybrid）
             double startDsp = AudioSettings.dspTime + dspLeadIn; // 小緩衝避免丟頭
             promptSource.PlayScheduled(startDsp);
-            Debug.Log($"[SingleTrial] Playing scheduled at DSP: {startDsp:F3}"); // 日誌
+            Debug.Log($"[SingleTrial] Playing scheduled at DSP: {startDsp:F3}");
 
             // 等待「題目長度」這麼久（不受 timescale 影響）
             yield return new WaitForSecondsRealtime((float)duration + (float)dspLeadIn);
-            Debug.Log($"[SingleTrial] Prompt duration finished. Waiting for tail guard."); // 日誌
+            Debug.Log($"[SingleTrial] Prompt duration finished. Waiting for tail guard.");
 
             // 3) 尾端保險：最多再等 0.2s 或直到不再播放
             float tailGuard = 0f;
@@ -117,10 +115,9 @@ public class SingleTrialController : MonoBehaviour
                 yield return null;
             }
 
-            // 4) 你若真的要 0 延遲，將 delayAfterPrompt 設 0
             if (delayAfterPrompt > 0f)
             {
-                Debug.Log($"[SingleTrial] Waiting for delay after prompt: {delayAfterPrompt:F2}s"); // 日誌
+                Debug.Log($"[SingleTrial] Waiting for delay after prompt: {delayAfterPrompt:F2}s");
                 yield return new WaitForSecondsRealtime(delayAfterPrompt);
             }
         }
@@ -146,7 +143,7 @@ public class SingleTrialController : MonoBehaviour
 
         if (recorder != null)
         {
-            Debug.Log($"[SingleTrial] StartRecord() for {maxSeconds:F1}s."); // 日誌
+            Debug.Log($"[SingleTrial] StartRecord() for {maxSeconds:F1}s.");
             recorder.StartRecord();
         }
         else
@@ -162,11 +159,12 @@ public class SingleTrialController : MonoBehaviour
 
         if (recorder != null)
         {
-            Debug.Log("[SingleTrial] StopRecord()"); // 日誌
+            Debug.Log("[SingleTrial] StopRecord()");
             recorder.StopRecord();
         }
 
-        if (subtitleText) subtitleText.text = "上傳中…";
+        // ✅ 只想看到「錄音完成」→ 這裡不要再顯示「上傳中…」
+        // if (subtitleText) subtitleText.text = "上傳中…";  // 移除
     }
 
     void Update()
@@ -185,7 +183,7 @@ public class SingleTrialController : MonoBehaviour
 
     void OnWavReady(byte[] wav)
     {
-        Debug.Log($"[SingleTrial] WAV ready. Byte size: {wav.Length}"); // 日誌
+        Debug.Log($"[SingleTrial] WAV ready. Byte size: {wav.Length}");
 
         if (client == null)
         {
@@ -198,60 +196,50 @@ public class SingleTrialController : MonoBehaviour
         // 先存 WAV 到 Assets/Scripts/game_13（Editor）或 persistentDataPath/game_13（裝置）
         string savedWavPath = AsrResultLogger.SaveWav(wav);
 
+        // ✅ 關鍵：不要再傳 onProgress，也不要在這裡顯示任何進度文字
         StartCoroutine(client.UploadWav(
-      wav,
-      onDone: (resp) =>
-      {
-          if (isProcessingComplete) return; // <-- 保護：如果已完成，直接退出
-          isProcessingComplete = true; // <-- 成功後標記為已完成
-
-          string text = resp?.transcript ?? resp?.transcription;
-          int score = resp?.score ?? 0;
-
-          // 變更：改為儲存 JSON(Overwrite)
-          AsrResultLogger.OverwriteJson(resp, savedWavPath);
-          Debug.Log($"[SingleTrial] ASR success. Transcript: '{text ?? ""}', Score: {score}."); // 日誌
-
-          if (titleText) titleText.text = "錄音完成";
-          if (subtitleText) subtitleText.text = "完成";
-          string testId = FirebaseManager_Firestore.Instance.testId;
-          string levelIndex = "3";
-          FirebaseManager_Firestore.Instance.totalScore = FirebaseManager_Firestore.Instance.totalScore + score;
-          FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, score);
-          var files = new Dictionary<string, byte[]>();
-          files["sentence_wav"] = wav;
-          FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
-          SceneFlowManager.instance.LoadNextScene(); // 成功後才切換場景
-      },
-      onError: (err) =>
-      {
-          if (isProcessingComplete) return; // <-- 保護：如果已完成，直接退出
-          isProcessingComplete = true; // <-- 失敗後標記為已完成
-
-          // ❗ 變更：失敗也儲存 JSON 紀錄
-          AsrClient.GoogleASRResponse errorResp = new AsrClient.GoogleASRResponse
-          {
-
-              error = err,
-              score = -1,
-              transcript = $"<ERROR> {err}"
-          };
-          //AsrResultLogger.AppendJson(errorResp, savedWavPath);
-          AsrResultLogger.OverwriteJson(errorResp, savedWavPath);
-
-          if (titleText) titleText.text = "連線失敗";
-          if (subtitleText) subtitleText.text = "請確認伺服器與IP";
-          Debug.LogError($"[ASR] Upload/Score failed: {err}"); // 日誌
-          string testId = FirebaseManager_Firestore.Instance.testId;
-          string levelIndex = "3";
-          FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, 0);//score設定為0
-          SceneFlowManager.instance.LoadNextScene(); // 失敗後也切換場景
-      },
-            onProgress: (phase, p) =>
+            wav,
+            onDone: (resp) =>
             {
-                if (subtitleText) subtitleText.text = $"{phase} {Mathf.RoundToInt(p * 100)}%";
-            }
+                if (isProcessingComplete) return;
+                isProcessingComplete = true;
+
+                string text = resp?.transcript ?? resp?.transcription;
+                int score = resp?.score ?? 0;
+
+                // 你自己的紀錄（保留）
+                AsrResultLogger.OverwriteJson(resp, savedWavPath);
+                Debug.Log($"[SingleTrial] ASR success. Transcript: '{text ?? ""}', Score: {score}.");
+
+                // ✅ 只有完成時顯示「錄音完成」
+                if (titleText) titleText.text = "錄音完成";
+                if (subtitleText) subtitleText.text = "錄音完成";
+
+                // 若要保留流程切場景
+                SceneFlowManager.instance.LoadNextScene();
+            },
+            onError: (err) =>
+            {
+                if (isProcessingComplete) return;
+                isProcessingComplete = true;
+
+                // 失敗也儲存 JSON 紀錄
+                AsrClient.GoogleASRResponse errorResp = new AsrClient.GoogleASRResponse
+                {
+                    error = err,
+                    score = -1,
+                    transcript = $"<ERROR> {err}"
+                };
+                AsrResultLogger.OverwriteJson(errorResp, savedWavPath);
+
+                if (titleText) titleText.text = "連線失敗";
+                if (subtitleText) subtitleText.text = "請確認伺服器與IP";
+                Debug.LogError($"[ASR] Upload/Score failed: {err}");
+
+                // 失敗後也切換場景（若你想保留這行）
+                SceneFlowManager.instance.LoadNextScene();
+            },
+            onProgress: null // ✅ 不顯示「連線中/傳輸中/完成」
         ));
-        // ❗ 注意：場景切換已移至 onDone/onError 內部，以等待 ASR 結果。
     }
 }

@@ -51,7 +51,7 @@ public class QuestionManager : MonoBehaviour
 
     [Header("伺服器設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
-    public float recordingDuration = 3.5f; // 錄音長度
+    public float recordingDuration = 5.0f; // 錄音長度
 
     private AudioClip recordingClip;
 
@@ -69,6 +69,20 @@ public class QuestionManager : MonoBehaviour
     public Transform initialCameraPosition;
     public GameObject moneyNumber5;
     public GameObject moneyBg5;
+
+    [Header("淡入淡出設定 (防暈)")]
+    //public CanvasGroup fadeCanvasGroup; // 引用黑幕 UI 上的 CanvasGroup 元件
+    public float fadeDuration = 1.5f; // 淡入/淡出所需的時間 (秒)
+
+    // 新增：用於SetActive控制的黑幕物件引用
+    // 假設這個變數引用您的黑幕 Plane
+    [Header("SetActive 黑幕控制")]
+    public GameObject blackOutScreen;
+
+    // 在頂部定義區新增
+    [Header("Material 淡入淡出控制")]
+    public Renderer blackoutRenderer; // 將 Plane 上的 MeshRenderer 拖曳到這裡
+    private Material blackoutMaterial;
 
     [Header("攝影機設定")]
     public float cameraMoveDuration = 7.0f;
@@ -130,6 +144,30 @@ public class QuestionManager : MonoBehaviour
         // 初始化所有倒數 UI 為隱藏
         HideAllCountdownObjects();
 
+        // 📌 【新增】獲取 Material 實例
+        if (blackoutRenderer != null)
+        {
+            // 使用 sharedMaterial 是比較危險的，建議使用 material 複製實例來避免影響其他物件
+            blackoutMaterial = blackoutRenderer.material;
+            // 確保遊戲開始時是完全透明的
+            Color color = blackoutMaterial.color;
+            color.a = 0f;
+            blackoutMaterial.color = color;
+        }
+        else
+        {
+            Debug.LogError("請在 Inspector 中設定 Blackout Renderer！");
+            return; // 或者繼續，但沒有淡入淡出
+        }
+
+        // ... (其他 SetActive(false) 初始化)
+
+        // 將 blackOutScreen 保持為 SetActive(true)，讓 Material 負責 Alpha
+        if (blackOutScreen != null)
+        {
+            blackOutScreen.SetActive(true); // 現在讓它保持啟用，用 Material Alpha 控制顯示
+        }
+
         StartCoroutine(StartGameSequence());
     }
 
@@ -183,7 +221,8 @@ public class QuestionManager : MonoBehaviour
 
             moneyNumber5.SetActive(false);
             moneyBg5.SetActive(false);
-            yield return new WaitForSeconds(delayBetweenQuestions);
+
+            panelBackground.SetActive(false);
         }
         else
         {
@@ -249,14 +288,76 @@ public class QuestionManager : MonoBehaviour
         Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }
 
+    /// <summary>
+    /// 攝影機瞬移版本（淡出 → 瞬移 → 淡入）
+    /// </summary>
     IEnumerator MoveCameraToTarget(Transform target)
     {
-        if (xrOriginTransform == null)
+        if (xrOriginTransform == null || blackoutMaterial == null || hmdCamera == null)
         {
-            Debug.LogError("XR Origin Transform is not assigned!");
+            Debug.LogError("XR Origin, HMD Camera 或 Blackout Material 未準備好！跳過移動。");
+            // 🚨 萬一失敗，至少使用 SetActive 來避免暈眩
+            if (blackOutScreen != null) blackOutScreen.SetActive(false);
             yield break;
         }
 
+        // 1. 執行「淡出」：將 Material Alpha 從 0 變到 1
+        // blackOutScreen.SetActive(true); // 已經在 Start() 中設為 true
+        yield return StartCoroutine(MaterialFade(1f, fadeDuration)); // 淡出：畫面變黑
+
+        // 2. 瞬間傳送 (Teleport) - 在畫面全黑時完成傳送
+        // A. 計算 HMD 攝影機相對於 XR Origin 的位置差
+        Vector3 hmdOffset = hmdCamera.transform.position - xrOriginTransform.position;
+        // B. 計算目標位置
+        Vector3 finalPosition = target.position - hmdOffset;
+
+        // 瞬間移動 XR Origin 到新位置
+        xrOriginTransform.position = finalPosition;
+
+        // C. 旋轉 XR Origin 以匹配目標方向
+        Vector3 camForward = Vector3.ProjectOnPlane(hmdCamera.transform.forward, Vector3.up).normalized;
+        Vector3 tgtForward = Vector3.ProjectOnPlane(target.forward, Vector3.up).normalized;
+        float yawDelta = Vector3.SignedAngle(camForward, tgtForward, Vector3.up);
+        xrOriginTransform.Rotate(Vector3.up, yawDelta, Space.World);
+
+        // 3. 執行「淡入」：將 Material Alpha 從 1 變到 0
+        yield return StartCoroutine(MaterialFade(0f, fadeDuration)); // 淡入：畫面變亮
+                                                                     // blackOutScreen.SetActive(false); // 不再需要這行，Material Alpha=0 就是透明
+    }
+
+    /// <summary>
+    /// 控制 Material 的 Alpha 值來實現淡入淡出
+    /// </summary>
+    IEnumerator MaterialFade(float targetAlpha, float duration)
+    {
+        if (blackoutMaterial == null)
+        {
+            yield break;
+        }
+
+        Color startColor = blackoutMaterial.color;
+        float startAlpha = startColor.a;
+        float startTime = Time.time;
+        float endTime = startTime + duration;
+
+        while (Time.time < endTime)
+        {
+            float t = (Time.time - startTime) / duration;
+            Color newColor = blackoutMaterial.color;
+            newColor.a = Mathf.Lerp(startAlpha, targetAlpha, t);
+            blackoutMaterial.color = newColor;
+            yield return null;
+        }
+
+        // 確保到達最終值
+        Color finalColor = blackoutMaterial.color;
+        finalColor.a = targetAlpha;
+        blackoutMaterial.color = finalColor;
+    }
+
+    // (保留原本的平滑移動作為 fallback，可以刪除如果您只用淡入淡出)
+    IEnumerator SmoothMove(Transform target)
+    {
         float startTime = Time.time;
         Vector3 startPosition = xrOriginTransform.position;
         Quaternion startRotation = xrOriginTransform.rotation;
@@ -291,8 +392,8 @@ public class QuestionManager : MonoBehaviour
         lastTimeLeft = (int)Mathf.Ceil(duration);
         float startTime = Time.time;
 
-        // 初始化顯示為整數
-        if (countdownDisplay != null) countdownDisplay.text = lastTimeLeft.ToString();
+        // 初始化顯示為整數，並加上「剩 X 秒」的格式
+        if (countdownDisplay != null) countdownDisplay.text = "剩 " + lastTimeLeft.ToString() + " 秒";
 
         while (Time.time < startTime + duration)
         {
@@ -301,16 +402,20 @@ public class QuestionManager : MonoBehaviour
 
             if (timeLeft != lastTimeLeft && timeLeft >= 0)
             {
-                if (countdownDisplay != null) countdownDisplay.text = timeLeft.ToString();
+                if (countdownDisplay != null)
+                {
+                    // ⬇️ 修改這裡，使用「剩 X 秒」的格式 ⬇️
+                    countdownDisplay.text = "剩 " + timeLeft.ToString() + " 秒";
+                }
                 lastTimeLeft = timeLeft;
             }
             yield return null;
         }
 
-        // 倒數結束，確保最後顯示 0 
+        // 倒數結束，確保最後顯示「剩 0 秒」
         if (countdownDisplay != null)
         {
-            countdownDisplay.text = "0";
+            countdownDisplay.text = "剩 0 秒";
             yield return new WaitForSeconds(0.1f);
         }
     }
