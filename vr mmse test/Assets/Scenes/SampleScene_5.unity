@@ -778,8 +778,8 @@ MonoBehaviour:
   - questionText: "\u82B1\u8CBB7\u5143\u8CB7\u4E86\u9B5A\u4E4B\u5F8C\u5269\u591A\u5C11?"
     audioClip: {fileID: 8300000, guid: 80915b98acd77544a80436deda34906e, type: 3}
     nextAudioClip: {fileID: 8300000, guid: ccee9081df513a149b545f51f849250b, type: 3}
-    cameraTarget: {fileID: 1483125106}
-    vrCameraTarget: {fileID: 1483125106}
+    cameraTarget: {fileID: 852203668}
+    vrCameraTarget: {fileID: 852203668}
     numberObject: {fileID: 475236009}
     bgObject: {fileID: 1484384435}
     recordingObject: {fileID: 1852530665}
@@ -796,8 +796,8 @@ MonoBehaviour:
   - questionText: "\u82B1\u8CBB7\u5143\u8CB7\u4E86\u6C34\u679C\u4E4B\u5F8C\u5269\u591A\u5C11?"
     audioClip: {fileID: 8300000, guid: 2768c7628fcbc3249a955f91c03122b5, type: 3}
     nextAudioClip: {fileID: 8300000, guid: efe5f4722f5388644a42574d37f07b44, type: 3}
-    cameraTarget: {fileID: 1483125106}
-    vrCameraTarget: {fileID: 1483125106}
+    cameraTarget: {fileID: 1661707742}
+    vrCameraTarget: {fileID: 1661707742}
     numberObject: {fileID: 1751082051}
     bgObject: {fileID: 1895814051}
     recordingObject: {fileID: 1737534441}
@@ -805,8 +805,8 @@ MonoBehaviour:
   - questionText: "\u82B1\u8CBB7\u5143\u8CB7\u4E86\u6B66\u5668\u4E4B\u5F8C\u5269\u591A\u5C11?  "
     audioClip: {fileID: 8300000, guid: d9ddd3fed668e504caf25dccb1518e26, type: 3}
     nextAudioClip: {fileID: 8300000, guid: ef5e112f2ffff22429a16d9df90d009f, type: 3}
-    cameraTarget: {fileID: 1483125106}
-    vrCameraTarget: {fileID: 1483125106}
+    cameraTarget: {fileID: 1598770990}
+    vrCameraTarget: {fileID: 1598770990}
     numberObject: {fileID: 1046624813}
     bgObject: {fileID: 1461312987}
     recordingObject: {fileID: 1443699942}
@@ -814,8 +814,8 @@ MonoBehaviour:
   - questionText: "\u82B1\u8CBB7\u5143\u8CB7\u4E86\u8089\u4E4B\u5F8C\u5269\u591A\u5C11?"
     audioClip: {fileID: 8300000, guid: c8df850847e818141a4713447cb979eb, type: 3}
     nextAudioClip: {fileID: 8300000, guid: 63610e4090c5b014c92228eb5497025c, type: 3}
-    cameraTarget: {fileID: 1483125106}
-    vrCameraTarget: {fileID: 1483125106}
+    cameraTarget: {fileID: 1214220702}
+    vrCameraTarget: {fileID: 1214220702}
     numberObject: {fileID: 416126475}
     bgObject: {fileID: 830480579}
     recordingObject: {fileID: 976030805}

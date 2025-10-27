@@ -187,23 +187,47 @@ public class SessionController : MonoBehaviour
 
     // ===== 事件回呼：瞬移完成才出題（改為三階段流程） =====
     void HandleTeleportedTarget(Transform vp)
+{
+    if (_quizActive) return;
+    if (!RewireQuizPanelIfNeeded()) return;
+    if (!EnsureDbOrWarn()) return;
+
+    string sceneName = SceneManager.GetActiveScene().name;
+    string vpName = vp ? vp.name : GuessVPNameByNearest(sceneName);
+
+    // 1) 先精確找
+    _correctEntry = db?.FindBySceneAndVP(sceneName, vpName);
+
+    // 2) 模糊找：去掉尾巴的 "_數字"
+    if (_correctEntry == null && !string.IsNullOrEmpty(vpName))
     {
-        if (_quizActive) return;
-        if (!RewireQuizPanelIfNeeded()) return;
-        if (!EnsureDbOrWarn()) return;
-
-        string sceneName = SceneManager.GetActiveScene().name;
-        string vpName = vp ? vp.name : GuessVPNameByNearest(sceneName);
-
-        _correctEntry = db?.FindBySceneAndVP(sceneName, vpName);
-        if (_correctEntry == null)
+        var baseName = System.Text.RegularExpressions.Regex.Replace(vpName, @"_\d+$", "");
+        if (!string.Equals(baseName, vpName, StringComparison.Ordinal))
         {
-            _correctEntry = db.AllByScene(sceneName).FirstOrDefault() ?? db.entries.FirstOrDefault();
-            if (_correctEntry == null) { Debug.LogWarning("[Session] DB 空，無法出題。"); return; }
-            Debug.LogWarning($"[Session] 找不到 VP '{vpName}'，回退：{_correctEntry.displayText}");
+            _correctEntry = db?.FindBySceneAndVP(sceneName, baseName);
+
+            // 再寬鬆一點：以開頭相同比對（避免 DB 用 VP_Fruit 而物件叫 VP_Fruit_8_Extra）
+            if (_correctEntry == null && db != null)
+            {
+                _correctEntry = db.entries.FirstOrDefault(e =>
+                    e.sceneName == sceneName &&
+                    !string.IsNullOrEmpty(e.viewpointName) &&
+                    e.viewpointName.StartsWith(baseName, StringComparison.Ordinal));
+            }
         }
-        BeginThreeStageQuiz();
     }
+
+    // 3) 仍找不到才回退
+    if (_correctEntry == null)
+    {
+        _correctEntry = db.AllByScene(sceneName).FirstOrDefault() ?? db.entries.FirstOrDefault();
+        if (_correctEntry == null) { Debug.LogWarning("[Session] DB 空，無法出題。"); return; }
+        Debug.LogWarning($"[Session] 找不到 VP '{vpName}'，回退：{_correctEntry.displayText}");
+    }
+
+    BeginThreeStageQuiz();
+}
+
 
     // ===== 三階段入口 =====
     void BeginThreeStageQuiz()
@@ -310,21 +334,67 @@ public class SessionController : MonoBehaviour
     // ---------- Stage 3：攤位（最終計分與結束） ----------
     void HandleStage3(int idx)
     {
-        bool stallOk = (idx == _correctIndex);
+        // 只在第三階段有效
+        if (_stage != Stage.Stall) return;
+
+        // 立刻收起面板，避免殘留與連點
+        if (quizPanel) quizPanel.Hide();
+
+        // 安全保護：避免 _currentOptions 或 _correctIndex 越界
+        int count = _currentOptions != null ? _currentOptions.Count : 0;
+        if (count <= 0)
+        {
+            Debug.LogWarning("[Session] Stage3: 無可用選項，視為作答錯誤。");
+            idx = -1;
+        }
+        else
+        {
+            if (idx >= count) idx = count - 1;
+            // idx 可為 -1（理論上不會），表示無選擇
+        }
+
+        // 取 canonical 的正解鍵
+        string sceneName = SceneManager.GetActiveScene().name;
+        string correctKey = (_correctIndex >= 0 && _correctIndex < count)
+            ? (_currentOptions[_correctIndex]?.viewpointName ?? "")
+            : (_correctEntry?.viewpointName ?? "");
+        string correctDisplay = (_correctIndex >= 0 && _correctIndex < count)
+            ? (!string.IsNullOrEmpty(_currentOptions[_correctIndex]?.displayText)
+                ? _currentOptions[_correctIndex].displayText
+                : (_currentOptions[_correctIndex]?.stallLabel ?? ""))
+            : (_correctEntry?.displayText ?? _correctEntry?.stallLabel ?? "");
+
+        // 使用者選擇
+        string selectedKey = (idx >= 0)
+            ? (_currentOptions[idx]?.viewpointName ?? "")
+            : "";
+        string selectedDisplay = (idx >= 0)
+            ? (!string.IsNullOrEmpty(_currentOptions[idx]?.displayText)
+                ? _currentOptions[idx].displayText
+                : (_currentOptions[idx]?.stallLabel ?? ""))
+            : "";
+
+        // 以鍵值判定第三階段是否正確（避免參考不一致）
+        bool stallOk = (idx >= 0) &&
+                    string.Equals(selectedKey, correctKey, StringComparison.Ordinal);
 
         bool finalOk = (finalCorrectMode == CorrectMode.AllStages)
             ? (_stage1Ok && _stage2Ok && stallOk)
             : stallOk;
 
-        string selectedKey = (idx >= 0 && idx < _currentOptions.Count) ? _currentOptions[idx].viewpointName : "";
-        string selectedDisplay = (idx >= 0 && idx < _currentOptions.Count) ? _currentOptions[idx].displayText : "";
+        // Console 詳細紀錄
+        string floorNorm = NormalizeFloorLabel(_correctEntry?.floorLabel ?? "");
+        Debug.Log($"[Session] Stage3 Result | scene={sceneName}, floor={floorNorm}, " +
+                $"correct=({correctDisplay})[{correctKey}], chosen=({selectedDisplay})[{selectedKey}], " +
+                $"S1={_stage1Ok}, S2={_stage2Ok}, S3={stallOk}, FINAL={finalOk}");
 
+        // 紀錄到 logger（沿用你既有的三階段記錄 API）
         logger?.EndThreeStageQuestion(
             categoryCorrect: stage1CorrectCategory,
             categoryChosen: _pickedCategory,
             categoryIsCorrect: _stage1Ok,
 
-            floorCorrect: NormalizeFloorLabel(_correctEntry.floorLabel),
+            floorCorrect: floorNorm,
             floorChosen: _pickedFloor,
             floorIsCorrect: _stage2Ok,
 
@@ -335,72 +405,108 @@ public class SessionController : MonoBehaviour
             finalCorrect: finalOk
         );
 
+        // 邏輯收尾
         if (_mover) _mover.allowMove = true;
         if (showNavPanelAfterAnswer) ShowNavPanel();
 
         _stage = Stage.Done;
         _quizActive = false;
 
-        // 結束當題才把面板收起（避免最後一刻被擋）
-        if (quizPanel) quizPanel.Hide();
-
-        SceneFlowManager.instance.LoadNextScene();
+        // 跳下一關（保護：instance 可能為 null）
+        if (SceneFlowManager.instance != null)
+            SceneFlowManager.instance.LoadNextScene();
     }
 
     // ====== Stage 1 Builders ======
-    string[] BuildStage1Options(out int correctIndex)
+    // 取代原本的 BuildStage1Options
+string[] BuildStage1Options(out int correctIndex)
+{
+    // A) 正解歸一化（預設「市集」）
+    string correctCategory = string.IsNullOrWhiteSpace(stage1CorrectCategory)
+        ? "市集"
+        : stage1CorrectCategory.Trim();
+
+    // B) 面板實際可顯示的容量（避免超過面板按鈕數，導致正解或「市集」被裁掉）
+    int panelCap = Mathf.Max(1, quizPanel ? quizPanel.MaxOptions : optionsPerQuestion);
+    int targetCount = Mathf.Min(optionsPerQuestion, panelCap);
+
+    // C) 建立集合（鍵值用 Ordinal），先放正解 & 「市集」
+    var set = new HashSet<string>(StringComparer.Ordinal) { correctCategory, "市集" };
+
+    // D) 從干擾池補滿
+    var pool = stage1DistractorPool
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Select(s => s.Trim())
+        .Where(s => !set.Contains(s))                    // 不重複正解/市集
+        .OrderBy(_ => _rng.Next())
+        .ToList();
+
+    foreach (var p in pool)
     {
-        // 1) 正解清理
-        string correctCategory = string.IsNullOrWhiteSpace(stage1CorrectCategory) ? "市集" : stage1CorrectCategory.Trim();
-
-        // 2) 集合加入正解
-        var set = new HashSet<string>(System.StringComparer.Ordinal)
-        { 
-            correctCategory
-        };
-
-        // 3) 從干擾池補滿
-        var pool = stage1DistractorPool
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim())
-            .Where(s => !string.Equals(s, correctCategory, StringComparison.Ordinal))
-            .OrderBy(_ => _rng.Next())
-            .ToList();
-
-        foreach (var p in pool)
-        {
-            if (set.Count >= optionsPerQuestion) break;
-            set.Add(p);
-        }
-
-        // 4) 後備清單，確保數量
-        string[] fallback = { "市集", "動物園", "遊樂園", "博物館", "校園", "海邊", "車站" };
-        foreach (var f in fallback)
-        {
-            if (set.Count >= optionsPerQuestion) break;
-            if (!set.Contains(f)) set.Add(f);
-        }
-
-        // 5) 轉列表打亂
-        var list = set.ToList().OrderBy(_ => _rng.Next()).ToList();
-
-        // 6) **強制保障**：若因任何原因缺少正解，插回去
-        if (!list.Contains(correctCategory))
-        {
-            if (list.Count < optionsPerQuestion) list.Add(correctCategory);
-            else list[0] = correctCategory; // 直接用第一格換正解
-        }
-
-        // 7) 重新找正解索引
-        correctIndex = list.IndexOf(correctCategory);
-        if (correctIndex < 0)
-        {
-            correctIndex = 0;
-            list[0] = correctCategory;
-        }
-
-        return list.ToArray();
+        if (set.Count >= targetCount) break;
+        set.Add(p);
     }
+
+    // E) 後備清單補足
+    string[] fallback = { "市集", "動物園", "遊樂園", "博物館", "校園", "海邊", "車站" };
+    foreach (var f in fallback)
+    {
+        if (set.Count >= targetCount) break;
+        if (!set.Contains(f)) set.Add(f);
+    }
+
+    // F) 轉列表打亂
+    var list = set.ToList().OrderBy(_ => _rng.Next()).ToList();
+
+    // G) 最後保障：不論如何，「市集」與正解一定同時存在於可視範圍（targetCount）
+    // 若被打亂後跑到 targetCount 之外，就把它換回列表內
+    void EnsureInRange(string mustHave)
+    {
+        int idx = list.IndexOf(mustHave);
+        if (idx < 0)
+        {
+            // 不存在：強插
+            if (list.Count < targetCount) list.Add(mustHave);
+            else list[0] = mustHave; // 直接頂掉第 0 個干擾項
+        }
+        else if (idx >= targetCount)
+        {
+            // 存在但落在可視範圍外：交換到第 0 個
+            (list[0], list[idx]) = (list[idx], list[0]);
+        }
+    }
+
+    EnsureInRange("市集");
+    EnsureInRange(correctCategory);
+
+    // H) 修剪至面板容量（不會裁掉「市集」與正解）
+    list = list.Take(targetCount).ToList();
+
+    // I) 重新定位正解索引（保證有效）
+    correctIndex = list.IndexOf(correctCategory);
+    if (correctIndex < 0)
+    {
+        // 極端情況：把第 0 個換成正解
+        if (list.Count == 0) list.Add(correctCategory);
+        else list[0] = correctCategory;
+        correctIndex = 0;
+    }
+
+    // 方便除錯
+    Debug.Log($"[Session] Stage1 options = {string.Join(" / ", list)} | correct='{correctCategory}' @ {correctIndex}");
+    // === 安全保護：保持 _correctEntry 不受干擾 ===
+// 確保在第一階段修改選項時不會重設 _correctEntry
+    if (_correctEntry == null && db != null)
+    {
+        // 若意外被清空，強制重新指派
+        var sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        _correctEntry = db.AllByScene(sceneName).FirstOrDefault();
+    }
+    // =================================================
+
+    return list.ToArray();
+}
+
 
     // ====== Stage 2 Builders ======
     string[] BuildStage2Options(out int correctIndex)
@@ -442,35 +548,71 @@ public class SessionController : MonoBehaviour
 
     // ====== Stage 3 Builders（攤位）======
     List<LocationEntry> BuildStage3StallOptions(LocationEntry correct, out int correctIdx)
+{
+    var list = new List<LocationEntry>();
+    correctIdx = -1;
+    if (db == null || db.entries == null || db.entries.Count == 0 || correct == null)
+        return list;
+
+    // 用鍵把 correct「對齊」到 db.entries 的 canonical 參考
+    var correctRef = db.entries.FirstOrDefault(e =>
+        e.sceneName == correct.sceneName &&
+        e.viewpointName == correct.viewpointName) ?? correct;
+
+    // 先取同樓層、同場景
+    string normFloor = NormalizeFloorLabel(correctRef.floorLabel);
+    var sameFloor = db.entries.Where(e =>
+        e.sceneName == correctRef.sceneName &&
+        NormalizeFloorLabel(e.floorLabel) == normFloor);
+
+    // 擴充池（同場景 → 全庫），以鍵去重
+    var pool = sameFloor.ToList();
+    if (pool.Count < optionsPerQuestion)
+        pool = pool.Concat(db.entries.Where(e => e.sceneName == correctRef.sceneName &&
+                                                 !pool.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName))).ToList();
+    if (pool.Count < optionsPerQuestion)
+        pool = pool.Concat(db.entries.Where(e => !pool.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName))).ToList();
+
+    // 先放正解（canonical）
+    list.Add(correctRef);
+
+    // 再隨機補齊到目標數量（以鍵去重）
+    foreach (var e in pool.OrderBy(_ => _rng.Next()))
     {
-        var list = new List<LocationEntry>();
-        if (db == null || db.entries == null || db.entries.Count == 0)
-        {
-            correctIdx = -1;
-            return list;
-        }
+        if (list.Count >= optionsPerQuestion) break;
+        bool sameKey = list.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName);
+        if (!sameKey) list.Add(e);
+    }
 
-        string normFloor = NormalizeFloorLabel(correct.floorLabel);
-        IEnumerable<LocationEntry> sameFloor = db.entries.Where(e =>
-            e.sceneName == correct.sceneName && NormalizeFloorLabel(e.floorLabel) == normFloor);
-
-        var pool = sameFloor.ToList();
-        if (pool.Count < optionsPerQuestion)
-            pool = pool.Concat(db.entries.Where(e => e.sceneName == correct.sceneName && !pool.Contains(e))).ToList();
-        if (pool.Count < optionsPerQuestion)
-            pool = pool.Concat(db.entries.Where(e => !pool.Contains(e))).ToList();
-
-        list.Add(correct);
-        foreach (var e in pool.OrderBy(_ => _rng.Next()))
+    // 若數量仍不足，就從全庫補（仍以鍵去重）
+    if (list.Count < optionsPerQuestion)
+    {
+        foreach (var e in db.entries.OrderBy(_ => _rng.Next()))
         {
             if (list.Count >= optionsPerQuestion) break;
-            if (!list.Contains(e)) list.Add(e);
+            bool sameKey = list.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName);
+            if (!sameKey) list.Add(e);
         }
-
-        list = list.OrderBy(_ => _rng.Next()).ToList();
-        correctIdx = list.IndexOf(correct);
-        return list;
     }
+
+    // 打亂
+    list = list.OrderBy(_ => _rng.Next()).ToList();
+
+    // 用「鍵」求正解索引（不要用參考）
+    correctIdx = list.FindIndex(x => x.sceneName == correctRef.sceneName &&
+                                     x.viewpointName == correctRef.viewpointName);
+
+    // 萬一找不到（極端），強制把第 0 個換成正解
+    if (correctIdx < 0)
+    {
+        if (list.Count == 0) list.Add(correctRef);
+        else list[0] = correctRef;
+        correctIdx = 0;
+    }
+
+    return list;
+}
+
 
     // ===== utils =====
     string GuessVPNameByNearest(string sceneName)
