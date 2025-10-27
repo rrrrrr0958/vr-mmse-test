@@ -1,14 +1,14 @@
 {
     "entries": [
         {
-            "timestamp": "2025-10-26 21:47:55.934",
-            "score": 1,
-            "wav_path": "D:/project/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251026_214753365.wav",
-            "transcript": "今天天氣很好",
-            "error": "",
+            "timestamp": "2025-10-28 03:23:25.452",
+            "score": -1,
+            "wav_path": "D:/project/vr-mmse-test/vr mmse test/Assets\\Scripts\\game_13\\record_20251028_032324767.wav",
+            "transcript": "<ERROR> 400 HTTP/1.1 400 Bad Request {\"error\":\"Could not understand audio\",\"reasons\":{\"has_subject_verb\":false,\"understandable\":false},\"score\":-1,\"transcript\":\"<ERROR> Could not understand audio\"}\n",
+            "error": "400 HTTP/1.1 400 Bad Request {\"error\":\"Could not understand audio\",\"reasons\":{\"has_subject_verb\":false,\"understandable\":false},\"score\":-1,\"transcript\":\"<ERROR> Could not understand audio\"}\n",
             "reasons": {
-                "has_subject_verb": true,
-                "understandable": true
+                "has_subject_verb": false,
+                "understandable": false
             }
         }
     ]

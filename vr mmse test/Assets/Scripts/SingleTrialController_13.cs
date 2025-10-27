@@ -227,7 +227,7 @@ public class SingleTrialController : MonoBehaviour
                 AsrClient.GoogleASRResponse errorResp = new AsrClient.GoogleASRResponse
                 {
                     error = err,
-                    score = -1,
+                    score = 0,
                     transcript = $"<ERROR> {err}"
                 };
                 AsrResultLogger.OverwriteJson(errorResp, savedWavPath);
