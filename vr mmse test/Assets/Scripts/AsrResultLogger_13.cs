@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.SocialPlatforms.Impl;
 
 public static class AsrResultLogger
 {
@@ -40,6 +41,9 @@ public static class AsrResultLogger
     /// </summary>
     public static string SaveWav(byte[] wavBytes, string preferredName = null)
     {
+        string testId = FirebaseManager_Firestore.Instance.testId;
+        string levelIndex = "3";
+
         try
         {
             Directory.CreateDirectory(BaseDir);
@@ -53,6 +57,14 @@ public static class AsrResultLogger
 
             File.WriteAllBytes(fullPath, wavBytes);
             Debug.Log($"[AsrResultLogger] WAV saved: {fullPath}");
+
+            var files = new Dictionary<string, byte[]>
+            {
+                { fileName, wavBytes } // key: 檔名, value: 檔案位元組
+            };
+
+            FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
+            
             return fullPath;
         }
         catch (Exception ex)
@@ -93,6 +105,10 @@ public static class AsrResultLogger
             File.WriteAllText(JsonPath, finalJson);
 
             Debug.Log($"[AsrResultLogger] JSON overwritten: {JsonPath}, score: {response.score}");
+            string testId = FirebaseManager_Firestore.Instance.testId;
+            string levelIndex = "3";
+            FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, response.score);
+            FirebaseManager_Firestore.Instance.totalScore += response.score; 
         }
         catch (Exception ex)
         {

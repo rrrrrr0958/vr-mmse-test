@@ -107,7 +107,7 @@ public class Rule_script : MonoBehaviour
 
     void Start()
     {
-        FirebaseManager = FirebaseManager_Firestore.Instance;
+        // FirebaseManager = FirebaseManager_Firestore.Instance;
         // 檢查左右手 Interactor 是否已指定
         if (leftHandInteractor == null || rightHandInteractor == null)
         {
@@ -190,7 +190,7 @@ public class Rule_script : MonoBehaviour
 
     public void gameStart()
     {
-        testId = FirebaseManager.GenerateTestId();
+        testId = FirebaseManager_Firestore.Instance.GenerateTestId();
         Debug.Log("測驗開始，Test ID: " + testId);
     }
 
@@ -256,7 +256,7 @@ public class Rule_script : MonoBehaviour
         RuleText_rule.gameObject.SetActive(false);
         Debug.Log("🎯 規則播放完畢，流程結束。");
         // 🚨 假設 SceneFlowManager.instance.LoadNextScene() 存在且運作正常
-        FirebaseManager.SaveLevelData(testId, levelIndex, levelScore);
+        FirebaseManager_Firestore.Instance.SaveLevelData(testId, levelIndex, levelScore);
         SceneFlowManager.instance.LoadNextScene(); 
         Debug.Log("✅ 流程結束，準備載入下一個場景。");
     }
@@ -337,7 +337,7 @@ public class Rule_script : MonoBehaviour
         vr_hand_start?.SetActive(false);
 
         // 5. 啟動主流程
-        gameStart();
+        // gameStart();
         StartCoroutine(StartGameFlow());
     }
 

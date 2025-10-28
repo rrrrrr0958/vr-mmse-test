@@ -1,4 +1,4 @@
-timeISO,sceneName,rtMs,finalCorrect,categoryCorrect,categoryChosen,categoryIsCorrect,floorCorrect,floorChosen,floorIsCorrect,stallCorrectKey,stallCorrectDisplay,stallChosenKey,stallChosenDisplay,stallIsCorrect
+﻿timeISO,sceneName,rtMs,finalCorrect,categoryCorrect,categoryChosen,categoryIsCorrect,floorCorrect,floorChosen,floorIsCorrect,stallCorrectKey,stallCorrectDisplay,stallChosenKey,stallChosenDisplay,stallIsCorrect
 timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
 2025-10-14T13:25:07.1179364+08:00,f2_8,VP_Weapons_8,二樓 武器店,VP_Weapons_8,1,2359
 2025-10-14T16:24:15.1475644+08:00,f1_8,VP_Bread_8,一樓 麵包店,VP_Bread_8,1,3670
@@ -19,3 +19,7 @@ timeISO,sceneName,vpKey,displayText,userChoiceKey,correct,rtMs
 2025-10-25T22:34:56.4741975+08:00,f1_8,13368,1,市集,市集,1,一樓,一樓,1,VP_Bread_8,麵包店,VP_Bread_8,麵包店,1
 2025-10-25T22:38:26.3846088+08:00,f2_8,13910,1,市集,市集,1,二樓,二樓,1,VP_Weapons_8,五金行,VP_Weapons_8,五金行,1
 2025-10-25T22:42:08.1447507+08:00,f1_8,22845,1,市集,市集,1,一樓,一樓,1,VP_Bread_8,麵包店,VP_Bread_8,麵包店,1
+2025-10-26T21:29:02.4745840+08:00,f1_8,17192,0,市集,市集,1,一樓,一樓,1,VP_Bread_8,麵包店,VP_Fish_8,魚攤,0
+2025-10-28T03:29:41.0472002+08:00,f2_8,12416,1,市集,市集,1,二樓,二樓,1,VP_Weapons_8,五金行,VP_Weapons_8,五金行,1
+2025-10-28T13:34:39.7530844+08:00,f3_8,65656,0,市集,市集,1,三樓,三樓,1,VP_Fruit_8,水果攤,VP_Meat_8,肉攤,0
+2025-10-28T14:17:56.5564207+08:00,f2_8,20405,1,市集,市集,1,二樓,二樓,1,VP_Weapons_8,五金行,VP_Weapons_8,五金行,1

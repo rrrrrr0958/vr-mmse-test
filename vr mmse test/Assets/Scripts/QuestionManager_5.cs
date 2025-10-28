@@ -646,7 +646,7 @@ public class QuestionManager : MonoBehaviour
 
         string testId = FirebaseManager_Firestore.Instance.testId;
         string levelIndex = "7"; // 這一關的代號，請依場景改
-        FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
+        // FirebaseManager_Firestore.Instance.SaveLevelOptions(testId, levelIndex, correctOptions, playerOptions);
     }
 
 

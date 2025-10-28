@@ -13,16 +13,8 @@ public class ResultController : MonoBehaviour
     [Header("Audio")]
     public AudioController audioController;
 
-    [Header("Star Settings")]
-    public GameObject[] stars;
-
     [Header("Animation Settings")]
-    [Tooltip("第一顆星星出現前的延遲時間")]
-    public float initialStarDelay = 0.5f; // ✅ 新增：第一顆星星出現前延遲
-    [Tooltip("每顆星星之間的間隔時間")]
-    public float starSpawnDelay = 0.22f;
-    [Tooltip("星星全部出現後到文字出現的間隔時間")]
-    public float delayAfterStars = 0.3f;
+    public float initialTextDelay = 0.5f;
     [Tooltip("文字出現後到按鈕出現的間隔時間")]
     public float delayAfterMessage = 0.5f;
 
@@ -45,56 +37,18 @@ public class ResultController : MonoBehaviour
         // 隱藏繼續按鈕
         if (continueButton != null)
             continueButton.gameObject.SetActive(false);
-
-        // 隱藏所有星星
-        if (stars != null)
-        {
-            foreach (GameObject star in stars)
-            {
-                if (star != null)
-                    star.SetActive(false);
-            }
-        }
-
-        
     }
 
     IEnumerator ShowResultSequence()
     {
         // ✅ 在第一顆星星出現前等待指定延遲
-        yield return new WaitForSeconds(initialStarDelay);
-
-        // 1. 逐一顯示星星
-        if (stars != null)
-        {
-            bool isFirstStar = true;
-
-            foreach (GameObject star in stars)
-            {
-                if (star != null)
-                {
-                    star.SetActive(true);
-
-                    // 只在第一顆星星出現時播放音效
-                    if (isFirstStar && audioController != null)
-                    {
-                        audioController.PlayStarSpawnSound();
-                        isFirstStar = false;
-                    }
-
-                    yield return new WaitForSeconds(starSpawnDelay);
-                }
-            }
-        }
-
-        // 2. 星星全部出現後等待
-        yield return new WaitForSeconds(delayAfterStars);
+        yield return new WaitForSeconds(initialTextDelay);
 
         // 3. 顯示訊息文字
         if (messageText != null)
         {
             messageText.gameObject.SetActive(true);
-            messageText.text = "繼續挑戰下一關";
+            messageText.text = "按下粉紅按鈕\n繼續挑戰下一關";
         }
 
         // 4. 文字出現後等待
@@ -121,12 +75,4 @@ public class ResultController : MonoBehaviour
         }
         SceneFlowManager.instance.LoadNextScene();
     }
-
-    //private IEnumerator LoadNextSceneAfterDelay(float delay)
-    //{
-    //    yield return new WaitForSeconds(delay);
-        
-    //}
-
-
 }
