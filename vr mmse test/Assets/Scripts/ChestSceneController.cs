@@ -175,8 +175,8 @@ public class ChestSceneController : MonoBehaviour
 
     void OnContinueButtonClicked()
     {
-        // FirebaseManager_Firestore.Instance.LoadRecentTests(1, OnRecentTestsChecked);
         StartCoroutine(HandleContinueButton());
+        FirebaseManager_Firestore.Instance.LoadRecentTests(1, OnRecentTestsChecked);
         SceneFlowManager.instance.LoadNextScene();
     }
 
