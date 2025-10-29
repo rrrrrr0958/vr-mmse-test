@@ -547,68 +547,79 @@ string[] BuildStage1Options(out int correctIndex)
     }
 
     // ====== Stage 3 Builders（攤位）======
-    List<LocationEntry> BuildStage3StallOptions(LocationEntry correct, out int correctIdx)
+    // 以「面板可視容量」建出第 3 階段的選項，並保證正解一定落在可視範圍。
+// 回傳最終用于顯示的 options（數量 <= panelCap），以及對應的 correctIdx（在截斷後的陣列中）。
+List<LocationEntry> BuildStage3StallOptions(LocationEntry correct, out int correctIdx)
 {
     var list = new List<LocationEntry>();
     correctIdx = -1;
     if (db == null || db.entries == null || db.entries.Count == 0 || correct == null)
         return list;
 
-    // 用鍵把 correct「對齊」到 db.entries 的 canonical 參考
+    // 1) 面板容量與目標數
+    int panelCap = Mathf.Max(1, quizPanel ? quizPanel.MaxOptions : optionsPerQuestion);
+    int targetCount = Mathf.Min(optionsPerQuestion, panelCap);
+
+    // 2) 用鍵把 correct「對齊」到 DB 的 canonical 參考
     var correctRef = db.entries.FirstOrDefault(e =>
         e.sceneName == correct.sceneName &&
         e.viewpointName == correct.viewpointName) ?? correct;
 
-    // 先取同樓層、同場景
+    // 3) 依同樓層、同場景 → 同場景 → 全庫 擴充池（以鍵去重）
     string normFloor = NormalizeFloorLabel(correctRef.floorLabel);
-    var sameFloor = db.entries.Where(e =>
-        e.sceneName == correctRef.sceneName &&
-        NormalizeFloorLabel(e.floorLabel) == normFloor);
+    bool SameKey(LocationEntry a, LocationEntry b) =>
+        a.sceneName == b.sceneName && a.viewpointName == b.viewpointName;
 
-    // 擴充池（同場景 → 全庫），以鍵去重
-    var pool = sameFloor.ToList();
-    if (pool.Count < optionsPerQuestion)
-        pool = pool.Concat(db.entries.Where(e => e.sceneName == correctRef.sceneName &&
-                                                 !pool.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName))).ToList();
-    if (pool.Count < optionsPerQuestion)
-        pool = pool.Concat(db.entries.Where(e => !pool.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName))).ToList();
+    var pool = db.entries
+        .Where(e => e.sceneName == correctRef.sceneName && NormalizeFloorLabel(e.floorLabel) == normFloor)
+        .ToList();
 
-    // 先放正解（canonical）
+    if (pool.Count < targetCount)
+        pool = pool.Concat(db.entries.Where(e => e.sceneName == correctRef.sceneName && !pool.Any(x => SameKey(x, e)))).ToList();
+    if (pool.Count < targetCount)
+        pool = pool.Concat(db.entries.Where(e => !pool.Any(x => SameKey(x, e)))).ToList();
+
+    // 4) 先放正解，再隨機補齊到 targetCount
     list.Add(correctRef);
-
-    // 再隨機補齊到目標數量（以鍵去重）
     foreach (var e in pool.OrderBy(_ => _rng.Next()))
     {
-        if (list.Count >= optionsPerQuestion) break;
-        bool sameKey = list.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName);
-        if (!sameKey) list.Add(e);
+        if (list.Count >= targetCount) break;
+        if (!list.Any(x => SameKey(x, e))) list.Add(e);
     }
 
-    // 若數量仍不足，就從全庫補（仍以鍵去重）
-    if (list.Count < optionsPerQuestion)
+    // 5) 若數量仍不足，從全庫補滿到 targetCount
+    foreach (var e in db.entries.OrderBy(_ => _rng.Next()))
     {
-        foreach (var e in db.entries.OrderBy(_ => _rng.Next()))
-        {
-            if (list.Count >= optionsPerQuestion) break;
-            bool sameKey = list.Any(x => x.sceneName == e.sceneName && x.viewpointName == e.viewpointName);
-            if (!sameKey) list.Add(e);
-        }
+        if (list.Count >= targetCount) break;
+        if (!list.Any(x => SameKey(x, e))) list.Add(e);
     }
 
-    // 打亂
+    // 6) 打亂後，若正解被洗到可視範圍之外，強制換回可視範圍
     list = list.OrderBy(_ => _rng.Next()).ToList();
-
-    // 用「鍵」求正解索引（不要用參考）
-    correctIdx = list.FindIndex(x => x.sceneName == correctRef.sceneName &&
-                                     x.viewpointName == correctRef.viewpointName);
-
-    // 萬一找不到（極端），強制把第 0 個換成正解
-    if (correctIdx < 0)
+    int rawCorrect = list.FindIndex(x => SameKey(x, correctRef));
+    if (rawCorrect < 0)
     {
+        // 退路：保證索引 0 是正解
         if (list.Count == 0) list.Add(correctRef);
         else list[0] = correctRef;
-        correctIdx = 0;
+        rawCorrect = 0;
     }
+
+    // 7) 修剪到 targetCount（面板容量），並確保正解仍在修剪後的區間內
+    if (list.Count > targetCount)
+    {
+        // 若正解超出範圍，先把它 swap 到範圍內再截斷
+        if (rawCorrect >= targetCount)
+        {
+            (list[0], list[rawCorrect]) = (list[rawCorrect], list[0]);
+            rawCorrect = 0;
+        }
+        list = list.Take(targetCount).ToList();
+    }
+
+    // 8) 回填最終 correctIdx（在可視範圍內）
+    correctIdx = list.FindIndex(x => SameKey(x, correctRef));
+    if (correctIdx < 0) { correctIdx = 0; list[0] = correctRef; }
 
     return list;
 }
