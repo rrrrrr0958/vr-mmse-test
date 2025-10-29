@@ -448,7 +448,7 @@ public class Rule_script : MonoBehaviour
         float clipLength = endTime - startTime;
 
         Debug.Log($"✅ 錄音停止，錄音長度: {clipLength:F2} 秒");
-        RuleText_rule.text = "處理中...";
+        RuleText_rule.text = "錄音已結束";
 
         if (clipLength > 0.1f)
         {
