@@ -1,29 +1,29 @@
 {
     "correctAnswers": [
-        "馬",
-        "香蕉",
-        "大衣"
+        "水桶",
+        "槌子",
+        "馬"
     ],
     "attempts": [
         {
             "round": 1,
             "selected": [
-                "大衣",
-                "馬",
-                "香蕉"
+                "水桶",
+                "槌子",
+                "馬"
             ],
             "correctCount": 3,
-            "timeUsed": 3.444793701171875
+            "timeUsed": 2.697601318359375
         },
         {
             "round": 2,
             "selected": [
+                "槌子",
                 "馬",
-                "香蕉",
-                "大衣"
+                "水桶"
             ],
             "correctCount": 3,
-            "timeUsed": 2.762847900390625
+            "timeUsed": 2.934539794921875
         }
     ]
 }
