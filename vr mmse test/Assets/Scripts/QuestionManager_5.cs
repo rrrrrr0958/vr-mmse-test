@@ -93,6 +93,9 @@ public class QuestionManager : MonoBehaviour
     public Camera hmdCamera;
     public Transform initialSpawnPoint;
 
+    [Header("網路逾時秒數")]
+    public float networkTimeout = 10.0f; // 設定 10 秒為逾時上限
+
 
     void Start()
     {
@@ -571,8 +574,27 @@ public class QuestionManager : MonoBehaviour
         form.AddBinaryData("file", audioData, "recording.wav", "audio/wav");
 
         UnityWebRequest request = UnityWebRequest.Post(serverUrl, form);
-        yield return request.SendWebRequest();
+        // 發送請求，但不等待完成
+        var asyncOperation = request.SendWebRequest();
+        float startTime = Time.time;
 
+        // 等待請求完成或達到逾時時間
+        while (!asyncOperation.isDone)
+        {
+            if (Time.time - startTime >= networkTimeout)
+            {
+                // 達到逾時！中止請求並跳出迴圈
+                request.Abort();
+                Debug.LogError($"❌ 語音辨識請求逾時 (超過 {networkTimeout} 秒)。強制中斷並視為無回應。");
+
+                // 呼叫更新金錢和檢查答案的函式，傳入空字串作為回應
+                UpdateMoneyAndCheckAnswer(string.Empty, questionSequenceIndex);
+                yield break; // 結束整個協程
+            }
+            yield return null; // 等待下一幀
+        }
+
+        // 請求已完成（成功、失敗或被中止）
         string userResponse = string.Empty;
 
         if (request.result == UnityWebRequest.Result.Success)
@@ -590,12 +612,39 @@ public class QuestionManager : MonoBehaviour
                 Debug.LogError("解析 JSON 失敗: " + ex.Message);
             }
         }
-        else
+        else if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
         {
+            // 如果請求因為網路問題或協議錯誤而失敗
             Debug.LogError("語音辨識請求失敗: " + request.error);
         }
+        // 如果是 Result.Timeout，則在上面 `request.Abort()` 時已經處理
 
         UpdateMoneyAndCheckAnswer(userResponse, questionSequenceIndex);
+        //yield return request.SendWebRequest();
+
+        //string userResponse = string.Empty;
+
+        //if (request.result == UnityWebRequest.Result.Success)
+        //{
+        //    string jsonResponse = request.downloadHandler.text;
+        //    Debug.Log("伺服器回應: " + jsonResponse);
+
+        //    try
+        //    {
+        //        RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
+        //        userResponse = response.transcription;
+        //    }
+        //    catch (System.Exception ex)
+        //    {
+        //        Debug.LogError("解析 JSON 失敗: " + ex.Message);
+        //    }
+        //}
+        //else
+        //{
+        //    Debug.LogError("語音辨識請求失敗: " + request.error);
+        //}
+
+        //UpdateMoneyAndCheckAnswer(userResponse, questionSequenceIndex);
     }
 
     int currentQuestionIndex = 0;
@@ -615,10 +664,19 @@ public class QuestionManager : MonoBehaviour
         int remainingMoney = currentMoney - spentMoney;
         currentMoney = remainingMoney;
 
+        // ✨【關鍵修改點：處理逾時或無回應時傳入的 string.Empty】
         if (string.IsNullOrEmpty(userResponse))
         {
-            Debug.Log("沒有聽到或辨識到回答，但金額已扣除。");
-            return;
+            // 如果是逾時或沒聽到，userResponse 是 string.Empty
+            Debug.Log("沒有聽到或辨識到回答，或伺服器逾時。金額已扣除。");
+
+            // 由於沒有收到答案，將玩家答案記錄為 "No Response" 或類似值
+            string qKey_NR = $"Q{currentQuestionIndex + 1}";
+            correctOptions[qKey_NR] = remainingMoney.ToString();
+            playerOptions[qKey_NR] = "No Response/Timeout"; // 標記為無回應或逾時
+
+            currentQuestionIndex++;
+            return; // 直接返回，不執行後續的辨識結果檢查
         }
 
         string remainingMoneyStr = remainingMoney.ToString();

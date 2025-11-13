@@ -81,6 +81,8 @@ public class game_start_34 : MonoBehaviour
     [Header("語音辨識設定")]
     public string serverUrl = "http://localhost:5000/recognize_speech";
     public float recordingDuration = 4f;
+    [Tooltip("語音辨識網路請求的超時時間 (秒)。若超時則視為未作答。")]
+    public int recognitionRequestTimeout = 10; // 新增超時設定 (單位：秒)
 
     // ===== 新增：VR 控制器 & Ray 設定 =====
     [Header("VR 控制器設定（方案A）")]
@@ -1014,6 +1016,8 @@ public class game_start_34 : MonoBehaviour
             FirebaseManager_Firestore.Instance.UploadFilesAndSaveUrls(testId, levelIndex, files);
 
             SaveWavFile(wavData, currentVoiceQuestionIndex);
+
+            // 【修改點 3：恢復為沒有額外參數的呼叫方式】
             yield return StartCoroutine(SendAudioToServer(wavData, correctAnswers));
         }
         else
@@ -1033,8 +1037,16 @@ public class game_start_34 : MonoBehaviour
         form.AddBinaryData("file", audioData, "recording.wav", "audio/wav");
 
         UnityWebRequest request = UnityWebRequest.Post(serverUrl, form);
+
+        // ⭐ 核心修改：設定超時時間
+        request.timeout = recognitionRequestTimeout;
+
         yield return request.SendWebRequest();
 
+        // 處理文字板 (如果存在)
+        TMPro.TextMeshPro textDisplay = (currentVoiceQuestionIndex >= 2 && question3_VoiceText != null) ? question3_VoiceText : questionBroadcastTextMeshPro;
+
+        // 檢查網路錯誤、HTTP 錯誤，或最重要的：超時錯誤 (使用舊版 Unity 的檢查方式)
         if (request.result == UnityWebRequest.Result.Success)
         {
             string jsonResponse = request.downloadHandler.text;
@@ -1042,17 +1054,37 @@ public class game_start_34 : MonoBehaviour
             try
             {
                 RecognitionResponse response = JsonUtility.FromJson<RecognitionResponse>(jsonResponse);
+
+                // 成功：流程繼續到 CheckAnswer
                 CheckAnswer(response.transcription, correctAnswers);
             }
             catch (System.Exception ex)
             {
                 Debug.LogError("解析 JSON 失敗: " + ex.Message);
+                // 解析失敗：流程繼續到 ShowResultAndContinue(false)
+                StartCoroutine(ShowResultAndContinue(false));
             }
         }
         else
         {
-            Debug.LogError("語音辨識請求失敗: " + request.error);
+            // ⭐ 防卡死關鍵：如果網路失敗或超時，執行錯誤處理並讓流程繼續
+            string errorType = (request.result == UnityWebRequest.Result.ConnectionError || request.isNetworkError)
+                               ? "Connection/Timeout Error"
+                               : "HTTP Error";
+
+            Debug.LogError($"語音辨識請求失敗 ({errorType}): {request.error}。流程將繼續...");
+
+            if (textDisplay != null)
+            {
+                // 可選：顯示失敗提示
+                textDisplay.text = $"辨識失敗 ({errorType})";
+            }
+
+            // 失敗/超時：流程繼續到 ShowResultAndContinue(false)
+            StartCoroutine(ShowResultAndContinue(false));
         }
+
+        // SendAudioToServer 結束時，表示所有網路和流程判斷都已完成，主流程可以繼續。
     }
 
     int level5QuestionIndex = 0;
