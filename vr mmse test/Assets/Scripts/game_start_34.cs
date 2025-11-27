@@ -1074,11 +1074,12 @@ public class game_start_34 : MonoBehaviour
 
             Debug.LogError($"語音辨識請求失敗 ({errorType}): {request.error}。流程將繼續...");
 
-            if (textDisplay != null)
-            {
-                // 可選：顯示失敗提示
-                textDisplay.text = $"辨識失敗 ({errorType})";
-            }
+            //if (textDisplay != null)
+            //{
+            //    // 可選：顯示失敗提示
+            //    textDisplay.text = $"辨識失敗 ({errorType})";
+
+            //}
 
             // 失敗/超時：流程繼續到 ShowResultAndContinue(false)
             StartCoroutine(ShowResultAndContinue(false));
